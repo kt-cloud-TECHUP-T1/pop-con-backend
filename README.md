@@ -6,10 +6,10 @@
 ## 💁‍♂️ 프로젝트 팀원
 
 
-|                            백엔드                             |                             백엔드                             |
-|:----------------------------------------------------------:|:-----------------------------------------------------------:|
-| <img src="https://github.com/son2304.png" width="130px" /> | <img src="https://github.com/youngyii.png" width="130px" /> |
-|      손무경 <br/> [@son2304](https://github.com/son2304)      |          이신영 <br/> [@youngyii](https://github.com/youngyii)           |
+|                           백엔드                              |                            백엔드                            |                              풀스택                              |
+|:----------------------------------------------------------:|:---------------------------------------------------------:|:-------------------------------------------------------------:|
+| <img src="https://github.com/son2304.png" width="130px" /> | <img src="https://github.com/youngyii.png" width="130px" /> | <img src="https://github.com/Kimmingi1127.png" width="130px" /> |
+|      손무경 <br/> [@son2304](https://github.com/son2304)      |         이신영 <br/> [@youngyii](https://github.com/youngyii)          |    김민기  <br/> [@Kimmingi1127](https://github.com/Kimmingi1127)    |
 
 
 
