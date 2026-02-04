@@ -1,1 +1,6 @@
 rootProject.name = 'pop-con-backend'
+
+include 'api'
+include 'domain'
+include 'infra'
+include 'common'
