@@ -1,0 +1,45 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Build output
+build/
+**/build/
+out/
+
+# IDE
+.idea
+.vscode
+*.iws
+*.iml
+*.ipr
+
+# Gradle cache (wrapper는 필요하므로 제외하지 않음)
+.gradle
+
+# Docs
+README.md
+HELP.md
+*.md
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Security - 민감 파일 절대 포함 금지
+*.pem
+*.key
+*.env
+aws.yml
+secrets.yml
+application-secret.yml
+application-prod.yml
+
+# Docker
+Dockerfile
+docker-compose*.yml
+
+# GitHub
+.github/
