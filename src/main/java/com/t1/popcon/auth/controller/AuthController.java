@@ -1,0 +1,31 @@
+package com.t1.popcon.auth.controller;
+
+import com.t1.popcon.auth.dto.AuthRequest;
+import com.t1.popcon.auth.dto.AuthResponse;
+import com.t1.popcon.auth.service.AuthService;
+import com.t1.popcon.common.response.ApiResponse;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/auth")
+@RequiredArgsConstructor
+public class AuthController {
+
+	private final AuthService authService;
+
+	@PostMapping("/signup")
+	public ResponseEntity<ApiResponse<AuthResponse.Signup>> signup(
+		@Valid @RequestBody AuthRequest.Signup request
+	) {
+		// @AuthenticationPrincipal Long userId
+		Long dummyUserId = 1L;
+
+		AuthResponse.Signup response = authService.signup(dummyUserId, request);
+
+		return ResponseEntity.ok(ApiResponse.ok("약관 동의 및 회원가입이 완료되었습니다.", response));
+	}
+}
