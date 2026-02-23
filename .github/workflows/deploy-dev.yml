@@ -44,4 +44,5 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Record image output
+        id: output
         run: echo "image=${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY_NAME }}:backend-${{ github.sha }}" >> $GITHUB_OUTPUT
