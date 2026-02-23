@@ -1,8 +1,8 @@
-package com.t1.popcon.auth.controller;
+package com.t1.popcon.auth.identity.controller;
 
-import com.t1.popcon.auth.dto.IdentityRequest;
-import com.t1.popcon.auth.dto.IdentityResponse;
-import com.t1.popcon.auth.service.IdentityService;
+import com.t1.popcon.auth.identity.dto.IdentityRequest;
+import com.t1.popcon.auth.identity.dto.IdentityResponse;
+import com.t1.popcon.auth.identity.service.IdentityService;
 import com.t1.popcon.common.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

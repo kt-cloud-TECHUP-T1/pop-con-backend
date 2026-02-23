@@ -1,4 +1,4 @@
-package com.t1.popcon.auth.dto;
+package com.t1.popcon.auth.identity.dto;
 
 import jakarta.validation.constraints.NotNull;
 

@@ -1,7 +1,7 @@
-package com.t1.popcon.auth.service;
+package com.t1.popcon.auth.identity.service;
 
-import com.t1.popcon.auth.dto.IdentityRequest;
-import com.t1.popcon.auth.dto.IdentityResponse;
+import com.t1.popcon.auth.identity.dto.IdentityRequest;
+import com.t1.popcon.auth.identity.dto.IdentityResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
