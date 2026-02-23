@@ -57,4 +57,4 @@ Desktop.ini
 aws.yml
 secrets.yml
 application-secret.yml
-application-prod.yml
+.env
