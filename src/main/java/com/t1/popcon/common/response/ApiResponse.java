@@ -1,6 +1,7 @@
 package com.t1.popcon.common.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.t1.popcon.common.exception.ErrorCode;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -8,6 +9,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
+@JsonPropertyOrder({"code", "message", "data"})
 public class ApiResponse<T> {
 
     private static final String SUCCESS = "SUCCESS";
