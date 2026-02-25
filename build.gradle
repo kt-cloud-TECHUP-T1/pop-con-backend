@@ -95,7 +95,11 @@ tasks.register('enhanceOpenapiWithJwt') {
         }
 
         def yaml = new Yaml()
-        def model = yaml.load(openapiFile.text) as Map
+        def loaded = yaml.load(openapiFile.getText('UTF-8'))
+        if (!(loaded instanceof Map)) {
+            throw new GradleException("Invalid OpenAPI root node in ${openapiFile.path}: expected mapping object.")
+        }
+        def model = (Map) loaded
 
         // ----- components.securitySchemes.bearerAuth 추가 -----
         def components = (model.get('components') ?: [:]) as Map
@@ -116,14 +120,22 @@ tasks.register('enhanceOpenapiWithJwt') {
         }
 
         // ----- 루트 security: - bearerAuth: [] 추가 -----
-        if (!model.containsKey('security')) {
-            model.put('security', [[('bearerAuth'): []]])
-            println "✅ root-level security: - bearerAuth: [] added."
+        def security = model.get('security')
+        if (!(security instanceof List)) {
+            security = []
+        }
+        def hasBearerAuth = security.any {
+            entry -> (entry instanceof Map) && entry.containsKey('bearerAuth')
+        }
+        if (!hasBearerAuth) {
+            security << [('bearerAuth'): []]
+            model.put('security', security)
+            println "✅ root-level security: - bearerAuth: [] merged."
         } else {
-            println "ℹ️ root-level security already exists. Keep as is."
+            println "ℹ️ root-level security already contains bearerAuth. Skip add."
         }
 
-        openapiFile.text = yaml.dump(model)
+        openapiFile.setText(yaml.dump(model), 'UTF-8')
     }
 }
 

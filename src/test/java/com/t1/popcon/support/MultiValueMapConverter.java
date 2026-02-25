@@ -26,6 +26,12 @@ public final class MultiValueMapConverter {
 	 * - Collection/배열은 같은 key로 여러 번 add 허용 (a=1&a=2&a=3)
 	 */
 	public static MultiValueMap<String, String> convert(ObjectMapper objectMapper, Object dto) {
+		if (objectMapper == null) {
+			throw new IllegalArgumentException("objectMapper must not be null");
+		}
+		if (dto == null) {
+			return new LinkedMultiValueMap<>();
+		}
 		try {
 			// 1단계: DTO → Map<String, Object>
 			Map<String, Object> raw = objectMapper.convertValue(
@@ -34,6 +40,10 @@ public final class MultiValueMapConverter {
 			);
 
 			MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+
+			if (raw == null) {
+				return params;
+			}
 
 			raw.forEach((key, value) -> {
 				if (value == null) {

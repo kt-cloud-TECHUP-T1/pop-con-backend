@@ -10,8 +10,11 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpMethod;
@@ -232,7 +235,29 @@ public class RestDocsFactory {
 	 */
 	public <T> FieldDescriptor[] getFields(T dto) {
 		List<FieldDescriptor> fields = new ArrayList<>();
-		generateFieldDescriptors(dto, "", fields);
+		Set<Object> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+		if (dto instanceof Collection<?> collection) {
+			fields.add(PayloadDocumentation.fieldWithPath("[]")
+				.type(JsonFieldType.ARRAY)
+				.description("root array")
+				.optional());
+			if (!collection.isEmpty()) {
+				Object first = collection.iterator().next();
+				generateFieldDescriptors(first, "[].", fields, visited);
+			}
+			return fields.toArray(new FieldDescriptor[0]);
+		}
+		if (dto != null && dto.getClass().isArray()) {
+			fields.add(PayloadDocumentation.fieldWithPath("[]")
+				.type(JsonFieldType.ARRAY)
+				.description("root array")
+				.optional());
+			if (Array.getLength(dto) > 0) {
+				generateFieldDescriptors(Array.get(dto, 0), "[].", fields, visited);
+			}
+			return fields.toArray(new FieldDescriptor[0]);
+		}
+		generateFieldDescriptors(dto, "", fields, visited);
 		return fields.toArray(new FieldDescriptor[0]);
 	}
 
@@ -241,8 +266,8 @@ public class RestDocsFactory {
 	 * - Map 타입(nodesById 등)은 subsection으로만 문서화하고 내부 키는 스키마에서 제외
 	 * - page, slice 같은 필드는 optional 로 선언하여 JSON에 없어도 에러가 나지 않도록 처리
 	 */
-	private <T> void generateFieldDescriptors(T dto, String pathPrefix, List<FieldDescriptor> fields) {
-		if (dto == null || isSimpleType(dto)) {
+	private <T> void generateFieldDescriptors(T dto, String pathPrefix, List<FieldDescriptor> fields, Set<Object> visited) {
+		if (dto == null || isSimpleType(dto) || visited.contains(dto)) {
 			return;
 		}
 
@@ -280,12 +305,12 @@ public class RestDocsFactory {
 					firstElement = Array.get(fieldValue, 0);
 				}
 				if (firstElement != null) {
-					generateFieldDescriptors(firstElement, fieldPath + "[].", fields);
+					generateFieldDescriptors(firstElement, fieldPath + "[].", fields, visited);
 				}
 			}
 
 			if (fieldType == JsonFieldType.OBJECT && fieldValue != null && !isSimpleType(fieldValue)) {
-				generateFieldDescriptors(fieldValue, fieldPath + ".", fields);
+				generateFieldDescriptors(fieldValue, fieldPath + ".", fields, visited);
 			}
 		}
 	}
