@@ -121,8 +121,10 @@ tasks.register('enhanceOpenapiWithJwt') {
 
         // ----- 루트 security: - bearerAuth: [] 추가 -----
         def security = model.get('security')
-        if (!(security instanceof List)) {
+        if (security == null) {
             security = []
+        } else if (!(security instanceof List)) {
+            throw new GradleException("Invalid OpenAPI 'security' node in ${openapiFile.path}: expected array.")
         }
         def hasBearerAuth = security.any {
             entry -> (entry instanceof Map) && entry.containsKey('bearerAuth')
