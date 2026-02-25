@@ -135,6 +135,11 @@ afterEvaluate {
             }
         }
     }
+    tasks.named('bootRun') {
+        if (!isSkipTest) {
+            dependsOn 'copyOasToSwagger'
+        }
+    }
 
     tasks.named('resolveMainClassName') {
         mustRunAfter 'copyOasToSwagger'
