@@ -59,7 +59,7 @@ public class UserService {
     public void linkKakaoByCi(String ciHash, String kakaoUserId) {
         validateSocialId(kakaoUserId);
 
-        User user = userRepository.findByCiHash(ciHash)
+        User user = userRepository.findByCiHashAndDeletedFalse(ciHash)
             .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         user.connectKakao(kakaoUserId, LocalDateTime.now());
@@ -68,7 +68,7 @@ public class UserService {
     public void linkNaverByCi(String ciHash, String naverUserId) {
         validateSocialId(naverUserId);
 
-        User user = userRepository.findByCiHash(ciHash)
+        User user = userRepository.findByCiHashAndDeletedFalse(ciHash)
             .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         user.connectNaver(naverUserId, LocalDateTime.now());
