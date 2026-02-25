@@ -58,8 +58,12 @@ public final class MultiValueMapConverter {
 
 			return params;
 		} catch (Exception e) {
-			log.error("Url Parameter 변환중 오류가 발생했습니다. requestDto={}", dto, e);
-			throw new IllegalStateException("Url Parameter 변환중 오류가 발생했습니다.", e);
+			log.error(
+				"Url Parameter 변환중 오류가 발생했습니다. requestDtoType={}",
+				(dto != null ? dto.getClass().getName() : "null"),
+				e
+			);
+			throw new IllegalStateException("Url Parameter 변환 중 오류가 발생했습니다.", e);
 		}
 	}
 

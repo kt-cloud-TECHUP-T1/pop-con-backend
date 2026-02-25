@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
+import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
@@ -22,10 +23,8 @@ public class TestRedisConfig {
 	@Bean
 	@Primary
 	public StringRedisTemplate stringRedisTemplate() {
-		StringRedisTemplate template = mock(StringRedisTemplate.class);
-
-		when(template.getConnectionFactory()).thenReturn(mock(RedisConnectionFactory.class));
-
-		return template;
+		RedisConnectionFactory connectionFactory = mock(RedisConnectionFactory.class);
+		when(connectionFactory.getConnection()).thenReturn(mock(RedisConnection.class));
+		return spy(new StringRedisTemplate(connectionFactory));
 	}
 }

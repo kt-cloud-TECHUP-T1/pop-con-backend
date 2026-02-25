@@ -11,7 +11,7 @@ import org.yaml.snakeyaml.Yaml
 
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.5.11'
+    id 'org.springframework.boot' version '3.5.5'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'com.epages.restdocs-api-spec' version '0.19.4'
 }
@@ -47,7 +47,7 @@ dependencies {
 
     // redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-    implementation 'org.redisson:redisson-spring-boot-starter:3.32.0'
+    implementation 'org.redisson:redisson-spring-boot-starter:3.52.0'
 
     // test & restdocs
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -91,8 +91,7 @@ tasks.register('enhanceOpenapiWithJwt') {
                 .asFile
 
         if (!openapiFile.exists()) {
-            println "⚠️ openapi3.yaml not found: ${openapiFile.path}"
-            return
+            throw new GradleException("openapi3.yaml not found: ${openapiFile.path}. Run tests first to generate the OpenAPI spec.")
         }
 
         def yaml = new Yaml()

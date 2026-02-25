@@ -3,11 +3,13 @@ package com.t1.popcon.support;
 import static com.epages.restdocs.apispec.ResourceDocumentation.*;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -27,6 +29,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import com.epages.restdocs.apispec.MockMvcRestDocumentationWrapper;
+import com.epages.restdocs.apispec.ResourceSnippetParametersBuilder;
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.epages.restdocs.apispec.Schema;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -99,14 +102,18 @@ public class RestDocsFactory {
 		String responseSchemaName = responseDto != null ? responseDto.getClass().getSimpleName() : null;
 		List<ParameterDescriptor> queryParameters = buildParameterDescriptors(queryDto, pageable, objectMapper);
 
-		ResourceSnippetParameters resource = ResourceSnippetParameters.builder()
+		ResourceSnippetParametersBuilder builder = ResourceSnippetParameters.builder()
 			.tag(tag)
 			.summary(summary)
 			.description(description)
-			.queryParameters(queryParameters.toArray(new ParameterDescriptor[0]))
-			.responseSchema(responseSchemaName != null ? Schema.schema(responseSchemaName) : null)
-			.responseFields(responseDto != null ? getFields(responseDto) : new FieldDescriptor[] {})
-			.build();
+			.queryParameters(queryParameters.toArray(new ParameterDescriptor[0]));
+		if (responseSchemaName != null) {
+			builder.responseSchema(Schema.schema(responseSchemaName));
+		}
+		if (responseDto != null) {
+			builder.responseFields(getFields(responseDto));
+		}
+		ResourceSnippetParameters resource = builder.build();
 
 		return MockMvcRestDocumentationWrapper.document(
 			identifier,
@@ -263,9 +270,18 @@ public class RestDocsFactory {
 				.optional();
 			fields.add(descriptor);
 
-			if (fieldType == JsonFieldType.ARRAY && fieldValue instanceof List<?> list && !list.isEmpty()) {
-				Object firstElement = list.get(0);
-				generateFieldDescriptors(firstElement, fieldPath + "[].", fields);
+			if (fieldType == JsonFieldType.ARRAY) {
+				Object firstElement = null;
+				if (fieldValue instanceof List<?> list && !list.isEmpty()) {
+					firstElement = list.get(0);
+				} else if (fieldValue instanceof Collection<?> collection && !collection.isEmpty()) {
+					firstElement = collection.iterator().next();
+				} else if (fieldValue != null && fieldValue.getClass().isArray() && Array.getLength(fieldValue) > 0) {
+					firstElement = Array.get(fieldValue, 0);
+				}
+				if (firstElement != null) {
+					generateFieldDescriptors(firstElement, fieldPath + "[].", fields);
+				}
 			}
 
 			if (fieldType == JsonFieldType.OBJECT && fieldValue != null && !isSimpleType(fieldValue)) {
@@ -304,7 +320,7 @@ public class RestDocsFactory {
 	}
 
 	private JsonFieldType determineFieldType(Class<?> fieldType, Object fieldValue) {
-		if (fieldValue instanceof List<?>) {
+		if (fieldValue instanceof Collection<?> || (fieldValue != null && fieldValue.getClass().isArray())) {
 			return JsonFieldType.ARRAY;
 		}
 		if (Map.class.isAssignableFrom(fieldType)) {
@@ -319,7 +335,7 @@ public class RestDocsFactory {
 		if (Number.class.isAssignableFrom(fieldType) || fieldType.isPrimitive()) {
 			return JsonFieldType.NUMBER;
 		}
-		if (List.class.isAssignableFrom(fieldType)) {
+		if (Collection.class.isAssignableFrom(fieldType) || fieldType.isArray()) {
 			return JsonFieldType.ARRAY;
 		}
 		if (fieldType == LocalDate.class || fieldType == LocalDateTime.class || fieldType == LocalTime.class) {
