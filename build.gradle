@@ -137,7 +137,7 @@ tasks.register('enhanceOpenapiWithJwt') {
             println "ℹ️ root-level security already contains bearerAuth. Skip add."
         }
 
-        openapiFile.setText(yaml.dump(model), 'UTF-8')
+        openapiFile.setText(yaml.dumpAsMap(model), 'UTF-8')
     }
 }
 
