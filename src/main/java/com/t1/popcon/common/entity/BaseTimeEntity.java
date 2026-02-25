@@ -1,5 +1,6 @@
 package com.t1.popcon.common.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
 import lombok.Getter;
@@ -14,8 +15,10 @@ import java.time.LocalDateTime;
 @EntityListeners(AuditingEntityListener.class)
 public abstract class BaseTimeEntity extends BaseIdEntity {
 	@CreatedDate
+    @Column(nullable = false, updatable = false)
 	protected LocalDateTime createdAt;
 
 	@LastModifiedDate
+    @Column(nullable = false)
 	protected LocalDateTime updatedAt;
 }
