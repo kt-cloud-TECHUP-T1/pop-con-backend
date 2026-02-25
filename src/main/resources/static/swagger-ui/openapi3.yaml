@@ -1,0 +1,27 @@
+openapi: 3.0.1
+info: {title: 팝업 스토어 API 명세서, description: '예약 및 드로우, 굿즈 관리 API', version: 0.1.0}
+servers:
+- {url: 'http://localhost:8080'}
+tags: []
+paths:
+  /health:
+    get:
+      tags: [Common]
+      summary: 서버 헬스 체크
+      description: 팝콘 서버의 정상 작동 여부를 확인합니다.
+      operationId: health-check
+      responses:
+        '200':
+          description: '200'
+          content:
+            application/json;charset=UTF-8:
+              schema: {$ref: '#/components/schemas/health486549215'}
+              examples:
+                health-check: {value: Pop-Con Server is running}
+components:
+  schemas:
+    health486549215: {type: object}
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
+security:
+- bearerAuth: []
