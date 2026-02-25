@@ -7,6 +7,8 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
+    Optional<User> findByIdAndDeletedFalse(Long id);
+
     Optional<User> findByCiHashAndDeletedFalse(String ciHash);
 
     Optional<User> findByKakaoUserIdAndDeletedFalse(String kakaoUserId);

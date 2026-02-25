@@ -93,7 +93,7 @@ public class UserService {
     }
 
     private User getUserOrThrow(Long userId) {
-        return userRepository.findById(userId)
+        return userRepository.findByIdAndDeletedFalse(userId)
             .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
     }
 }
