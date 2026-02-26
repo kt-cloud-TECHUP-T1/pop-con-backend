@@ -38,7 +38,7 @@ jobs:
           --health-retries=20
 
     env:
-      # application-prod.yml을 CI에서 그대로 쓰기 (env 변수 주입이 깔끔함)
+      # application-prod.yml 기반으로 환경변수 주입
       SPRING_PROFILES_ACTIVE: prod
 
       DB_HOST: 127.0.0.1
@@ -67,6 +67,31 @@ jobs:
 
       - name: Ensure swagger-ui dir exists
         run: mkdir -p src/main/resources/static/swagger-ui
+
+      - name: Install redis-cli & mysql client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y redis-tools mysql-client
+
+      - name: Wait for Redis
+        run: |
+          for i in {1..30}; do
+            if redis-cli -h 127.0.0.1 -p 6379 ping | grep -q PONG; then
+              echo "Redis OK"; exit 0
+            fi
+            echo "Waiting for Redis..."; sleep 2
+          done
+          echo "Redis NOT ready"; exit 1
+
+      - name: Wait for MySQL
+        run: |
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 -uroot -proot --silent; then
+              echo "MySQL OK"; exit 0
+            fi
+            echo "Waiting for MySQL..."; sleep 2
+          done
+          echo "MySQL NOT ready"; exit 1
 
       - name: Test + Docs (OpenAPI 생성/merge/복사)
         run: ./gradlew clean test copyOasToSwagger
