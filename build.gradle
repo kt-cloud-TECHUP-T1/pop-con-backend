@@ -67,7 +67,10 @@ tasks.register('enhanceOpenapiWithJwt') {
 
     doLast {
         def openapiFile = layout.buildDirectory.file("api-spec/openapi3.yaml").get().asFile
-        if (!openapiFile.exists()) return
+        if (!openapiFile.exists()) {
+            if (isSkipTest) return
+            throw new GradleException("openapi3.yaml 생성 실패: ${openapiFile}")
+        }
 
         def yaml = new Yaml()
         def loaded = yaml.load(openapiFile.getText('UTF-8'))
@@ -136,9 +139,10 @@ afterEvaluate {
         }
     }
     tasks.named('bootRun') {
-        if (!isSkipTest) {
-            dependsOn 'copyOasToSwagger'
-        }
+        // 기본 bootRun 경로에서는 테스트/문서 생성 체인을 분리
+    }
+    tasks.register('bootRunWithDocs') {
+        dependsOn 'copyOasToSwagger', 'bootRun'
     }
 
     tasks.named('resolveMainClassName') {

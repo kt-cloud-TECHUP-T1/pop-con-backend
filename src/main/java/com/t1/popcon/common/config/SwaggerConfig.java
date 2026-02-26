@@ -6,7 +6,7 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
-@Profile("default || local")
+@Profile({"default", "local"})
 public class SwaggerConfig implements WebMvcConfigurer {
 
 	@Override
