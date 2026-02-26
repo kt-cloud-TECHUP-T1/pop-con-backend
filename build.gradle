@@ -76,6 +76,9 @@ tasks.register('enhanceOpenapiWithJwt') {
 
         def yaml = new Yaml()
         def loaded = yaml.load(openapiFile.getText('UTF-8'))
+        if (!(loaded instanceof Map)) {
+            throw new GradleException("openapi3.yaml 루트 구조가 올바르지 않습니다: ${openapiFile}")
+        }
         def model = (Map) loaded
 
         def components = (model.get('components') ?: [:]) as Map
