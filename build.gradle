@@ -57,7 +57,9 @@ openapi3 {
     format = 'yaml'
 }
 
-def isSkipTest = gradle.startParameter.excludedTaskNames.any { it.contains('test') }
+def isSkipTest = gradle.startParameter.excludedTaskNames.any { taskName ->
+    taskName == 'test' || taskName.endsWith(':test')
+}
 
 /**
  * 2. openapi3.yaml 에 bearerAuth Security 스키마를 구조적으로 merge
