@@ -7,6 +7,51 @@ servers:
 - url: /
 tags: []
 paths:
+  /auth/signup:
+    post:
+      tags:
+      - Auth
+      summary: 회원가입 및 약관 동의
+      description: 본인인증 후 발급된 임시 토큰과 약관 동의 정보를 기반으로 회원가입을 진행합니다.
+      operationId: auth-signup
+      requestBody:
+        content:
+          application/json;charset=UTF-8:
+            schema:
+              $ref: '#/components/schemas/Class'
+            examples:
+              auth-signup:
+                value: |-
+                  {
+                    "registerToken" : "test_register_token_1234",
+                    "agreements" : {
+                      "isPrivacyPolicyAgreed" : true,
+                      "isIdentifierPolicyAgreed" : true,
+                      "isServicePolicyAgreed" : true,
+                      "isMarketingAgreed" : true
+                    }
+                  }
+      responses:
+        '200':
+          description: '200'
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/Class'
+              examples:
+                auth-signup:
+                  value: |-
+                    {
+                      "code" : "SUCCESS",
+                      "message" : "약관 동의 및 회원가입이 완료되었습니다.",
+                      "data" : {
+                        "userId" : 1,
+                        "name" : "홍길동",
+                        "accessToken" : "access_token",
+                        "refreshToken" : "refresh_token",
+                        "joinedAt" : "2026-02-27T17:44:04.860036"
+                      }
+                    }
   /health:
     get:
       tags:
@@ -26,6 +71,9 @@ paths:
                   value: Pop-Con Server is running
 components:
   schemas:
+    Class:
+      title: Class
+      type: object
     health486549215:
       type: object
   securitySchemes:

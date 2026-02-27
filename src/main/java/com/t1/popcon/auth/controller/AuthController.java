@@ -21,10 +21,7 @@ public class AuthController {
 	public ResponseEntity<ApiResponse<AuthResponse.Signup>> signup(
 		@Valid @RequestBody AuthRequest.Signup request
 	) {
-		// @AuthenticationPrincipal Long userId
-		Long dummyUserId = 1L;
-
-		AuthResponse.Signup response = authService.signup(dummyUserId, request);
+		AuthResponse.Signup response = authService.signup(request);
 
 		return ResponseEntity.ok(ApiResponse.ok("약관 동의 및 회원가입이 완료되었습니다.", response));
 	}
