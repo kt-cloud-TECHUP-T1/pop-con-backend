@@ -22,11 +22,10 @@ spring:
         show_sql: true
     defer-datasource-initialization: true
 
-  data:
-    redis:
-      host: localhost
-      port: ${REDIS_PORT}
-      password: ${REDIS_PASSWORD}
+  autoconfigure:
+    exclude:
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
 
 logging:
   level:

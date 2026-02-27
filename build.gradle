@@ -50,7 +50,8 @@ dependencies {
 }
 
 openapi3 {
-    servers = [{ url = 'http://localhost:8080' }]
+//    servers = [{ url = 'http://localhost:8080' }]
+    servers = [{ url = '/' }]
     title = '팝업 스토어 API 명세서'
     description = '예약 및 드로우, 굿즈 관리 API'
     version = '0.1.0'

@@ -4,7 +4,7 @@ info:
   description: 예약 및 드로우, 굿즈 관리 API
   version: 0.1.0
 servers:
-- url: http://localhost:8080
+- url: /
 tags: []
 paths:
   /health:

@@ -13,7 +13,8 @@ RUN chmod +x gradlew && ./gradlew dependencies --no-daemon
 
 # 소스 코드 복사 및 실행 가능한 jar 파일 빌드
 COPY src src
-RUN ./gradlew bootJar -x test --no-daemon && rm -f build/libs/*-plain.jar
+RUN SPRING_PROFILES_ACTIVE=test ./gradlew clean build --no-daemon \
+    && rm -f build/libs/*-plain.jar
 
 # 2. 실행 단계 (Run Stage)
 FROM eclipse-temurin:21-jre-jammy
