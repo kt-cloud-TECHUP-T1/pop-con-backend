@@ -38,12 +38,16 @@ public class JwtFilter extends OncePerRequestFilter {
 				SecurityContextHolder.getContext().setAuthentication(authentication);
 			}
 		} catch (io.jsonwebtoken.ExpiredJwtException e) {
+			SecurityContextHolder.clearContext();
 			request.setAttribute("exception", ErrorCode.TOKEN_EXPIRED);
 		} catch (io.jsonwebtoken.security.SignatureException | io.jsonwebtoken.MalformedJwtException e) {
+			SecurityContextHolder.clearContext();
 			request.setAttribute("exception", ErrorCode.INVALID_TOKEN);
 		} catch (CustomException e) {
+			SecurityContextHolder.clearContext();
 			request.setAttribute("exception", e.getErrorCode());
 		} catch (Exception e) {
+			SecurityContextHolder.clearContext();
 			request.setAttribute("exception", ErrorCode.ERROR_SYSTEM);
 		}
 
@@ -53,7 +57,7 @@ public class JwtFilter extends OncePerRequestFilter {
 	private String resolveToken(HttpServletRequest request) {
 		String bearerToken = request.getHeader(AUTHORIZATION_HEADER);
 		if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER_PREFIX)) {
-			return bearerToken.substring(7);
+			return bearerToken.substring(BEARER_PREFIX.length());
 		}
 		return null;
 	}
