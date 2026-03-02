@@ -52,3 +52,9 @@ logging:
   level:
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
+
+jwt:
+  # 테스트용 공개 키
+  secret: popcon-backend-test-secret-key-1234567890-abcdefghijklmnopqrstuvwxyz-64bytes-over
+  access-token-expiration: 3600000
+  refresh-token-expiration: 604800000

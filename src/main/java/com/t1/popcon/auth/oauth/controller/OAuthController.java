@@ -61,7 +61,7 @@ public class OAuthController {
     ) {
         // Provider 에러(사용자 취소 등)
         if (error != null && !error.isBlank()) {
-            return redirect(frontendErrorUrl("A001"), null);
+            return redirect(frontendErrorUrl("OA001"), null);
         }
 
         // code/state 누락
