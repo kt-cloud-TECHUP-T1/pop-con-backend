@@ -18,6 +18,7 @@ public enum ErrorCode {
     SIGNUP_TOKEN_EXPIRED("A001", HttpStatus.UNAUTHORIZED, "회원가입 세션이 만료되었습니다. 다시 가입 절차를 진행해주세요."),
     INVALID_TOKEN("A002", HttpStatus.UNAUTHORIZED, "인증 정보가 유효하지 않습니다."),
     TOKEN_EXPIRED("A003", HttpStatus.UNAUTHORIZED, "인증이 만료되었습니다. 다시 로그인해주세요."),
+    ACCESS_DENIED("A004", HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
 
     // Join
     AGE_RESTRICTED("J001", HttpStatus.FORBIDDEN, "만 14세 미만은 가입이 제한됩니다."),

@@ -1,4 +1,4 @@
-package com.t1.popcon.auth.jwt;
+package com.t1.popcon.auth.token.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.t1.popcon.common.exception.ErrorCode;

@@ -1,8 +1,8 @@
-package com.t1.popcon.auth.controller;
+package com.t1.popcon.auth.signup.controller;
 
-import com.t1.popcon.auth.dto.AuthRequest;
-import com.t1.popcon.auth.dto.AuthResponse;
-import com.t1.popcon.auth.service.AuthService;
+import com.t1.popcon.auth.signup.dto.AuthRequest;
+import com.t1.popcon.auth.signup.dto.AuthResponse;
+import com.t1.popcon.auth.signup.service.AuthService;
 import com.t1.popcon.common.response.ApiResponse;
 
 import jakarta.validation.Valid;

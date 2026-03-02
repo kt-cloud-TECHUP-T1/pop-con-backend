@@ -1,4 +1,4 @@
-package com.t1.popcon.auth.dto;
+package com.t1.popcon.auth.signup.dto;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;

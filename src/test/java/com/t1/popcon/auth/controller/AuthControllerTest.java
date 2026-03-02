@@ -4,9 +4,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.t1.popcon.auth.dto.AuthRequest;
-import com.t1.popcon.auth.dto.AuthResponse;
-import com.t1.popcon.auth.service.AuthService;
+import com.t1.popcon.auth.signup.dto.AuthRequest;
+import com.t1.popcon.auth.signup.dto.AuthResponse;
+import com.t1.popcon.auth.signup.service.AuthService;
 import com.t1.popcon.support.AbstractRestDocsTest;
 import com.t1.popcon.support.RestDocsFactory;
 import org.junit.jupiter.api.Nested;

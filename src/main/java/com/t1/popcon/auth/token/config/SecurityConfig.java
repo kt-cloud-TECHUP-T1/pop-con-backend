@@ -1,9 +1,9 @@
-package com.t1.popcon.auth.config;
+package com.t1.popcon.auth.token.config;
 
-import com.t1.popcon.auth.jwt.JwtAccessDeniedHandler;
-import com.t1.popcon.auth.jwt.JwtAuthenticationEntryPoint;
-import com.t1.popcon.auth.jwt.JwtFilter;
-import com.t1.popcon.auth.jwt.TokenProvider;
+import com.t1.popcon.auth.token.handler.JwtAccessDeniedHandler;
+import com.t1.popcon.auth.token.handler.JwtAuthenticationEntryPoint;
+import com.t1.popcon.auth.token.filter.JwtFilter;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,7 +23,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-	private final TokenProvider tokenProvider;
+	private final JwtFilter jwtFilter;
 	private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 	private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
@@ -55,7 +55,7 @@ public class SecurityConfig {
 			)
 
 			// JWT 필터 추가
-			.addFilterBefore(new JwtFilter(tokenProvider), UsernamePasswordAuthenticationFilter.class);
+			.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
 		return http.build();
 	}

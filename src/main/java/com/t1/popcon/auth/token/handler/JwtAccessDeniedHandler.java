@@ -1,4 +1,4 @@
-package com.t1.popcon.auth.jwt;
+package com.t1.popcon.auth.token.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.t1.popcon.common.exception.ErrorCode;
@@ -24,7 +24,7 @@ public class JwtAccessDeniedHandler implements AccessDeniedHandler {
 		throws IOException {
 
 		// 권한 부족 응답 (403 Forbidden)
-		ApiResponse<Void> apiResponse = ApiResponse.fail(ErrorCode.AGE_RESTRICTED); // 예시로 J001 사용
+		ApiResponse<Void> apiResponse = ApiResponse.fail(ErrorCode.ACCESS_DENIED);
 
 		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 		response.setCharacterEncoding("UTF-8");

@@ -1,6 +1,5 @@
-package com.t1.popcon.auth.repository;
+package com.t1.popcon.auth.token.domain;
 
-import com.t1.popcon.auth.entity.RefreshToken;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
