@@ -29,3 +29,8 @@ logging:
     root: info
     org.hibernate.SQL: warn
     org.hibernate.orm.jdbc.bind: warn
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: 1800000
+  refresh-token-expiration: 604800000
