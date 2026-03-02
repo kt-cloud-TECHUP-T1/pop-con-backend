@@ -2,6 +2,8 @@ package com.t1.popcon.auth.token.provider;
 
 import com.t1.popcon.auth.token.config.JwtProperties;
 import com.t1.popcon.auth.token.domain.TokenType;
+import com.t1.popcon.common.exception.CustomException;
+import com.t1.popcon.common.exception.ErrorCode;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
@@ -14,8 +16,12 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.Mac;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -51,7 +57,7 @@ public class TokenProvider {
 		Claims claims = getClaims(token);
 		String tokenType = claims.get(TOKEN_TYPE_CLAIM, String.class);
 		if (!TokenType.ACCESS.name().equals(tokenType)) {
-			throw new IllegalArgumentException("Access 토큰이 아닙니다.");
+			throw new CustomException(ErrorCode.INVALID_TOKEN);
 		}
 		List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
 		User principal = new User(claims.getSubject(), "", authorities);
@@ -70,5 +76,22 @@ public class TokenProvider {
 			.build()
 			.parseSignedClaims(token)
 			.getPayload();
+	}
+
+	public String hashRefreshToken(String refreshToken) {
+		try {
+			Mac hmac = Mac.getInstance("HmacSHA256");
+			SecretKeySpec secretKeySpec = new SecretKeySpec(
+				jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8),
+				"HmacSHA256"
+			);
+			hmac.init(secretKeySpec);
+
+			byte[] hash = hmac.doFinal(refreshToken.getBytes(StandardCharsets.UTF_8));
+			return Base64.getEncoder().encodeToString(hash);
+		} catch (Exception e) {
+			log.error("Refresh Token hashing failed: ", e);
+			throw new CustomException(ErrorCode.ERROR_SYSTEM);
+		}
 	}
 }

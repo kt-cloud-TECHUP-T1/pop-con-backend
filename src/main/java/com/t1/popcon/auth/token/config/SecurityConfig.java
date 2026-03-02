@@ -50,7 +50,7 @@ public class SecurityConfig {
 
 			// API 권한 설정 (Swagger 및 로그인/회원가입은 허용)
 			.authorizeHttpRequests(auth -> auth
-				.requestMatchers("/auth/**", "/users/signup", "/v3/api-docs/**", "/swagger-ui/**", "/health").permitAll()
+				.requestMatchers("/auth/**", "/v3/api-docs/**", "/swagger-ui/**", "/health").permitAll()
 				.anyRequest().authenticated()
 			)
 

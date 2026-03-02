@@ -53,7 +53,7 @@ public class AuthService {
 		// 4. Redis에 Refresh Token 저장
 		refreshTokenRepository.save(RefreshToken.builder()
 			.userId(String.valueOf(savedUser.getId()))
-			.token(refreshTokenString)
+			.token(tokenProvider.hashRefreshToken(refreshTokenString))
 			.expiration(jwtProperties.getRefreshTokenExpiration() / 1000)
 			.build());
 
