@@ -14,6 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 import com.t1.popcon.auth.token.provider.TokenProvider;
+import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 
 @Component
@@ -40,6 +41,8 @@ public class JwtFilter extends OncePerRequestFilter {
 			request.setAttribute("exception", ErrorCode.TOKEN_EXPIRED);
 		} catch (io.jsonwebtoken.security.SignatureException | io.jsonwebtoken.MalformedJwtException e) {
 			request.setAttribute("exception", ErrorCode.INVALID_TOKEN);
+		} catch (CustomException e) {
+			request.setAttribute("exception", e.getErrorCode());
 		} catch (Exception e) {
 			request.setAttribute("exception", ErrorCode.ERROR_SYSTEM);
 		}
