@@ -59,7 +59,7 @@ jobs:
           content: |
             🧪 PR 검사 결과(테스트/문서): **${{ job.status }}**
             - 레포: ${{ github.repository }}
-            - PR: ${{ github.event.pull_request.html_url }}
+            - PR: <${{ github.event.pull_request.html_url }}>
             - 실행 로그: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
   docker-build:
@@ -98,5 +98,5 @@ jobs:
           content: |
             🐳 PR 도커 이미지 빌드 결과: **${{ job.status }}**
             - 레포: ${{ github.repository }}
-            - PR: ${{ github.event.pull_request.html_url }}
+            - PR: <${{ github.event.pull_request.html_url }}>
             - 실행 로그: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
