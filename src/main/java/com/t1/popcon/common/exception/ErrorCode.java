@@ -10,6 +10,11 @@ public enum ErrorCode {
 
     // System
     ERROR_SYSTEM("S001", HttpStatus.INTERNAL_SERVER_ERROR, "시스템 오류가 발생했습니다."),
+    // OAuth
+    INVALID_PROVIDER("OA001", HttpStatus.BAD_REQUEST, "지원하지 않는 소셜 로그인 provider 입니다."),
+    OAUTH_INVALID_STATE("OA002", HttpStatus.UNAUTHORIZED, "유효하지 않거나 만료된 state 입니다."),
+    OAUTH_TOKEN_EXCHANGE_FAILED("OA003", HttpStatus.BAD_GATEWAY, "소셜 로그인 토큰 발급에 실패했습니다."),
+    OAUTH_USERINFO_FAILED("OA004", HttpStatus.BAD_GATEWAY, "소셜 로그인 사용자 정보 조회에 실패했습니다."),
 
     // OAuth
     INVALID_PROVIDER("OA001", HttpStatus.BAD_REQUEST, "지원하지 않는 소셜 로그인 provider 입니다."),

@@ -93,6 +93,7 @@ public class OAuthService {
         if (userOpt.isPresent()) {
             User user = userOpt.get();
 
+            // TODO: JWT로 교체 예정
             String accessToken = "stub_access_token_for_user_" + user.getId();
             String refreshToken = "stub_refresh_token_for_user_" + user.getId();
 
