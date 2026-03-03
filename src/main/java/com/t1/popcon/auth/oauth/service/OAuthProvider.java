@@ -1,12 +1,11 @@
 package com.t1.popcon.auth.oauth.service;
 
+import com.t1.popcon.common.exception.CustomException;
+import com.t1.popcon.common.exception.ErrorCode;
 import java.util.Locale;
 
 /**
  * 지원하는 OAuth Provider 정의
- *
- * - path variable로 들어오는 provider 문자열을 안전하게 enum으로 변환
- * - 오타 방지 및 허용 provider 제한 목적
  */
 public enum OAuthProvider {
 
@@ -18,18 +17,20 @@ public enum OAuthProvider {
      * ex) "kakao" -> KAKAO
      */
     public static OAuthProvider from(String raw) {
-        if (raw == null) {
-            throw new IllegalArgumentException("provider is null");
+        if (raw == null || raw.isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_PROVIDER);
         }
 
         // 대소문자 무관 처리
-        String normalized = raw.trim().toUpperCase(Locale.ROOT);
-        return OAuthProvider.valueOf(normalized);
+        try {
+            String normalized = raw.trim().toUpperCase(Locale.ROOT);
+            return OAuthProvider.valueOf(normalized);
+        } catch (IllegalArgumentException e) {
+            // valueOf 실패(지원하지 않는 provider)
+            throw new CustomException(ErrorCode.INVALID_PROVIDER);
+        }
     }
 
-    /**
-     * 소문자 형태 반환 (redirect uri 구성 시 사용)
-     */
     public String lower() {
         return name().toLowerCase(Locale.ROOT);
     }

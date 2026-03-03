@@ -5,6 +5,8 @@ import com.t1.popcon.auth.oauth.dto.*;
 import com.t1.popcon.user.domain.User;
 import com.t1.popcon.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import com.t1.popcon.common.exception.CustomException;
+import com.t1.popcon.common.exception.ErrorCode;
 
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -15,6 +17,10 @@ import java.util.Optional;
  */
 @Service
 public class OAuthService {
+
+    private static final String NEXT_STEP_VERIFY_IDENTITY = "VERIFY_IDENTITY";
+    private static final long STATE_TTL_DEFAULT_SECONDS = 300L;
+    private static final long REGISTER_TTL_SECONDS = 600L;
 
     private final OAuthProperties props;
     private final OAuthStateStore stateStore;
@@ -47,11 +53,9 @@ public class OAuthService {
         String state = generateRandomUrlSafe(32);
 
         long ttl = props.stateTtlSeconds();
-        if (ttl <= 0) ttl = 300; // 설정 누락 방지용 기본값(5분)
+        if (ttl <= 0) ttl = STATE_TTL_DEFAULT_SECONDS;
 
-        // ✅ 버그 수정: ttl 변수 사용
         stateStore.save(state, provider, ttl);
-
         return urlBuilder.build(provider, state);
     }
 
@@ -66,17 +70,21 @@ public class OAuthService {
         // 1) state 검증 (CSRF 방지 + 1회성)
         boolean ok = stateStore.consume(state, provider);
         if (!ok) {
-            throw new IllegalArgumentException("Invalid or expired state");
+            throw new CustomException(ErrorCode.OAUTH_INVALID_STATE);
         }
 
         // 2) code -> access_token
         OAuthTokenResponse token = oAuthClient.exchangeToken(provider, code, state);
         if (token == null || token.accessToken() == null || token.accessToken().isBlank()) {
-            throw new IllegalStateException("Token exchange failed: access_token is empty");
+            throw new CustomException(ErrorCode.OAUTH_TOKEN_EXCHANGE_FAILED);
         }
 
         // 3) access_token -> userinfo
         OAuthUserInfo userInfo = oAuthClient.fetchUserInfo(provider, token.accessToken());
+        if (userInfo == null || userInfo.providerUserId() == null || userInfo.providerUserId().isBlank()) {
+            // userInfo가 비정상이면 이후 로직 진행 불가
+            throw new CustomException(ErrorCode.OAUTH_USERINFO_FAILED);
+        }
 
         // 4) 기존회원 조회
         Optional<User> userOpt = findByProvider(provider, userInfo.providerUserId());
@@ -85,6 +93,7 @@ public class OAuthService {
         if (userOpt.isPresent()) {
             User user = userOpt.get();
 
+            // TODO: JWT로 교체 예정
             String accessToken = "stub_access_token_for_user_" + user.getId();
             String refreshToken = "stub_refresh_token_for_user_" + user.getId();
 
@@ -101,14 +110,12 @@ public class OAuthService {
                 userInfo.nickname(),
                 userInfo.name(),
                 userInfo.profileImageUrl(),
-                null // ciHash는 본인인증 완료 시 merge로 채움
+                null
         );
 
-        // TTL은 10분 정도 추천 (너희 정책에 맞게 조정 가능)
-        registerTokenStore.save(registerToken, payload, 600);
+        registerTokenStore.save(registerToken, payload, REGISTER_TTL_SECONDS);
 
-        // 프론트가 다음 단계로 라우팅할 수 있게 nextStep 제공
-        return SocialLoginResponse.newUser(registerToken, "VERIFY_IDENTITY");
+        return SocialLoginResponse.newUser(registerToken, NEXT_STEP_VERIFY_IDENTITY);
     }
 
     private Optional<User> findByProvider(OAuthProvider provider, String providerUserId) {
@@ -118,9 +125,6 @@ public class OAuthService {
         };
     }
 
-    /**
-     * URL-safe 랜덤 문자열 생성
-     */
     private String generateRandomUrlSafe(int byteLen) {
         byte[] bytes = new byte[byteLen];
         random.nextBytes(bytes);

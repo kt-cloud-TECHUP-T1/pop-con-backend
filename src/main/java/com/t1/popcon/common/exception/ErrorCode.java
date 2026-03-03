@@ -9,6 +9,10 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
 
     // Auth
+    INVALID_PROVIDER("A001", HttpStatus.BAD_REQUEST, "지원하지 않는 소셜 로그인 provider 입니다."),
+    OAUTH_INVALID_STATE("A002", HttpStatus.UNAUTHORIZED, "유효하지 않거나 만료된 state 입니다."),
+    OAUTH_TOKEN_EXCHANGE_FAILED("A003", HttpStatus.BAD_GATEWAY, "소셜 로그인 토큰 발급에 실패했습니다."),
+    OAUTH_USERINFO_FAILED("A004", HttpStatus.BAD_GATEWAY, "소셜 로그인 사용자 정보 조회에 실패했습니다."),
 
     // Client
     INVALID_INPUT("C001", HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다."),

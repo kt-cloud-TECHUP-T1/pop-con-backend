@@ -7,6 +7,10 @@ import org.springframework.context.annotation.Configuration;
  * OAuthProperties를 Spring Bean으로 등록
  */
 @Configuration
-@EnableConfigurationProperties(OAuthProperties.class)
+@EnableConfigurationProperties({
+        OAuthProperties.class,
+        FrontendProperties.class
+})
+
 public class OAuthConfig {
 }
