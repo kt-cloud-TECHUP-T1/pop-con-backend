@@ -32,7 +32,15 @@ jobs:
 
       # test 프로필로 단위 테스트 + 문서 복사
       - name: Test + Docs (OpenAPI copy)
-        run: ./gradlew --no-daemon clean test copyOasToSwagger
+        run: ./gradlew --no-daemon clean test copyOasToSwagger --stacktrace
+
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: build/reports/tests/test
+          if-no-files-found: warn
 
       # job 간 공유를 위해 swagger-ui 산출물 전달
       - name: Upload swagger-ui artifact
@@ -41,6 +49,18 @@ jobs:
           name: swagger-ui
           path: src/main/resources/static/swagger-ui
           if-no-files-found: warn
+
+      # 디스코드 알림
+      - name: Notify Discord (Test & Docs)
+        if: always()
+        uses: tsickert/discord-webhook-action@v7
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_PR_CI }}
+          content: |
+            🧪 PR 검사 결과(테스트/문서): **${{ job.status }}**
+            - 레포: ${{ github.repository }}
+            - PR: ${{ github.event.pull_request.html_url }}
+            - 실행 로그: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
   docker-build:
     runs-on: ubuntu-latest
@@ -68,3 +88,15 @@ jobs:
           tags: pr-check:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # 디스코드 알림
+      - name: Notify Discord (Docker build)
+        if: always()
+        uses: tsickert/discord-webhook-action@v7
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_PR_CI }}
+          content: |
+            🐳 PR 도커 이미지 빌드 결과: **${{ job.status }}**
+            - 레포: ${{ github.repository }}
+            - PR: ${{ github.event.pull_request.html_url }}
+            - 실행 로그: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

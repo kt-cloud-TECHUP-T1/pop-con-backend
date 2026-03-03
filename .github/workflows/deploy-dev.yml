@@ -49,3 +49,16 @@ jobs:
       - name: Record image output
         id: output
         run: echo "image=${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY_NAME }}:backend-${{ env.SHORT_SHA }}" >> $GITHUB_OUTPUT
+
+      # 디스코드 알림
+      - name: Notify Discord (DEV deploy)
+        if: always()
+        uses: tsickert/discord-webhook-action@v7
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_DEV_CI_CD }}
+          content: |
+            🚀 dev 배포 결과(ECR 푸시): **${{ job.status }}**
+            - 브랜치: ${{ github.ref_name }}
+            - 커밋: ${{ github.sha }}
+            - 이미지: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY_NAME }}:backend-${{ env.SHORT_SHA }}
+            - 실행 로그: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
