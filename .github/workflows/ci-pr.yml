@@ -53,6 +53,7 @@ jobs:
       # 디스코드 알림
       - name: Notify Discord (Test & Docs)
         if: always()
+        continue-on-error: true
         uses: tsickert/discord-webhook@v7.0.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK_PR_CI }}
@@ -92,6 +93,7 @@ jobs:
       # 디스코드 알림
       - name: Notify Discord (Docker build)
         if: always()
+        continue-on-error: true
         uses: tsickert/discord-webhook@v7.0.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK_PR_CI }}
