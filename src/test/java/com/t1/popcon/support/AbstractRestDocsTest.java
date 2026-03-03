@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.restdocs.RestDocumentationContextProvider;
 import org.springframework.restdocs.RestDocumentationExtension;
 import org.springframework.test.context.ActiveProfiles;
@@ -34,7 +35,11 @@ public abstract class AbstractRestDocsTest {
 	@Autowired
 	protected ObjectMapper objectMapper;
 
-	@MockitoBean RefreshTokenRepository refreshTokenRepository;
+	@MockitoBean
+	RefreshTokenRepository refreshTokenRepository;
+
+	@MockitoBean
+	StringRedisTemplate stringRedisTemplate;
 
 	protected MockMvc mockMvc;
 
