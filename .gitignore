@@ -57,4 +57,9 @@ Desktop.ini
 aws.yml
 secrets.yml
 application-secret.yml
+
+### 각 서비스 별 env 파일
+user-service/.env
+auth-service/.env
 .env
+*.env
