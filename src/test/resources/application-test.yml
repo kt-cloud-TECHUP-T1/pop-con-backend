@@ -1,6 +1,7 @@
 app:
   oauth:
     base-url: http://localhost:8080
+    redirect-path: /auth/oauth/{provider}/callback
     state-ttl-seconds: 300
 
     kakao:
