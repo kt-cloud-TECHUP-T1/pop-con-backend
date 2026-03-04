@@ -25,9 +25,9 @@ public class OAuthClient {
     private final OAuthProperties props;
     private final RestClient restClient;
 
-    public OAuthClient(OAuthProperties props) {
+    public OAuthClient(OAuthProperties props, RestClient.Builder builder) {
         this.props = props;
-        this.restClient = RestClient.builder().build();
+        this.restClient = builder.build();
     }
 
     /**

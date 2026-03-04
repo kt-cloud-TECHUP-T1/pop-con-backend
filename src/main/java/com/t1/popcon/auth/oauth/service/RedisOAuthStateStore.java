@@ -41,14 +41,8 @@ public class RedisOAuthStateStore implements OAuthStateStore {
     public boolean consume(String state, OAuthProvider provider) {
         String key = key(state, provider);
 
-        Boolean exists = redis.hasKey(key);
-
-        if (Boolean.TRUE.equals(exists)) {
-            redis.delete(key); // 1회성 사용
-            return true;
-        }
-
-        return false;
+        Boolean deleted = redis.delete(key); // 단일 명령으로 소비 판정
+        return Boolean.TRUE.equals(deleted);
     }
 
     private String key(String state, OAuthProvider provider) {
