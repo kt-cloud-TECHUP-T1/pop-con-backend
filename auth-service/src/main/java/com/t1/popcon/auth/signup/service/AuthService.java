@@ -2,6 +2,7 @@ package com.t1.popcon.auth.signup.service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import com.t1.popcon.auth.token.config.JwtProperties;
 import com.t1.popcon.auth.token.domain.TokenType;
@@ -10,9 +11,9 @@ import com.t1.popcon.auth.signup.dto.AuthResponse;
 import com.t1.popcon.auth.token.domain.RefreshToken;
 import com.t1.popcon.auth.token.provider.TokenProvider;
 import com.t1.popcon.auth.token.domain.RefreshTokenRepository;
-import com.t1.popcon.user.domain.Gender;
-import com.t1.popcon.user.domain.User;
-import com.t1.popcon.user.repository.UserRepository;
+//import com.t1.popcon.user.domain.Gender;
+//import com.t1.popcon.user.domain.User;
+//import com.t1.popcon.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +24,7 @@ public class AuthService {
 
 	private final TokenProvider tokenProvider;
 	private final RefreshTokenRepository refreshTokenRepository;
-	private final UserRepository userRepository;
+//	private final UserRepository userRepository;
 	private final JwtProperties jwtProperties;
 
 	@Transactional
@@ -34,35 +35,42 @@ public class AuthService {
 		String ciHashFromAuth = "test_ci_1234" + System.currentTimeMillis();
 
 		// 2. 신규 유저 생성 및 DB 저장
-		User newUser = User.createUserWithKakao(
-			ciHashFromAuth,
-			LocalDateTime.now(),
-			nameFromAuth,
-			"01012345678",
-			LocalDate.of(1995, 1, 1),
-			Gender.MALE,
-			"kakao_dummy_id"
-		);
+//		User newUser = User.createUserWithKakao(
+//			ciHashFromAuth,
+//			LocalDateTime.now(),
+//			nameFromAuth,
+//			"01012345678",
+//			LocalDate.of(1995, 1, 1),
+//			Gender.MALE,
+//			"kakao_dummy_id"
+//		);
 
-		User savedUser = userRepository.save(newUser);
+//		User savedUser = userRepository.save(newUser);
 
 		// 3. 생성된 유저의 ID로 JWT 발급
-		String accessToken = tokenProvider.createToken(String.valueOf(savedUser.getId()), jwtProperties.getAccessTokenExpiration(), TokenType.ACCESS);
-		String refreshTokenString = tokenProvider.createToken(String.valueOf(savedUser.getId()), jwtProperties.getRefreshTokenExpiration(), TokenType.REFRESH);
+//		String accessToken = tokenProvider.createToken(String.valueOf(savedUser.getId()), jwtProperties.getAccessTokenExpiration(), TokenType.ACCESS);
+//		String refreshTokenString = tokenProvider.createToken(String.valueOf(savedUser.getId()), jwtProperties.getRefreshTokenExpiration(), TokenType.REFRESH);
+
+		String userId = UUID.randomUUID().toString();
+		String accessToken = "temp-access-token";
+		String name = nameFromAuth;
+		LocalDateTime createdAt = LocalDateTime.now();
+
+		String refreshTokenString = String.valueOf(UUID.randomUUID());
 
 		// 4. Redis에 Refresh Token 저장
 		refreshTokenRepository.save(RefreshToken.builder()
-			.userId(String.valueOf(savedUser.getId()))
+			.userId(userId)
 			.token(tokenProvider.hashRefreshToken(refreshTokenString))
 			.expiration(jwtProperties.getRefreshTokenExpiration() / 1000)
 			.build());
 
 		return new AuthResponse.Signup(
-			savedUser.getId(),
-			savedUser.getName(),
+			1L,
+			name,
 			accessToken,
 			refreshTokenString,
-			savedUser.getCreatedAt()
+			createdAt
 		);
 	}
 }

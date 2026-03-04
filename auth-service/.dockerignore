@@ -1,6 +1,6 @@
 # Git
 .git
-.gitignore
+../.gitignore
 .gitattributes
 
 # Build output
@@ -38,7 +38,7 @@ application-secret.yml
 application-prod.yml
 
 # Docker
-Dockerfile
+auth-service/Dockerfile
 docker-compose*.yml
 
 # GitHub
