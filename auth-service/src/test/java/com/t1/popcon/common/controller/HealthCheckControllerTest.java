@@ -3,7 +3,7 @@ package com.t1.popcon.common.controller;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.t1.popcon.auth.AuthApplication;
+import com.t1.popcon.AuthApplication;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

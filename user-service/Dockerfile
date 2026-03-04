@@ -14,6 +14,7 @@ RUN ./gradlew dependencies --no-daemon
 
 # 소스 복사
 COPY user-service user-service
+COPY auth-service auth-service
 COPY common common
 
 RUN ./gradlew :auth-service:bootJar
@@ -32,6 +33,6 @@ ENV JAVA_OPTS="-Xms512m -Xmx512m"
 
 USER appuser
 
-EXPOSE 8080
+EXPOSE 8081
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

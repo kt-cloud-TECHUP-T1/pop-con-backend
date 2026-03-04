@@ -4,7 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.t1.popcon.auth.AuthApplication;
+import com.t1.popcon.AuthApplication;
 import com.t1.popcon.auth.signup.dto.AuthRequest;
 import com.t1.popcon.auth.signup.dto.AuthResponse;
 import com.t1.popcon.auth.signup.service.AuthService;
