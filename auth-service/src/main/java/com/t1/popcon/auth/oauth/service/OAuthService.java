@@ -2,8 +2,8 @@ package com.t1.popcon.auth.oauth.service;
 
 import com.t1.popcon.auth.oauth.config.OAuthProperties;
 import com.t1.popcon.auth.oauth.dto.*;
-import com.t1.popcon.user.domain.User;
-import com.t1.popcon.user.repository.UserRepository;
+//import com.t1.popcon.user.domain.User;
+//import com.t1.popcon.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
@@ -27,7 +27,7 @@ public class OAuthService {
     private final OAuthAuthorizeUrlBuilder urlBuilder;
     private final OAuthClient oAuthClient;
 
-    private final UserRepository userRepository;
+    //private final UserRepository userRepository;
     private final RegisterTokenStore registerTokenStore;
 
     private final SecureRandom random = new SecureRandom();
@@ -36,13 +36,13 @@ public class OAuthService {
                         OAuthStateStore stateStore,
                         OAuthAuthorizeUrlBuilder urlBuilder,
                         OAuthClient oAuthClient,
-                        UserRepository userRepository,
+                        //UserRepository userRepository,
                         RegisterTokenStore registerTokenStore) {
         this.props = props;
         this.stateStore = stateStore;
         this.urlBuilder = urlBuilder;
         this.oAuthClient = oAuthClient;
-        this.userRepository = userRepository;
+        //this.userRepository = userRepository;
         this.registerTokenStore = registerTokenStore;
     }
 
@@ -87,10 +87,10 @@ public class OAuthService {
         }
 
         // 4) 기존회원 조회
-        Optional<User> userOpt = findByProvider(provider, userInfo.providerUserId());
+        //Optional<User> userOpt = findByProvider(provider, userInfo.providerUserId());
 
         // 4-1) 기존회원: 로그인 완료
-        if (userOpt.isPresent()) {
+        /*if (userOpt.isPresent()) {
             User user = userOpt.get();
 
             // TODO: JWT로 교체 예정
@@ -98,7 +98,7 @@ public class OAuthService {
             String refreshToken = "stub_refresh_token_for_user_" + user.getId();
 
             return SocialLoginResponse.existing(user.getId(), accessToken, refreshToken);
-        }
+        }*/
 
         // 4-2) 신규회원: registerToken 발급 + Redis 저장
         String registerToken = generateRandomUrlSafe(48);
@@ -118,12 +118,12 @@ public class OAuthService {
         return SocialLoginResponse.newUser(registerToken, NEXT_STEP_VERIFY_IDENTITY);
     }
 
-    private Optional<User> findByProvider(OAuthProvider provider, String providerUserId) {
+    /*private Optional<User> findByProvider(OAuthProvider provider, String providerUserId) {
         return switch (provider) {
             case KAKAO -> userRepository.findByKakaoUserIdAndDeletedFalse(providerUserId);
             case NAVER -> userRepository.findByNaverUserIdAndDeletedFalse(providerUserId);
         };
-    }
+    }*/
 
     private String generateRandomUrlSafe(int byteLen) {
         byte[] bytes = new byte[byteLen];
