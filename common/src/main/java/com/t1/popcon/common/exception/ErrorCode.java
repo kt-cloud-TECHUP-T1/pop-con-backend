@@ -20,6 +20,12 @@ public enum ErrorCode {
     TOKEN_EXPIRED("A003", HttpStatus.UNAUTHORIZED, "인증이 만료되었습니다. 다시 로그인해주세요."),
     ACCESS_DENIED("A004", HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
 
+    // OAuth
+    INVALID_PROVIDER("OA001", HttpStatus.BAD_REQUEST, "지원하지 않는 소셜 로그인 provider 입니다."),
+    OAUTH_INVALID_STATE("OA002", HttpStatus.UNAUTHORIZED, "유효하지 않거나 만료된 state 입니다."),
+    OAUTH_TOKEN_EXCHANGE_FAILED("OA003", HttpStatus.BAD_GATEWAY, "소셜 로그인 토큰 발급에 실패했습니다."),
+    OAUTH_USERINFO_FAILED("OA004", HttpStatus.BAD_GATEWAY, "소셜 로그인 사용자 정보 조회에 실패했습니다."),
+
     // Join
     AGE_RESTRICTED("J001", HttpStatus.FORBIDDEN, "만 14세 미만은 가입이 제한됩니다."),
     ALREADY_SIGNED_UP("J002", HttpStatus.CONFLICT, "이미 약관 동의 및 회원가입이 완료된 회원입니다."),

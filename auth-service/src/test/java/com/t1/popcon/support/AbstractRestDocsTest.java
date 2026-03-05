@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.filter.CharacterEncodingFilter;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 
 @AutoConfigureMockMvc
@@ -35,6 +36,9 @@ public abstract class AbstractRestDocsTest {
 	protected ObjectMapper objectMapper;
 
 	@MockitoBean RefreshTokenRepository refreshTokenRepository;
+
+    @MockitoBean
+    StringRedisTemplate stringRedisTemplate;
 
 	protected MockMvc mockMvc;
 
