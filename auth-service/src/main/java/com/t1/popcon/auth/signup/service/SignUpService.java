@@ -1,13 +1,11 @@
 package com.t1.popcon.auth.signup.service;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 import com.t1.popcon.auth.token.config.JwtProperties;
-import com.t1.popcon.auth.token.domain.TokenType;
-import com.t1.popcon.auth.signup.dto.AuthRequest;
-import com.t1.popcon.auth.signup.dto.AuthResponse;
+import com.t1.popcon.auth.signup.dto.SignUpRequest;
+import com.t1.popcon.auth.signup.dto.SignUpResponse;
 import com.t1.popcon.auth.token.domain.RefreshToken;
 import com.t1.popcon.auth.token.provider.TokenProvider;
 import com.t1.popcon.auth.token.domain.RefreshTokenRepository;
@@ -20,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class AuthService {
+public class SignUpService {
 
 	private final TokenProvider tokenProvider;
 	private final RefreshTokenRepository refreshTokenRepository;
@@ -28,7 +26,7 @@ public class AuthService {
 	private final JwtProperties jwtProperties;
 
 	@Transactional
-	public AuthResponse.Signup signup(AuthRequest.Signup request) {
+	public SignUpResponse.Signup signup(SignUpRequest.Signup request) {
 		// TODO: 1. registerToken으로 Redis에서 본인인증 정보를 가져오는 로직이 들어갈 자리입니다.
 		// 지금은 테스트를 위해 가짜 정보를 변수에 담아 유저를 생성합니다.
 		String nameFromAuth = "홍길동";
@@ -65,7 +63,7 @@ public class AuthService {
 			.expiration(jwtProperties.getRefreshTokenExpiration() / 1000)
 			.build());
 
-		return new AuthResponse.Signup(
+		return new SignUpResponse.Signup(
 			1L,
 			name,
 			accessToken,

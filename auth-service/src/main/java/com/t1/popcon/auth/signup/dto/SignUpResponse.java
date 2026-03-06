@@ -2,7 +2,7 @@ package com.t1.popcon.auth.signup.dto;
 
 import java.time.LocalDateTime;
 
-public class AuthResponse {
+public class SignUpResponse {
 
 	public record Signup(
 		Long userId,

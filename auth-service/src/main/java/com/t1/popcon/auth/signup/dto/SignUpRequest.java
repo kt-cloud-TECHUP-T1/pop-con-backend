@@ -4,7 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 
-public class AuthRequest {
+public class SignUpRequest {
 
 	public record Signup(
 

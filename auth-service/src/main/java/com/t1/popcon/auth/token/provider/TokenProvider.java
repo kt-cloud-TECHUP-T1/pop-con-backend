@@ -66,11 +66,25 @@ public class TokenProvider {
 
 	// 3. 토큰 유효성 검사
 	public boolean validateToken(String token) {
-		Jwts.parser().verifyWith(key).build().parseSignedClaims(token);
-		return true;
+		try {
+			Jwts.parser().verifyWith(key).build().parseSignedClaims(token);
+			return true;
+		} catch (ExpiredJwtException e) {
+			throw new CustomException(ErrorCode.TOKEN_EXPIRED);
+		} catch (JwtException | IllegalArgumentException e) {
+			throw new CustomException(ErrorCode.INVALID_TOKEN);
+		}
 	}
 
-	private Claims getClaims(String token) {
+	public String getSubject(String token) {
+		return getClaims(token).getSubject();
+	}
+
+	public String getTokenType(String token) {
+		return getClaims(token).get(TOKEN_TYPE_CLAIM, String.class);
+	}
+
+	public Claims getClaims(String token) {
 		return Jwts.parser()
 			.verifyWith(key)
 			.build()
