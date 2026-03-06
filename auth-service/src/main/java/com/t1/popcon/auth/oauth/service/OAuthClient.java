@@ -5,6 +5,8 @@ import com.t1.popcon.auth.oauth.dto.OAuthTokenResponse;
 import com.t1.popcon.auth.oauth.dto.OAuthUserInfo;
 import com.t1.popcon.auth.oauth.dto.kakao.KakaoUserInfoResponse;
 import com.t1.popcon.auth.oauth.dto.naver.NaverUserInfoResponse;
+import com.t1.popcon.common.exception.CustomException;
+import com.t1.popcon.common.exception.ErrorCode;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -70,8 +72,8 @@ public class OAuthClient {
     /**
      * access_token으로 사용자 프로필 조회
      *
-     * Kakao userinfo: https://kapi.kakao.com/v2/user/me :contentReference[oaicite:8]{index=8}
-     * Naver userinfo: https://openapi.naver.com/v1/nid/me :contentReference[oaicite:9]{index=9}
+     * Kakao: /oauth/token (POST, x-www-form-urlencoded)
+     * Naver: /oauth2.0/token (GET/POST 가능, 보통 GET 예시 많음)
      */
     public OAuthUserInfo fetchUserInfo(OAuthProvider provider, String accessToken) {
         OAuthProperties.Provider p = providerProps(provider);
@@ -99,7 +101,7 @@ public class OAuthClient {
 
     private OAuthUserInfo normalizeKakao(KakaoUserInfoResponse r) {
         if (r == null || r.id() == null) {
-            throw new IllegalStateException("Kakao userinfo response is null or missing id");
+            throw new CustomException(ErrorCode.OAUTH_USERINFO_FAILED);
         }
 
         String providerUserId = String.valueOf(r.id());
@@ -131,7 +133,7 @@ public class OAuthClient {
 
     private OAuthUserInfo normalizeNaver(NaverUserInfoResponse r) {
         if (r == null || r.response() == null || r.response().id() == null) {
-            throw new IllegalStateException("Naver userinfo response is null or missing id");
+            throw new CustomException(ErrorCode.OAUTH_USERINFO_FAILED);
         }
 
         var u = r.response();

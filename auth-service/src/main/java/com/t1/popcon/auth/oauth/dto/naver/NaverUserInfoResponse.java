@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Naver: https://openapi.naver.com/v1/nid/me 응답 구조
- * 공식 문서 기반 :contentReference[oaicite:2]{index=2}
+ * 공식 문서 기반
  */
 public record NaverUserInfoResponse(
         String resultcode,
