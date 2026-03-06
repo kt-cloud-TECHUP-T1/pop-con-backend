@@ -3,4 +3,5 @@ rootProject.name = 'pop-con-backend'
 
 include 'auth-service'
 include 'user-service'
+include 'popup-service'
 include 'common'
