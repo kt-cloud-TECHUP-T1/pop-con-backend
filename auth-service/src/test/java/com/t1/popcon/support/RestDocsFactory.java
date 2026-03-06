@@ -177,6 +177,47 @@ public class RestDocsFactory {
 		);
 	}
 
+	// ========================================================================
+	// Failure Resource (실패 케이스)
+	// ========================================================================
+
+	/**
+	 * 실패 케이스용 공통 문서 생성
+	 */
+	public <T, R> RestDocumentationResultHandler failure(
+		String identifier,
+		String summary,
+		String description,
+		String tag,
+		T requestDto,
+		R errorResponseDto
+	) {
+		String requestSchemaName = requestDto != null ? requestDto.getClass().getSimpleName() : null;
+		String responseSchemaName = errorResponseDto != null ? errorResponseDto.getClass().getSimpleName() : "ErrorResponse";
+
+		ResourceSnippetParametersBuilder builder = ResourceSnippetParameters.builder()
+			.tag(tag)
+			.summary(summary)
+			.description(description);
+
+		if (requestDto != null) {
+			builder.requestSchema(Schema.schema(requestSchemaName))
+				.requestFields(getFields(requestDto));
+		}
+
+		if (errorResponseDto != null) {
+			builder.responseSchema(Schema.schema(responseSchemaName))
+				.responseFields(getFields(errorResponseDto));
+		}
+
+		return MockMvcRestDocumentationWrapper.document(
+			identifier,
+			preprocessRequest(prettyPrint()),
+			preprocessResponse(prettyPrint()),
+			resource(builder.build())
+		);
+	}
+
 	private MockHttpServletRequestBuilder buildRequest(
 		String url,
 		String content,
