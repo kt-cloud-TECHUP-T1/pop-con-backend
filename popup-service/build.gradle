@@ -50,7 +50,6 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     // Security & JWT
-    implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
@@ -62,8 +61,8 @@ dependencies {
 
 openapi3 {
 //    servers = [{ url = 'http://localhost:8080' }]
-    servers = [{ url = '/' }]
-    title = '팝업 스토어 API 명세서'
+    servers = [{ url = 'http://localhost:8082' }]
+    title = '팝콘 팝업스토어 서비스 API 명세서'
     description = '예약 및 드로우, 굿즈 관리 API'
     version = '0.1.0'
     format = 'yaml'
@@ -119,7 +118,7 @@ tasks.register('copyOasToSwagger', Copy) {
     group = 'documentation'
     dependsOn 'enhanceOpenapiWithJwt'
     from layout.buildDirectory.file("api-spec/openapi3.yaml")
-    into layout.projectDirectory.dir("src/main/resources/static/swagger-ui")
+    into layout.projectDirectory.dir("src/main/resources/static/swagger-ui/popup")
     doFirst {
         def target = file("${destinationDir.path}/openapi3.yaml")
         if (target.exists()) target.delete()
