@@ -7,4 +7,14 @@ public record PopupSectionResponse<T>(
     int itemCount,
     List<T> items
 ) {
+    public static <T> PopupSectionResponse<T> of(
+        SectionKey sectionKey,
+        List<T> items
+    ) {
+        return new PopupSectionResponse<>(
+            sectionKey,
+            items.size(),
+            items
+        );
+    }
 }
