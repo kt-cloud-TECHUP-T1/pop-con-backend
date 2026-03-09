@@ -1,0 +1,222 @@
+openapi: 3.0.1
+info:
+  title: 팝콘 팝업스토어 서비스 API 명세서
+  description: 예약 및 드로우, 굿즈 관리 API
+  version: 0.1.0
+servers:
+- url: http://localhost:8082
+tags: []
+paths:
+  /popups/{popupId}:
+    get:
+      tags:
+      - Popup
+      summary: 팝업스토어 상세 조회
+      description: |
+        팝업스토어의 상세 정보를 조회합니다.
+        로그인 여부에 따라 좋아요(liked) 상태가 포함됩니다.
+
+        [에러 케이스]
+        - 500 (S001): 서버 오류
+      operationId: popup-detail-get-
+      parameters:
+      - name: popupId
+        in: path
+        description: ''
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: '200'
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                popup-detail-get-success:
+                  value: |-
+                    {
+                      "code" : "SUCCESS",
+                      "message" : "팝업스토어 조회를 성공했습니다.",
+                      "data" : {
+                        "phaseType" : "AUCTION",
+                        "phaseStatus" : "UPCOMING",
+                        "popupId" : 1,
+                        "liked" : true,
+                        "thumbnailUrl" : "https://imagelink.com/thumbnail.jpg",
+                        "images" : [ "https://imagelink.com/image1.jpg", "https://imagelink.com/image2.jpg", "https://imagelink.com/image3.jpg" ],
+                        "subtitle" : "Oneira X POPUP SEOUL",
+                        "title" : "오네이라 팝업 스토어",
+                        "viewCount" : 200,
+                        "likeCount" : 200,
+                        "description" : "Lee가 101 라인 101주년을 기념해 더현대 서울에서 팝업을 진행합니다.\uD83D\uDC56\n오랜 시간 쌓아온 데님 헤리티지와 101 라인의 상징성을 공간 안에 풀어냈습니다.\n다양한 리워드와 팝업 기간동안의 특별한 혜택을 받아보세요!\uD83E\uDE75\n\n[EVENT]\n① 02.18 PM 1:01 선착순 이벤트\n팝업 스토어 촬영 후 인스타그램 스토리 업로드 시, 선착순 101명 볼캡 증정\n② 구매 금액대별 혜택\n40만원 이상 → 반다나 반팔 티셔츠(20명)\n20만원 이상 → 빅 트위치 로고 투웨이 에코백(30명)\n10만원 이상 → 오버롤 미니 파우치(30명)\n제품 구매 고객 → 금속 뱃지 세트(200명) *ACC 제외\n③ 럭키드로우 이벤트\nLee 공식 인스타그램 팔로우하고 스토리 업로드 시 : 럭키드로우 참여 기회 제공\n1등 셀비지 셋업(3명)\n2등 Lee 빈티지 라벨 티셔츠(5명)\n3등 스몰 트위치 로고 데님 볼캡(10명)\n4등 오버롤 키링(20명)\n5등 101 원형 뱃지 *컬러 랜덤(1000명)\n\n[INFO]\n\uD83D\uDCCD장소 : 서울 영등포구 여의대로 108, 더현대 서울\n\uD83D\uDCC5일정 : 2/18(수) ~ 2/25(수)\n⏰시간 : 월-목 10:30 ~ 20:00 / 금-일 10:30 ~ 20:30\n",
+                        "location" : "서울 영등포구 여의대로 108, 더현대 서울",
+                        "reviewCount" : 0,
+                        "openAt" : "2026-02-15",
+                        "closeAt" : "2026-03-15",
+                        "weekdayOpen" : "11:00:00",
+                        "weekdayClose" : "21:00:00",
+                        "weekendOpen" : "10:00:00",
+                        "weekendClose" : "22:00:00",
+                        "auctionUpcoming" : {
+                          "auctionOpenAt" : "2026-02-09T10:00:00",
+                          "startPrice" : 132000
+                        },
+                        "auctionOpen" : null,
+                        "drawUpcoming" : null,
+                        "drawOpen" : null
+                      }
+                    }
+        '500':
+          description: '500'
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                popup-detail-get-fail-server-error:
+                  value: |-
+                    {
+                      "code" : "S001",
+                      "message" : "시스템 오류가 발생했습니다."
+                    }
+components:
+  schemas:
+    ApiResponse:
+      title: ApiResponse
+      type: object
+      properties:
+        DEFAULT_SUCCESS_MESSAGE:
+          type: string
+          description: DEFAULT_SUCCESS_MESSAGE
+          nullable: true
+        code:
+          type: string
+          description: code
+          nullable: true
+        SUCCESS:
+          type: string
+          description: SUCCESS
+          nullable: true
+        data:
+          type: object
+          properties:
+            weekdayClose:
+              type: string
+              description: weekdayClose
+              nullable: true
+            images:
+              type: array
+              description: images
+              nullable: true
+              items:
+                oneOf:
+                - type: object
+                - type: boolean
+                - type: string
+                - type: number
+            popupId:
+              type: number
+              description: popupId
+              nullable: true
+            weekendOpen:
+              type: string
+              description: weekendOpen
+              nullable: true
+            description:
+              type: string
+              description: description
+              nullable: true
+            likeCount:
+              type: number
+              description: likeCount
+              nullable: true
+            auctionUpcoming:
+              type: object
+              properties:
+                startPrice:
+                  type: number
+                  description: startPrice
+                  nullable: true
+                auctionOpenAt:
+                  type: string
+                  description: auctionOpenAt
+                  nullable: true
+              description: auctionUpcoming
+            title:
+              type: string
+              description: title
+              nullable: true
+            phaseStatus:
+              type: string
+              description: phaseStatus
+              nullable: true
+            closeAt:
+              type: string
+              description: closeAt
+              nullable: true
+            auctionOpen:
+              type: object
+              description: auctionOpen
+              nullable: true
+            liked:
+              type: boolean
+              description: liked
+              nullable: true
+            phaseType:
+              type: string
+              description: phaseType
+              nullable: true
+            reviewCount:
+              type: number
+              description: reviewCount
+              nullable: true
+            subtitle:
+              type: string
+              description: subtitle
+              nullable: true
+            weekdayOpen:
+              type: string
+              description: weekdayOpen
+              nullable: true
+            drawOpen:
+              type: object
+              description: drawOpen
+              nullable: true
+            location:
+              type: string
+              description: location
+              nullable: true
+            viewCount:
+              type: number
+              description: viewCount
+              nullable: true
+            drawUpcoming:
+              type: object
+              description: drawUpcoming
+              nullable: true
+            openAt:
+              type: string
+              description: openAt
+              nullable: true
+            weekendClose:
+              type: string
+              description: weekendClose
+              nullable: true
+            thumbnailUrl:
+              type: string
+              description: thumbnailUrl
+              nullable: true
+          description: data
+        message:
+          type: string
+          description: message
+          nullable: true
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+- bearerAuth: []
