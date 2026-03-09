@@ -1,4 +1,4 @@
-package com.t1.popcon.auth.config;
+package com.t1.popcon.popup.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
