@@ -8,6 +8,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -48,6 +49,16 @@ public class GlobalExceptionHandler {
         ErrorCode ec = ErrorCode.INVALID_INPUT;
         return ResponseEntity.status(ec.getStatus())
             .body(ApiResponse.fail(ec, fieldErrors));
+    }
+
+    /**
+     * 파라미터 타입 불일치 오류 처리
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<?>> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+        ErrorCode ec = ErrorCode.INVALID_INPUT;
+        return ResponseEntity.status(ec.getStatus())
+            .body(ApiResponse.fail(ec));
     }
 
     /**
