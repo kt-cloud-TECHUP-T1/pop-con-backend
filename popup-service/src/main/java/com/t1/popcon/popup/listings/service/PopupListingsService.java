@@ -96,7 +96,7 @@ public class PopupListingsService {
                 null,
                 i % 2 == 0,
                 new PopupCardDto.StatsDto(100 + i, 1000 + i * 100),
-                null,
+                new PopupCardDto.OverlayDto(OverlayType.AUCTION_IN_PROGRESS, null),
                 new PopupCardDto.PhaseDto(
                     PhaseType.AUCTION,
                     PhaseStatus.OPEN,
