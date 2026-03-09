@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import com.t1.popcon.common.entity.BaseSoftDeleteEntity;
+import com.t1.popcon.popup.dto.card.PhaseType;
 
 @Entity
 @Getter
@@ -78,4 +79,13 @@ public class Popup extends BaseSoftDeleteEntity {
 	@Column(nullable = false)
 	private Long extraTicket; // 회차당 티켓 수량
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private PhaseType phaseType; // AUCTION / DRAW
+
+    @Column(nullable = false)
+    private Long likeCount; // 좋아요 수
+
+    @Column(nullable = false)
+    private Long viewCount; // 조회수
 }
