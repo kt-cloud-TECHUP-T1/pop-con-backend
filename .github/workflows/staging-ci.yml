@@ -1,0 +1,116 @@
+name: CI(DEV) - Build and Push to ECR
+
+on:
+  push:
+    branches:
+      - staging
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+
+    outputs:
+      auth: ${{ steps.filter.outputs.auth }}
+      user: ${{ steps.filter.outputs.user }}
+      popup: ${{ steps.filter.outputs.popup }}
+      common: ${{ steps.filter.outputs.common }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Filter service
+        id: filter
+        uses: dorny/path-filter@v3
+        with:
+          filters: |
+            auth:
+              - 'auth-service/**'
+            user:
+              - 'user-service/**'
+            popup:
+              - 'popup-service/**'
+            common:
+              - 'common/**'
+
+  build-and-push:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service:
+          - auth-service
+          - user-service
+          - popup-service
+
+    if: |
+      (matrix.service == 'auth-service' && needs.detect-changes.outputs.auth == 'true') ||
+      (matrix.service == 'user-service' && needs.detect-changes.outputs.user == 'true') ||
+      (matrix.service == 'popup-service' && needs.detect-changes.outputs.popup == 'true') ||
+      (needs.detect-changes.outputs.common == 'true')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build service (with tests & REST Docs)
+        run: |
+          ./gradlew :${{ matrix.service }}:clean :${{ matrix.service }}:build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }}
+          aws-region: ap-northeast-2
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set short SHA
+        run: echo "SHORT_SHA=${GITHUB_SHA::10}" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push ${{ matrix.service }}
+        id: build-image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./${{ matrix.service }}/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ matrix.service }}:${{ env.SHORT_SHA }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ matrix.service }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Update GitOps deployment
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITOPS_TOKEN }}" \
+            https://api.github.com/repos/kt-cloud-TECHUP-T1/gitops/dispatches \
+            -d '{
+              "event_type": "deploy-staging",
+              "client_payload": {
+                "service": "${{ matrix.service }}",
+                "image": "${{ steps.login-ecr.outputs.registry }}/${{ matrix.service }}",
+                "tag": "${{ env.SHORT_SHA }}"
+              }
+            }'
