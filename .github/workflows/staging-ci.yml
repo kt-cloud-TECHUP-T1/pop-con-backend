@@ -48,13 +48,19 @@ jobs:
           - user-service
           - popup-service
 
-    if: |
-      (matrix.service == 'auth-service' && needs.detect-changes.outputs.auth == 'true') ||
-      (matrix.service == 'user-service' && needs.detect-changes.outputs.user == 'true') ||
-      (matrix.service == 'popup-service' && needs.detect-changes.outputs.popup == 'true') ||
-      (needs.detect-changes.outputs.common == 'true')
-
     steps:
+      - name: Skip unchanged service
+        if: |
+          !(
+            (matrix.service == 'auth-service' && needs.detect-changes.outputs.auth == 'true') ||
+            (matrix.service == 'user-service' && needs.detect-changes.outputs.user == 'true') ||
+            (matrix.service == 'popup-service' && needs.detect-changes.outputs.popup == 'true') ||
+            (needs.detect-changes.outputs.common == 'true')
+          )
+        run: |
+          echo "No changes for ${{ matrix.service }}. Skipping."
+          exit 0
+
       - name: Checkout
         uses: actions/checkout@v4
 
