@@ -27,6 +27,10 @@ public class PopupListingsService {
         PopupSort sort,
         int limit
     ) {
+        if (phaseType == null || statuses == null || statuses.isEmpty()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+
         if (limit < 1) {
             Map<String, String> errors = new LinkedHashMap<>();
             errors.put("limit", "limit는 1 이상이어야 합니다.");
@@ -54,6 +58,10 @@ public class PopupListingsService {
     }
 
     public String getMessage(PhaseType type, List<PhaseStatus> statuses) {
+        if (type == null || statuses == null || statuses.isEmpty()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+
         if (type == PhaseType.AUCTION) {
             return "더치 경매 섹션 조회를 성공했습니다.";
         }
@@ -96,7 +104,7 @@ public class PopupListingsService {
                 null,
                 i % 2 == 0,
                 new PopupCardDto.StatsDto(100 + i, 1000 + i * 100),
-                null,
+                new PopupCardDto.OverlayDto(OverlayType.AUCTION_IN_PROGRESS, null),
                 new PopupCardDto.PhaseDto(
                     PhaseType.AUCTION,
                     PhaseStatus.OPEN,
