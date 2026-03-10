@@ -45,7 +45,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: swagger-ui
-          path: src/main/resources/static/swagger-ui
+          path: |
+            auth-service/src/main/resources/static/swagger-ui
+            popup-service/src/main/resources/static/swagger-ui
+            user-service/src/main/resources/static/swagger-ui
           if-no-files-found: warn
 
       - name: Notify Discord (Test & Docs)
@@ -67,12 +70,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Download swagger-ui artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: swagger-ui
-          path: src/main/resources/static/swagger-ui
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
