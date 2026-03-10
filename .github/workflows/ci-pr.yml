@@ -76,35 +76,27 @@ jobs:
           - popup-service
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - run: chmod +x ./gradlew
+
+      - name: Build jar
+        run: ./gradlew :${{ matrix.service }}:bootJar
 
       - name: Check jars
-        run: |
-          ls -al auth-service/build/libs
-          ls -al user-service/build/libs
-          ls -al popup-service/build/libs
+        run: ls -al ${{ matrix.service }}/build/libs
 
-      - name: Docker build (no push)
-        uses: docker/build-push-action@v5
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v5
         with:
           context: .
           file: ./${{ matrix.service }}/Dockerfile
           push: false
           tags: pr-check:${{ matrix.service }}
-
-      - name: Notify Discord (Docker build)
-        if: always()
-        continue-on-error: true
-        uses: tsickert/discord-webhook@v7.0.0
-        with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK_PR_CI }}
-          content: |
-            🐳 PR 도커 이미지 빌드 결과: **${{ job.status }}**
-            - 서비스: ${{ matrix.service }}
-            - 레포: ${{ github.repository }}
-            - PR: <${{ github.event.pull_request.html_url }}>
-            - 실행 로그: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}>
