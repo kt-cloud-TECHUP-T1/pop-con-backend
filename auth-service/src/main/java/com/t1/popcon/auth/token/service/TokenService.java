@@ -3,13 +3,13 @@ package com.t1.popcon.auth.token.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.t1.popcon.auth.token.config.JwtProperties;
+import com.t1.popcon.common.auth.config.JwtProperties;
 import com.t1.popcon.auth.token.domain.RefreshToken;
 import com.t1.popcon.auth.token.domain.RefreshTokenRepository;
-import com.t1.popcon.auth.token.domain.TokenType;
+import com.t1.popcon.common.auth.domain.TokenType;
 import com.t1.popcon.auth.token.dto.TokenRefreshRequest;
 import com.t1.popcon.auth.token.dto.TokenRefreshResponse;
-import com.t1.popcon.auth.token.provider.TokenProvider;
+import com.t1.popcon.common.auth.provider.TokenProvider;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 

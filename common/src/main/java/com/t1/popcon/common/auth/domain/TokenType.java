@@ -1,4 +1,4 @@
-package com.t1.popcon.auth.token.domain;
+package com.t1.popcon.common.auth.domain;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
