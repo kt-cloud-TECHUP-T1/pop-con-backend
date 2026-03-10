@@ -28,14 +28,18 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Test + Docs (OpenAPI copy)
-        run: ./gradlew --no-daemon clean test copyOasToSwagger --stacktrace
+        run: ./gradlew --no-daemon clean test :auth-service:bootJar :user-service:bootJar :popup-service:bootJar copyOasToSwagger
 
       - name: Upload test report
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: test-report
-          path: build/reports/tests/test
+          path: |
+            auth-service/build/reports/tests/test
+            user-service/build/reports/tests/test
+            popup-service/build/reports/tests/test
+
           if-no-files-found: warn
 
       - name: Upload swagger-ui artifact
