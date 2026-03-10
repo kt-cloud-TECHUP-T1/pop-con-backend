@@ -1,0 +1,18 @@
+openapi: 3.0.1
+info:
+  title: 팝콘 더치경매 서비스 API 명세서
+  description: 더치경매, 가격 하락, 구독, 입찰 API
+  version: 0.1.0
+servers:
+- url: http://localhost:8083
+tags: []
+paths: {}
+components:
+  schemas: {}
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+- bearerAuth: []
