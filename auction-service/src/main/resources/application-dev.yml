@@ -21,7 +21,7 @@ spring:
       password: ${REDIS_PASSWORD}
 
 server:
-  port: 8082
+  port: 8083
   shutdown: graceful
 
 logging:
@@ -49,4 +49,4 @@ management:
 
   metrics:
     tags:
-      application: popup-service
+      application: auction-service
