@@ -9,6 +9,5 @@ public enum SectionKey {
     DRAWS_OPEN,
     DRAWS_UPCOMING,
     FEATURED,
-    ENDING_SOON,
-    MAGAZINES
+    ENDING_SOON
 }
