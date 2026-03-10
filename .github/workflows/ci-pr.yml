@@ -82,15 +82,19 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Check jars
+        run: |
+          ls -al auth-service/build/libs
+          ls -al user-service/build/libs
+          ls -al popup-service/build/libs
+
       - name: Docker build (no push)
         uses: docker/build-push-action@v5
         with:
-          context: ./${{ matrix.service }}
+          context: .
           file: ./${{ matrix.service }}/Dockerfile
           push: false
           tags: pr-check:${{ matrix.service }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Notify Discord (Docker build)
         if: always()
