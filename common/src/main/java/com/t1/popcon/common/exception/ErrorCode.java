@@ -32,7 +32,14 @@ public enum ErrorCode {
 
     // User
     USER_NOT_FOUND("U001", HttpStatus.NOT_FOUND, "존재하지 않는 사용자입니다."),
-    SOCIAL_INFO_MISSING("U002", HttpStatus.BAD_REQUEST, "가입 세션의 소셜 정보가 누락되었습니다.");
+    SOCIAL_INFO_MISSING("U002", HttpStatus.BAD_REQUEST, "가입 세션의 소셜 정보가 누락되었습니다."),
+
+    // Auction
+    AUCTION_NOT_FOUND("AU001", HttpStatus.NOT_FOUND, "존재하지 않는 경매입니다."),
+    AUCTION_NOT_OPEN("AU002", HttpStatus.BAD_REQUEST, "현재 진행 중인 경매가 아닙니다."),
+    AUCTION_ALREADY_CLOSED("AU003", HttpStatus.BAD_REQUEST, "이미 종료된 경매입니다."),
+    AUCTION_ALREADY_SOLD_OUT("AU004", HttpStatus.CONFLICT, "이미 낙찰이 완료된 경매입니다."),
+    AUCTION_STREAM_SUBSCRIBE_FAILED("AU005", HttpStatus.INTERNAL_SERVER_ERROR, "경매 실시간 구독 연결에 실패했습니다.");
 
     private final String code;
     private final HttpStatus status;
