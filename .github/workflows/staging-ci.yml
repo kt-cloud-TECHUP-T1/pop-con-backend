@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
+      auction: ${{ steps.filter.outputs.auction }}
       auth: ${{ steps.filter.outputs.auth }}
       user: ${{ steps.filter.outputs.user }}
       popup: ${{ steps.filter.outputs.popup }}
@@ -58,7 +59,7 @@ jobs:
             (matrix.service == 'auth-service' && needs.detect-changes.outputs.auth == 'true') ||
             (matrix.service == 'user-service' && needs.detect-changes.outputs.user == 'true') ||
             (matrix.service == 'popup-service' && needs.detect-changes.outputs.popup == 'true') ||
-            (matrix.service == 'auction-service' && needs.detect-changes.outputs.auction == 'true')
+            (matrix.service == 'auction-service' && needs.detect-changes.outputs.auction == 'true') ||
             (needs.detect-changes.outputs.common == 'true')
           )
         run: |
@@ -101,7 +102,7 @@ jobs:
       - name: Build and push ${{ matrix.service }}
         uses: docker/build-push-action@v5
         with:
-          context: ./${{ matrix.service }}
+          context: .
           file: ./${{ matrix.service }}/Dockerfile
           push: true
           tags: |
