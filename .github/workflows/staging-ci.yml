@@ -26,7 +26,7 @@ jobs:
 
       - name: Filter service
         id: filter
-        uses: dorny/path-filter@v3
+        uses: dorny/paths-filter@v3
         with:
           filters: |
             auth:
