@@ -19,6 +19,10 @@ spring:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
       password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: true
+
+
 
 server:
   port: 8080
