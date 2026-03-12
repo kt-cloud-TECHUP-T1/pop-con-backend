@@ -28,8 +28,8 @@ public class PopupListingsController {
      */
     @GetMapping
     public ResponseEntity<ApiResponse<PopupSectionResponse<PopupCardDto>>> getPopups(
-        @RequestParam PhaseType phaseType,
-        @RequestParam List<PhaseStatus> phaseStatus,
+        @RequestParam(required = false) PhaseType phaseType,
+        @RequestParam(required = false) List<PhaseStatus> phaseStatus,
         @RequestParam(required = false) PopupSort sort,
         @RequestParam(defaultValue = "10") int limit
     ) {

@@ -1,4 +1,4 @@
-package com.t1.popcon.auth.token.config;
+package com.t1.popcon.common.auth.config;
 
 import lombok.Getter;
 import lombok.Setter;

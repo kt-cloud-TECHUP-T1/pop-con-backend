@@ -1,4 +1,4 @@
-package com.t1.popcon.auth.token.filter;
+package com.t1.popcon.common.auth.filter;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -13,7 +13,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-import com.t1.popcon.auth.token.provider.TokenProvider;
+import com.t1.popcon.common.auth.provider.TokenProvider;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 

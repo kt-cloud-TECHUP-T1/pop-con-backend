@@ -1,7 +1,7 @@
-package com.t1.popcon.auth.token.provider;
+package com.t1.popcon.common.auth.provider;
 
-import com.t1.popcon.auth.token.config.JwtProperties;
-import com.t1.popcon.auth.token.domain.TokenType;
+import com.t1.popcon.common.auth.config.JwtProperties;
+import com.t1.popcon.common.auth.domain.TokenType;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 

@@ -3,11 +3,11 @@ package com.t1.popcon.auth.signup.service;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import com.t1.popcon.auth.token.config.JwtProperties;
+import com.t1.popcon.common.auth.config.JwtProperties;
 import com.t1.popcon.auth.signup.dto.SignUpRequest;
 import com.t1.popcon.auth.signup.dto.SignUpResponse;
 import com.t1.popcon.auth.token.domain.RefreshToken;
-import com.t1.popcon.auth.token.provider.TokenProvider;
+import com.t1.popcon.common.auth.provider.TokenProvider;
 import com.t1.popcon.auth.token.domain.RefreshTokenRepository;
 //import com.t1.popcon.user.domain.Gender;
 //import com.t1.popcon.user.domain.User;
