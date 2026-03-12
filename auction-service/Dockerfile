@@ -4,7 +4,7 @@ WORKDIR /app
 
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 
-COPY auth-service/build/libs/*.jar app.jar
+COPY auction-service/build/libs/*.jar app.jar
 
 ENV SPRING_PROFILES_ACTIVE=staging
 ENV JAVA_OPTS="-Xms512m -Xmx512m"
