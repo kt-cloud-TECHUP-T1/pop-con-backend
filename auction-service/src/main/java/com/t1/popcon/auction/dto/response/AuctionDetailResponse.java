@@ -10,42 +10,50 @@ import java.time.LocalDateTime;
 public record AuctionDetailResponse(
         Long auctionId,
         String auctionStatus,
+        LocalDateTime serverTime,
+        LocalDateTime auctionOpenAt,
+        LocalDateTime auctionCloseAt,
+        Long remainingUntilOpenSeconds,
+        Long remainingUntilCloseSeconds,
         Integer startPrice,
         Integer minimumPrice,
         Integer currentPrice,
         Integer nextPrice,
+        Integer discountAmount,
         Integer priceDropUnit,
         Integer priceDropIntervalSeconds,
         Long secondsUntilNextDrop,
-        LocalDateTime openedAt,
-        LocalDateTime closedAt,
-        LocalDateTime serverTime
+        Integer maxPurchaseQuantityPerRound
 ) {
     public static AuctionDetailResponse of(
             Auction auction,
             AuctionStatus auctionStatus,
+            LocalDateTime serverTime,
+            Long remainingUntilOpenSeconds,
+            Long remainingUntilCloseSeconds,
             Integer currentPrice,
+            Integer nextPrice,
+            Integer discountAmount,
             Long secondsUntilNextDrop,
-            LocalDateTime serverTime
+            Integer maxPurchaseQuantityPerRound
     ) {
-        int nextPrice = Math.max(
-                currentPrice - auction.getPriceDropUnit(),
-                auction.getMinimumPrice()
-        );
-
         return AuctionDetailResponse.builder()
                 .auctionId(auction.getId())
                 .auctionStatus(auctionStatus.name())
+                .serverTime(serverTime)
+                .auctionOpenAt(auction.getOpenedAt())
+                .auctionCloseAt(auction.getClosedAt())
+                .remainingUntilOpenSeconds(remainingUntilOpenSeconds)
+                .remainingUntilCloseSeconds(remainingUntilCloseSeconds)
                 .startPrice(auction.getStartPrice())
                 .minimumPrice(auction.getMinimumPrice())
                 .currentPrice(currentPrice)
                 .nextPrice(nextPrice)
+                .discountAmount(discountAmount)
                 .priceDropUnit(auction.getPriceDropUnit())
                 .priceDropIntervalSeconds(auction.getPriceDropIntervalSeconds())
                 .secondsUntilNextDrop(secondsUntilNextDrop)
-                .openedAt(auction.getOpenedAt())
-                .closedAt(auction.getClosedAt())
-                .serverTime(serverTime)
+                .maxPurchaseQuantityPerRound(maxPurchaseQuantityPerRound)
                 .build();
     }
 }

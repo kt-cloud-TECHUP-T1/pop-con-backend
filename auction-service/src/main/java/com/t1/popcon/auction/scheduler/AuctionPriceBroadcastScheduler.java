@@ -20,6 +20,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AuctionPriceBroadcastScheduler {
 
+    private static final int MAX_PURCHASE_QUANTITY_PER_ROUND = 10;
+
     private final AuctionRepository auctionRepository;
     private final AuctionPriceService auctionPriceService;
     private final AuctionSseService auctionSseService;
@@ -44,15 +46,25 @@ public class AuctionPriceBroadcastScheduler {
                 continue;
             }
 
-            int currentPrice = auctionPriceService.calculateCurrentPrice(auction, now);
-            long secondsUntilNextDrop = auctionPriceService.calculateSecondsUntilNextDrop(auction, now);
+            Long remainingUntilOpenSeconds = auctionPriceService.calculateRemainingUntilOpenSeconds(auction, now);
+            Long remainingUntilCloseSeconds = auctionPriceService.calculateRemainingUntilCloseSeconds(auction, now);
+
+            Integer currentPrice = auctionPriceService.calculateCurrentPrice(auction, now);
+            Integer nextPrice = auctionPriceService.calculateNextPrice(auction, currentPrice);
+            Integer discountAmount = auctionPriceService.calculateDiscountAmount(auction, currentPrice);
+            Long secondsUntilNextDrop = auctionPriceService.calculateSecondsUntilNextDrop(auction, now);
 
             AuctionPriceStreamResponse response = AuctionPriceStreamResponse.of(
                     auction,
                     calculatedStatus,
+                    now,
+                    remainingUntilOpenSeconds,
+                    remainingUntilCloseSeconds,
                     currentPrice,
+                    nextPrice,
+                    discountAmount,
                     secondsUntilNextDrop,
-                    now
+                    MAX_PURCHASE_QUANTITY_PER_ROUND
             );
 
             auctionSseService.send(auction.getId(), response);

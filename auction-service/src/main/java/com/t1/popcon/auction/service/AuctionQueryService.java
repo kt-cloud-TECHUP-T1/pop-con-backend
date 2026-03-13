@@ -15,6 +15,8 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class AuctionQueryService {
 
+    private static final int MAX_PURCHASE_QUANTITY_PER_ROUND = 10;
+
     private final AuctionRepository auctionRepository;
     private final AuctionPriceService auctionPriceService;
 
@@ -25,15 +27,25 @@ public class AuctionQueryService {
         LocalDateTime now = LocalDateTime.now();
 
         AuctionStatus auctionStatus = auctionPriceService.calculateStatus(auction, now);
-        int currentPrice = auctionPriceService.calculateCurrentPrice(auction, now);
-        long secondsUntilNextDrop = auctionPriceService.calculateSecondsUntilNextDrop(auction, now);
+        Long remainingUntilOpenSeconds = auctionPriceService.calculateRemainingUntilOpenSeconds(auction, now);
+        Long remainingUntilCloseSeconds = auctionPriceService.calculateRemainingUntilCloseSeconds(auction, now);
+
+        Integer currentPrice = auctionPriceService.calculateCurrentPrice(auction, now);
+        Integer nextPrice = auctionPriceService.calculateNextPrice(auction, currentPrice);
+        Integer discountAmount = auctionPriceService.calculateDiscountAmount(auction, currentPrice);
+        Long secondsUntilNextDrop = auctionPriceService.calculateSecondsUntilNextDrop(auction, now);
 
         return AuctionDetailResponse.of(
                 auction,
                 auctionStatus,
+                now,
+                remainingUntilOpenSeconds,
+                remainingUntilCloseSeconds,
                 currentPrice,
+                nextPrice,
+                discountAmount,
                 secondsUntilNextDrop,
-                now
+                MAX_PURCHASE_QUANTITY_PER_ROUND
         );
     }
 }
