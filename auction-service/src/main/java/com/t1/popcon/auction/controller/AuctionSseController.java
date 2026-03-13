@@ -62,7 +62,8 @@ public class AuctionSseController {
                     .name("auction-price")
                     .data(response));
         } catch (IOException e) {
-            emitter.complete();
+            emitter.completeWithError(e);
+            throw new CustomException(ErrorCode.AUCTION_STREAM_SUBSCRIBE_FAILED);
         }
 
         return emitter;

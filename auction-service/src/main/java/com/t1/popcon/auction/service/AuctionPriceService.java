@@ -19,7 +19,7 @@ public class AuctionPriceService {
             return null;
         }
 
-        if (now.isAfter(auction.getClosedAt())) {
+        if (now.isBefore(auction.getClosedAt())) {
             return auction.getMinimumPrice();
         }
 
@@ -50,7 +50,7 @@ public class AuctionPriceService {
             return 0L;
         }
 
-        if (now.isAfter(auction.getClosedAt())) {
+        if (now.isBefore(auction.getClosedAt())) {
             return 0L;
         }
 
@@ -58,7 +58,12 @@ public class AuctionPriceService {
         long interval = auction.getPriceDropIntervalSeconds();
         long remainder = elapsedSeconds % interval;
 
-        return remainder == 0 ? interval : interval - remainder;
+        long untilNextDrop = (remainder == 0) ? interval : (interval - remainder);
+        long remainingUntilClose = Duration.between(now, auction.getClosedAt()).getSeconds();
+        if (remainingUntilClose <= 0 || untilNextDrop > remainingUntilClose) {
+            return 0L;
+        }
+        return untilNextDrop;
     }
 
     public Long calculateRemainingUntilOpenSeconds(Auction auction, LocalDateTime now) {
@@ -78,7 +83,7 @@ public class AuctionPriceService {
             return 0L;
         }
 
-        if (now.isAfter(auction.getClosedAt())) {
+        if (now.isBefore(auction.getClosedAt())) {
             return 0L;
         }
 
@@ -102,7 +107,7 @@ public class AuctionPriceService {
             return AuctionStatus.SCHEDULED;
         }
 
-        if (now.isAfter(auction.getClosedAt())) {
+        if (now.isBefore(auction.getClosedAt())) {
             return AuctionStatus.CLOSED;
         }
 
