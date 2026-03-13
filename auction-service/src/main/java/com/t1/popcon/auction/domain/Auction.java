@@ -55,7 +55,7 @@ public class Auction {
             Long winnerMemberId,
             LocalDateTime soldAt
     ) {
-        validatePricePolicy(startPrice, minimumPrice, priceDropUnit, priceDropIntervalSeconds, openedAt, closedAt);
+        validatePricePolicy(startPrice, minimumPrice, priceDropUnit, priceDropIntervalSeconds, openedAt, closedAt, status);
 
         this.startPrice = startPrice;
         this.minimumPrice = minimumPrice;
@@ -96,7 +96,8 @@ public class Auction {
             Integer priceDropUnit,
             Integer priceDropIntervalSeconds,
             LocalDateTime openedAt,
-            LocalDateTime closedAt
+            LocalDateTime closedAt,
+            AuctionStatus status
     ) {
         if (startPrice == null || startPrice <= 0) {
             throw new IllegalArgumentException("시작가는 0보다 커야 합니다.");
@@ -106,6 +107,9 @@ public class Auction {
         }
         if (startPrice < minimumPrice) {
             throw new IllegalArgumentException("시작가는 최저가보다 크거나 같아야 합니다.");
+        }
+        if (status == null) {
+            throw new IllegalArgumentException("경매 상태는 필수입니다.");
         }
         if (priceDropUnit == null || priceDropUnit <= 0) {
             throw new IllegalArgumentException("가격 감소 단위는 0보다 커야 합니다.");
