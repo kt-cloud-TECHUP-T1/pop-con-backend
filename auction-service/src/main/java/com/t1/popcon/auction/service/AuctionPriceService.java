@@ -19,7 +19,7 @@ public class AuctionPriceService {
             return null;
         }
 
-        if (now.isBefore(auction.getClosedAt())) {
+        if (now.isAfter(auction.getClosedAt())) {
             return auction.getMinimumPrice();
         }
 
@@ -50,7 +50,7 @@ public class AuctionPriceService {
             return 0L;
         }
 
-        if (now.isBefore(auction.getClosedAt())) {
+        if (now.isAfter(auction.getClosedAt())) {
             return 0L;
         }
 
@@ -83,7 +83,7 @@ public class AuctionPriceService {
             return 0L;
         }
 
-        if (now.isBefore(auction.getClosedAt())) {
+        if (now.isAfter(auction.getClosedAt())) {
             return 0L;
         }
 
@@ -107,7 +107,7 @@ public class AuctionPriceService {
             return AuctionStatus.SCHEDULED;
         }
 
-        if (now.isBefore(auction.getClosedAt())) {
+        if (now.isAfter(auction.getClosedAt())) {
             return AuctionStatus.CLOSED;
         }
 
