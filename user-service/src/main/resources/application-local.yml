@@ -36,3 +36,13 @@ jwt:
 server:
   port: 8081
   shutdown: graceful
+
+portone:
+  api:
+    secret: ${PORTONE_API_SECRET}
+    store-id: ${PORTONE_STORE_ID}
+  url: "https://api.portone.io"
+
+app:
+  billing:
+    mock-enabled: true

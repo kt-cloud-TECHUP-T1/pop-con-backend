@@ -30,7 +30,8 @@ public class UserSecurityConfig extends CommonSecurityConfig {
 			.requestMatchers(
 				"/health",
 				"/v3/api-docs/**",
-				"/swagger-ui/**"
+				"/swagger-ui/**",
+				"/billing/**"
 			).permitAll()
 			.anyRequest().authenticated()
 		);
