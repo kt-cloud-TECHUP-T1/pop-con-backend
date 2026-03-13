@@ -7,7 +7,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create   # TODO : 소스코드 어느정도 나오면 update로 변경할 것
+      ddl-auto: update
     open-in-view: false
     properties:
       hibernate:
@@ -19,9 +19,13 @@ spring:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
       password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: true
+
+
 
 server:
-  port: 8081
+  port: 8080
   shutdown: graceful
 
 logging:
@@ -49,4 +53,4 @@ management:
 
   metrics:
     tags:
-      application: user-service
+      application: popup-service
