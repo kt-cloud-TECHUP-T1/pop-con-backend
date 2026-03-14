@@ -66,7 +66,7 @@ public class AuctionOption extends BaseSoftDeleteEntity {
     }
 
     public void decreaseStock(int quantity) {
-        if (quantity == null || quantity <= 0) {
+        if (quantity <= 0) {
             throw new CustomException(ErrorCode.AUCTION_OPTION_STOCK_INVALID);
         }
         if (remainingStock < quantity) {
