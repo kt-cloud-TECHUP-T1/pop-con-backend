@@ -24,22 +24,24 @@ public class AuctionOptionService {
     private final AuctionRepository auctionRepository;
     private final AuctionOptionRepository auctionOptionRepository;
 
+    // 날짜 목록 조회
     public List<AuctionAvailableDateResponse> getAvailableDates(Long auctionId) {
-        Auction auction = getAuctionForSelection(auctionId);
+        Auction auction = getSelectableAuction(auctionId);
 
-        return auctionOptionRepository.findByAuction_IdOrderByAuctionDateAscEntryTimeAsc(auction.getId())
+        return auctionOptionRepository.findByAuction_IdOrderByEntryDateAscEntryTimeAsc(auction.getId())
             .stream()
-            .filter(AuctionOption::isSelectable)   // 남은 재고 있는 날짜만 노출
-            .map(AuctionOption::getAuctionDate)
-            .distinct()                            // 같은 날짜 중복 제거
+            .filter(AuctionOption::isSelectable)
+            .map(AuctionOption::getEntryDate)
+            .distinct()
             .map(AuctionAvailableDateResponse::new)
             .toList();
     }
 
-    public List<AuctionOptionResponse> getOptionsByDate(Long auctionId, LocalDate auctionDate) {
-        Auction auction = getAuctionForSelection(auctionId);
+    // 날짜별 회차 조회
+    public List<AuctionOptionResponse> getOptionsByDate(Long auctionId, LocalDate entryDate) {
+        Auction auction = getSelectableAuction(auctionId);
 
-        return auctionOptionRepository.findByAuction_IdAndAuctionDateOrderByEntryTimeAsc(auction.getId(), auctionDate)
+        return auctionOptionRepository.findByAuction_IdAndEntryDateOrderByEntryTimeAsc(auction.getId(), entryDate)
             .stream()
             .map(option -> new AuctionOptionResponse(
                 option.getId(),
@@ -50,9 +52,18 @@ public class AuctionOptionService {
             .toList();
     }
 
-    private Auction getAuctionForSelection(Long auctionId) {
-        // 회차 선택은 오픈 전/종료 후에는 막고 싶으면 OPEN만 허용
-        return auctionRepository.findByIdAndStatusIn(auctionId, List.of(AuctionStatus.OPEN))
-            .orElseThrow(() -> new CustomException(ErrorCode.AUCTION_NOT_OPEN));
+    private Auction getSelectableAuction(Long auctionId) {
+        Auction auction = auctionRepository.findById(auctionId)
+            .orElseThrow(() -> new CustomException(ErrorCode.AUCTION_NOT_FOUND));
+
+        if (auction.getStatus() == AuctionStatus.CLOSED) {
+            throw new CustomException(ErrorCode.AUCTION_ALREADY_CLOSED);
+        }
+
+        if (auction.getStatus() != AuctionStatus.OPEN) {
+            throw new CustomException(ErrorCode.AUCTION_NOT_OPEN);
+        }
+
+        return auction;
     }
 }

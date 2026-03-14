@@ -3,17 +3,12 @@ package com.t1.popcon.auction.domain;
 import com.t1.popcon.common.entity.BaseSoftDeleteEntity;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -30,6 +25,7 @@ import java.time.LocalTime;
     }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@SQLRestriction("deleted = false")
 public class AuctionOption extends BaseSoftDeleteEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -42,7 +38,7 @@ public class AuctionOption extends BaseSoftDeleteEntity {
     @Column(nullable = false)
     private LocalTime entryTime;
 
-    // 총 재고는 auction.stockPerOption 기준, 옵션은 현재 남은 재고만 관리
+    // 총 재고는 auction.stockPerOption 기준, 현재 남은 재고만 관리
     @Column(nullable = false)
     private Integer remainingStock;
 
@@ -70,14 +66,12 @@ public class AuctionOption extends BaseSoftDeleteEntity {
     }
 
     public void decreaseStock(int quantity) {
-        if (quantity <= 0) {
+        if (quantity == null || quantity <= 0) {
             throw new CustomException(ErrorCode.AUCTION_OPTION_STOCK_INVALID);
         }
-
-        if (this.remainingStock < quantity) {
+        if (remainingStock < quantity) {
             throw new CustomException(ErrorCode.AUCTION_OPTION_SOLD_OUT);
         }
-
         this.remainingStock -= quantity;
     }
 
@@ -90,7 +84,6 @@ public class AuctionOption extends BaseSoftDeleteEntity {
         if (auction == null || entryDate == null || entryTime == null || remainingStock == null) {
             throw new CustomException(ErrorCode.AUCTION_OPTION_STOCK_INVALID);
         }
-
         if (remainingStock < 0 || remainingStock > auction.getStockPerOption()) {
             throw new CustomException(ErrorCode.AUCTION_OPTION_STOCK_INVALID);
         }

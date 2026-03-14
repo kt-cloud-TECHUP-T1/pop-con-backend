@@ -9,12 +9,9 @@ import java.util.Optional;
 
 public interface AuctionOptionRepository extends JpaRepository<AuctionOption, Long> {
 
-    List<AuctionOption> findByAuction_IdAndDeletedFalseOrderByAuctionDateAscEntryTimeAsc(Long auctionId);
+    List<AuctionOption> findByAuction_IdOrderByEntryDateAscEntryTimeAsc(Long auctionId);
 
-    List<AuctionOption> findByAuction_IdAndAuctionDateAndDeletedFalseOrderByEntryTimeAsc(
-        Long auctionId,
-        LocalDate auctionDate
-    );
+    List<AuctionOption> findByAuction_IdAndEntryDateOrderByEntryTimeAsc(Long auctionId, LocalDate entryDate);
 
-    Optional<AuctionOption> findByIdAndDeletedFalse(Long optionId);
+    Optional<AuctionOption> findById(Long optionId);
 }
