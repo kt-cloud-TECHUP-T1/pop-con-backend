@@ -1,6 +1,7 @@
 package com.t1.popcon.auction.scheduler;
 
 import com.t1.popcon.auction.domain.Auction;
+import com.t1.popcon.auction.domain.AuctionButtonStatus;
 import com.t1.popcon.auction.domain.AuctionStatus;
 import com.t1.popcon.auction.dto.response.AuctionPriceStreamResponse;
 import com.t1.popcon.auction.repository.AuctionRepository;
@@ -19,8 +20,6 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 public class AuctionPriceBroadcastScheduler {
-
-    private static final int MAX_PURCHASE_QUANTITY_PER_ROUND = 10;
 
     private final AuctionRepository auctionRepository;
     private final AuctionPriceService auctionPriceService;
@@ -54,6 +53,9 @@ public class AuctionPriceBroadcastScheduler {
             Integer discountAmount = auctionPriceService.calculateDiscountAmount(auction, currentPrice);
             Long secondsUntilNextDrop = auctionPriceService.calculateSecondsUntilNextDrop(auction, now);
 
+            Boolean canParticipate = auctionPriceService.canParticipate(calculatedStatus);
+            AuctionButtonStatus buttonStatus = auctionPriceService.calculateButtonStatus(calculatedStatus);
+
             AuctionPriceStreamResponse response = AuctionPriceStreamResponse.of(
                     auction,
                     calculatedStatus,
@@ -64,7 +66,8 @@ public class AuctionPriceBroadcastScheduler {
                     nextPrice,
                     discountAmount,
                     secondsUntilNextDrop,
-                    MAX_PURCHASE_QUANTITY_PER_ROUND
+                    canParticipate,
+                    buttonStatus
             );
 
             auctionSseService.send(auction.getId(), response);

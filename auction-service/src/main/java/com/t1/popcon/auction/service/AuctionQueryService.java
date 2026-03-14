@@ -1,6 +1,7 @@
 package com.t1.popcon.auction.service;
 
 import com.t1.popcon.auction.domain.Auction;
+import com.t1.popcon.auction.domain.AuctionButtonStatus;
 import com.t1.popcon.auction.domain.AuctionStatus;
 import com.t1.popcon.auction.dto.response.AuctionDetailResponse;
 import com.t1.popcon.auction.repository.AuctionRepository;
@@ -14,8 +15,6 @@ import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 public class AuctionQueryService {
-
-    private static final int MAX_PURCHASE_QUANTITY_PER_ROUND = 10;
 
     private final AuctionRepository auctionRepository;
     private final AuctionPriceService auctionPriceService;
@@ -35,6 +34,9 @@ public class AuctionQueryService {
         Integer discountAmount = auctionPriceService.calculateDiscountAmount(auction, currentPrice);
         Long secondsUntilNextDrop = auctionPriceService.calculateSecondsUntilNextDrop(auction, now);
 
+        Boolean canParticipate = auctionPriceService.canParticipate(auctionStatus);
+        AuctionButtonStatus buttonStatus = auctionPriceService.calculateButtonStatus(auctionStatus);
+
         return AuctionDetailResponse.of(
                 auction,
                 auctionStatus,
@@ -45,7 +47,8 @@ public class AuctionQueryService {
                 nextPrice,
                 discountAmount,
                 secondsUntilNextDrop,
-                MAX_PURCHASE_QUANTITY_PER_ROUND
+                canParticipate,
+                buttonStatus
         );
     }
 }

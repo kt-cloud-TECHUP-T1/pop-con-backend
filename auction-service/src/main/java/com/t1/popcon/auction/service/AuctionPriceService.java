@@ -1,6 +1,7 @@
 package com.t1.popcon.auction.service;
 
 import com.t1.popcon.auction.domain.Auction;
+import com.t1.popcon.auction.domain.AuctionButtonStatus;
 import com.t1.popcon.auction.domain.AuctionStatus;
 import org.springframework.stereotype.Service;
 
@@ -58,12 +59,7 @@ public class AuctionPriceService {
         long interval = auction.getPriceDropIntervalSeconds();
         long remainder = elapsedSeconds % interval;
 
-        long untilNextDrop = (remainder == 0) ? interval : (interval - remainder);
-        long remainingUntilClose = Duration.between(now, auction.getClosedAt()).getSeconds();
-        if (remainingUntilClose <= 0 || untilNextDrop > remainingUntilClose) {
-            return 0L;
-        }
-        return untilNextDrop;
+        return remainder == 0 ? interval : interval - remainder;
     }
 
     public Long calculateRemainingUntilOpenSeconds(Auction auction, LocalDateTime now) {
@@ -112,5 +108,18 @@ public class AuctionPriceService {
         }
 
         return AuctionStatus.OPEN;
+    }
+
+    public boolean canParticipate(AuctionStatus auctionStatus) {
+        return auctionStatus == AuctionStatus.OPEN;
+    }
+
+    public AuctionButtonStatus calculateButtonStatus(AuctionStatus auctionStatus) {
+        return switch (auctionStatus) {
+            case SCHEDULED -> AuctionButtonStatus.WAITING;
+            case OPEN -> AuctionButtonStatus.ENABLED;
+            case SOLD_OUT -> AuctionButtonStatus.SOLD_OUT;
+            case CLOSED -> AuctionButtonStatus.ENDED;
+        };
     }
 }

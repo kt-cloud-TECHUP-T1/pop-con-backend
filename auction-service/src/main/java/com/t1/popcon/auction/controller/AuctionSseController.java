@@ -1,6 +1,7 @@
 package com.t1.popcon.auction.controller;
 
 import com.t1.popcon.auction.domain.Auction;
+import com.t1.popcon.auction.domain.AuctionButtonStatus;
 import com.t1.popcon.auction.domain.AuctionStatus;
 import com.t1.popcon.auction.dto.response.AuctionPriceStreamResponse;
 import com.t1.popcon.auction.repository.AuctionRepository;
@@ -20,8 +21,6 @@ import java.time.LocalDateTime;
 @RequestMapping("/auctions")
 @RequiredArgsConstructor
 public class AuctionSseController {
-
-    private static final int MAX_PURCHASE_QUANTITY_PER_ROUND = 10;
 
     private final AuctionRepository auctionRepository;
     private final AuctionPriceService auctionPriceService;
@@ -44,6 +43,9 @@ public class AuctionSseController {
         Integer discountAmount = auctionPriceService.calculateDiscountAmount(auction, currentPrice);
         Long secondsUntilNextDrop = auctionPriceService.calculateSecondsUntilNextDrop(auction, now);
 
+        Boolean canParticipate = auctionPriceService.canParticipate(auctionStatus);
+        AuctionButtonStatus buttonStatus = auctionPriceService.calculateButtonStatus(auctionStatus);
+
         AuctionPriceStreamResponse response = AuctionPriceStreamResponse.of(
                 auction,
                 auctionStatus,
@@ -54,7 +56,8 @@ public class AuctionSseController {
                 nextPrice,
                 discountAmount,
                 secondsUntilNextDrop,
-                MAX_PURCHASE_QUANTITY_PER_ROUND
+                canParticipate,
+                buttonStatus
         );
 
         try {
@@ -62,8 +65,7 @@ public class AuctionSseController {
                     .name("auction-price")
                     .data(response));
         } catch (IOException e) {
-            emitter.completeWithError(e);
-            throw new CustomException(ErrorCode.AUCTION_STREAM_SUBSCRIBE_FAILED);
+            emitter.complete();
         }
 
         return emitter;
