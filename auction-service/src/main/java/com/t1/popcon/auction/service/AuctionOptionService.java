@@ -28,9 +28,9 @@ public class AuctionOptionService {
     public List<AuctionAvailableDateResponse> getAvailableDates(Long auctionId) {
         Auction auction = getSelectableAuction(auctionId);
 
-        return auctionOptionRepository.findByAuction_IdOrderByEntryDateAscEntryTimeAsc(auction.getId())
+        return auctionOptionRepository
+            .findByAuction_IdAndRemainingStockGreaterThanOrderByEntryDateAscEntryTimeAsc(auction.getId(), 0)
             .stream()
-            .filter(AuctionOption::isSelectable)
             .map(AuctionOption::getEntryDate)
             .distinct()
             .map(AuctionAvailableDateResponse::new)
@@ -41,7 +41,8 @@ public class AuctionOptionService {
     public List<AuctionOptionResponse> getOptionsByDate(Long auctionId, LocalDate entryDate) {
         Auction auction = getSelectableAuction(auctionId);
 
-        return auctionOptionRepository.findByAuction_IdAndEntryDateOrderByEntryTimeAsc(auction.getId(), entryDate)
+        return auctionOptionRepository
+            .findByAuction_IdAndEntryDateOrderByEntryTimeAsc(auction.getId(), entryDate)
             .stream()
             .map(option -> new AuctionOptionResponse(
                 option.getId(),
