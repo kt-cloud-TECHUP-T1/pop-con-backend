@@ -1,8 +1,8 @@
 package com.t1.popcon.auction.controller;
 
 import com.t1.popcon.auction.domain.Auction;
-import com.t1.popcon.auction.domain.AuctionStatus;
 import com.t1.popcon.auction.domain.AuctionButtonStatus;
+import com.t1.popcon.auction.domain.AuctionStatus;
 import com.t1.popcon.auction.dto.response.AuctionPriceStreamResponse;
 import com.t1.popcon.auction.repository.AuctionRepository;
 import com.t1.popcon.auction.service.AuctionPriceService;
@@ -21,8 +21,6 @@ import java.time.LocalDateTime;
 @RequestMapping("/auctions")
 @RequiredArgsConstructor
 public class AuctionSseController {
-
-    private static final int MAX_PURCHASE_QUANTITY_PER_ROUND = 10;
 
     private final AuctionRepository auctionRepository;
     private final AuctionPriceService auctionPriceService;
@@ -58,7 +56,6 @@ public class AuctionSseController {
                 nextPrice,
                 discountAmount,
                 secondsUntilNextDrop,
-                MAX_PURCHASE_QUANTITY_PER_ROUND,
                 canParticipate,
                 buttonStatus
         );

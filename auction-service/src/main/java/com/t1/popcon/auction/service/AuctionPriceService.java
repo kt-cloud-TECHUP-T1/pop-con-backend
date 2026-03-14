@@ -1,8 +1,8 @@
 package com.t1.popcon.auction.service;
 
 import com.t1.popcon.auction.domain.Auction;
-import com.t1.popcon.auction.domain.AuctionStatus;
 import com.t1.popcon.auction.domain.AuctionButtonStatus;
+import com.t1.popcon.auction.domain.AuctionStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;

@@ -1,5 +1,6 @@
 package com.t1.popcon.auction.domain;
 
+import com.t1.popcon.common.entity.BaseSoftDeleteEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -8,8 +9,8 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "auction")
-public class Auction {
+@Table(name = "auctions")
+public class Auction extends BaseSoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,6 +27,9 @@ public class Auction {
 
     @Column(name = "price_drop_interval_seconds", nullable = false)
     private Integer priceDropIntervalSeconds;
+
+    @Column(name = "stock_per_option", nullable = false)
+    private Integer stockPerOption;
 
     @Column(name = "opened_at", nullable = false)
     private LocalDateTime openedAt;
@@ -49,18 +53,28 @@ public class Auction {
             Integer minimumPrice,
             Integer priceDropUnit,
             Integer priceDropIntervalSeconds,
+            Integer stockPerOption,
             LocalDateTime openedAt,
             LocalDateTime closedAt,
             AuctionStatus status,
             Long winnerMemberId,
             LocalDateTime soldAt
     ) {
-        validatePricePolicy(startPrice, minimumPrice, priceDropUnit, priceDropIntervalSeconds, openedAt, closedAt, status);
+        validatePricePolicy(
+                startPrice,
+                minimumPrice,
+                priceDropUnit,
+                priceDropIntervalSeconds,
+                stockPerOption,
+                openedAt,
+                closedAt
+        );
 
         this.startPrice = startPrice;
         this.minimumPrice = minimumPrice;
         this.priceDropUnit = priceDropUnit;
         this.priceDropIntervalSeconds = priceDropIntervalSeconds;
+        this.stockPerOption = stockPerOption;
         this.openedAt = openedAt;
         this.closedAt = closedAt;
         this.status = status;
@@ -95,9 +109,9 @@ public class Auction {
             Integer minimumPrice,
             Integer priceDropUnit,
             Integer priceDropIntervalSeconds,
+            Integer stockPerOption,
             LocalDateTime openedAt,
-            LocalDateTime closedAt,
-            AuctionStatus status
+            LocalDateTime closedAt
     ) {
         if (startPrice == null || startPrice <= 0) {
             throw new IllegalArgumentException("시작가는 0보다 커야 합니다.");
@@ -108,14 +122,14 @@ public class Auction {
         if (startPrice < minimumPrice) {
             throw new IllegalArgumentException("시작가는 최저가보다 크거나 같아야 합니다.");
         }
-        if (status == null) {
-            throw new IllegalArgumentException("경매 상태는 필수입니다.");
-        }
         if (priceDropUnit == null || priceDropUnit <= 0) {
             throw new IllegalArgumentException("가격 감소 단위는 0보다 커야 합니다.");
         }
         if (priceDropIntervalSeconds == null || priceDropIntervalSeconds <= 0) {
             throw new IllegalArgumentException("가격 감소 주기는 0보다 커야 합니다.");
+        }
+        if (stockPerOption == null || stockPerOption <= 0) {
+            throw new IllegalArgumentException("회차당 구매 가능 수량은 0보다 커야 합니다.");
         }
         if (openedAt == null || closedAt == null) {
             throw new IllegalArgumentException("경매 시작/종료 시각은 필수입니다.");

@@ -1,8 +1,8 @@
 package com.t1.popcon.auction.dto.response;
 
 import com.t1.popcon.auction.domain.Auction;
-import com.t1.popcon.auction.domain.AuctionStatus;
 import com.t1.popcon.auction.domain.AuctionButtonStatus;
+import com.t1.popcon.auction.domain.AuctionStatus;
 import lombok.Builder;
 
 import java.time.LocalDateTime;
@@ -38,7 +38,6 @@ public record AuctionDetailResponse(
             Integer nextPrice,
             Integer discountAmount,
             Long secondsUntilNextDrop,
-            Integer maxPurchaseQuantityPerRound,
             Boolean canParticipate,
             AuctionButtonStatus buttonStatus
     ) {
@@ -58,7 +57,7 @@ public record AuctionDetailResponse(
                 .priceDropUnit(auction.getPriceDropUnit())
                 .priceDropIntervalSeconds(auction.getPriceDropIntervalSeconds())
                 .secondsUntilNextDrop(secondsUntilNextDrop)
-                .maxPurchaseQuantityPerRound(maxPurchaseQuantityPerRound)
+                .maxPurchaseQuantityPerRound(auction.getStockPerOption())
                 .canParticipate(canParticipate)
                 .buttonStatus(buttonStatus.name())
                 .build();
