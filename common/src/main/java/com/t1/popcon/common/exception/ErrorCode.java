@@ -38,7 +38,7 @@ public enum ErrorCode {
     PAYMENT_FETCH_FAILED("P001", HttpStatus.BAD_GATEWAY, "결제 수단 정보 조회에 실패했습니다."),
     BILLING_KEY_NOT_FOUND("P002", HttpStatus.NOT_FOUND, "등록된 결제 수단이 없습니다."),
     PAYMENT_EXECUTION_FAILED("P003", HttpStatus.PAYMENT_REQUIRED, "결제 승인에 실패했습니다."),
-    ALREADY_PAID("P004", HttpStatus.CONFLICT, "이미 결제가 완료된 주문입니다.");
+    ALREADY_PAID("P004", HttpStatus.CONFLICT, "이미 결제가 완료된 주문입니다."),
   
     // Auction
     AUCTION_NOT_FOUND("AU001", HttpStatus.NOT_FOUND, "존재하지 않는 경매입니다."),
