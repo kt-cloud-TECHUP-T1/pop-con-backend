@@ -31,7 +31,8 @@ public class UserSecurityConfig extends CommonSecurityConfig {
 				"/health",
 				"/v3/api-docs/**",
 				"/swagger-ui/**",
-				"/billing/**"
+				"/billing/**",
+				"/actuator/**"
 			).permitAll()
 			.anyRequest().authenticated()
 		);

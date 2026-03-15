@@ -4,8 +4,10 @@
 .gitattributes
 
 # Build output
-build/
-**/build/
+build/*
+**/build/*
+!**/build/libs/
+!**/build/libs/*.jar
 out/
 
 # IDE
@@ -15,7 +17,7 @@ out/
 *.iml
 *.ipr
 
-# Gradle cache (wrapper는 필요하므로 제외하지 않음)
+# Gradle cache
 .gradle
 
 # Docs
@@ -28,7 +30,7 @@ HELP.md
 Thumbs.db
 Desktop.ini
 
-# Security - 민감 파일 절대 포함 금지
+# Security
 *.pem
 *.key
 *.env
@@ -38,7 +40,6 @@ application-secret.yml
 application-prod.yml
 
 # Docker
-auth-service/Dockerfile
 docker-compose*.yml
 
 # GitHub
