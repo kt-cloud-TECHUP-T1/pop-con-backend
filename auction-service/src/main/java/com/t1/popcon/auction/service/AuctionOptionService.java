@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -23,6 +24,7 @@ public class AuctionOptionService {
 
     private final AuctionRepository auctionRepository;
     private final AuctionOptionRepository auctionOptionRepository;
+    private final AuctionPriceService auctionPriceService;
 
     // 날짜 목록 조회
     public List<AuctionAvailableDateResponse> getAvailableDates(Long auctionId) {
@@ -57,11 +59,14 @@ public class AuctionOptionService {
         Auction auction = auctionRepository.findById(auctionId)
             .orElseThrow(() -> new CustomException(ErrorCode.AUCTION_NOT_FOUND));
 
-        if (auction.getStatus() == AuctionStatus.CLOSED) {
+        LocalDateTime now = LocalDateTime.now();
+        AuctionStatus currentStatus = auctionPriceService.calculateStatus(auction, now);
+
+        if (currentStatus == AuctionStatus.CLOSED) {
             throw new CustomException(ErrorCode.AUCTION_ALREADY_CLOSED);
         }
 
-        if (auction.getStatus() != AuctionStatus.OPEN) {
+        if (currentStatus != AuctionStatus.OPEN) {
             throw new CustomException(ErrorCode.AUCTION_NOT_OPEN);
         }
 
