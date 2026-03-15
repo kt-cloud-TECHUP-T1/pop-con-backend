@@ -22,7 +22,7 @@ public class PortoneHttpClient implements PortoneClient {
 		this.restClient = RestClient.builder()
 			.baseUrl(baseUrl)
 			.requestInterceptor((request, body, execution) -> {
-				log.info(">>>> [Portone V2 Request] {} {}", request.getMethod(), request.getURI());
+				log.info(">>>> [Portone V2 Request] {}", request.getMethod());
 				return execution.execute(request, body);
 			})
 			.build();
@@ -30,14 +30,27 @@ public class PortoneHttpClient implements PortoneClient {
 
 	@Override
 	public PortoneBillingKeyResponse fetchBillingKeyInfo(String billingKey) {
-		return restClient.get()
-			.uri("/billing-keys/{billingKey}", billingKey)
-			.header("Authorization", "Portone " + apiSecret.trim())
-			.retrieve()
-			.onStatus(HttpStatusCode::isError, (req, res) -> {
-				log.error("Portone API Error: {}", res.getStatusCode());
+		try {
+			PortoneBillingKeyResponse response = restClient.get()
+				.uri("/billing-keys/{billingKey}", billingKey)
+				.header("Authorization", "Portone " + apiSecret.trim())
+				.retrieve()
+				.onStatus(HttpStatusCode::isError, (req, res) -> {
+					log.error(">>>> [Portone API HTTP Error] Status: {}", res.getStatusCode());
+					throw new CustomException(ErrorCode.PAYMENT_FETCH_FAILED);
+				})
+				.body(PortoneBillingKeyResponse.class);
+
+			if (response == null) {
+				log.error(">>>> [Portone API Error] Response body is null");
 				throw new CustomException(ErrorCode.PAYMENT_FETCH_FAILED);
-			})
-			.body(PortoneBillingKeyResponse.class);
+			}
+			return response;
+		} catch (CustomException e) {
+			throw e;
+		} catch (Exception e) {
+			log.error(">>>> [Portone API Connection/Parsing Error] Message: {}", e.getMessage());
+			throw new CustomException(ErrorCode.PAYMENT_FETCH_FAILED);
+		}
 	}
 }

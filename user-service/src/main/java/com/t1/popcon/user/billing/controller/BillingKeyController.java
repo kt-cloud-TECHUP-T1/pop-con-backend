@@ -4,6 +4,9 @@ import com.t1.popcon.common.response.ApiResponse;
 import com.t1.popcon.user.billing.dto.BillingKeyInfoResponse;
 import com.t1.popcon.user.billing.dto.BillingKeyRegisterRequest;
 import com.t1.popcon.user.billing.service.BillingKeyService;
+import com.t1.popcon.user.domain.User;
+
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,10 +21,10 @@ public class BillingKeyController {
 
 	@PostMapping("/keys")
 	public ApiResponse<BillingKeyInfoResponse> register(
-		@AuthenticationPrincipal Long userId,
-		@RequestBody BillingKeyRegisterRequest request
+		@AuthenticationPrincipal User user,
+		@Valid @RequestBody BillingKeyRegisterRequest request
 	) {
-		BillingKeyInfoResponse response = billingKeyService.registerBillingKey(userId, request);
+		BillingKeyInfoResponse response = billingKeyService.registerBillingKey(user.getId(), request);
 		return ApiResponse.ok("결제 수단이 성공적으로 등록되었습니다.", response);
 	}
 

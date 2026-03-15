@@ -34,14 +34,14 @@ public record PortoneBillingKeyResponse(
 	}
 
 	public String getCardName() {
-		if (methods != null && !methods.isEmpty() && methods.get(0).card() != null) {
+		if (methods != null && !methods.isEmpty() && methods.get(0).card() != null && methods.get(0).card().name() != null) {
 			return methods.get(0).card().name();
 		}
 		return "알 수 없는 카드";
 	}
 
 	public String getCardNumber() {
-		if (methods != null && !methods.isEmpty() && methods.get(0).card() != null) {
+		if (methods != null && !methods.isEmpty() && methods.get(0).card() != null && methods.get(0).card().number() != null) {
 			return methods.get(0).card().number();
 		}
 		return "****-****-****-****";
