@@ -40,7 +40,6 @@ jobs:
             user-service/build/reports/tests/test
             popup-service/build/reports/tests/test
             auction-service/build/reports/tests/test
-            draw-service/build/reports/tests/test
 
           if-no-files-found: warn
 
@@ -53,7 +52,6 @@ jobs:
             popup-service/src/main/resources/static/swagger-ui
             user-service/src/main/resources/static/swagger-ui
             auction-service/src/main/resources/static/swagger-ui
-            draw-service/src/main/resources/static/swagger-ui
           if-no-files-found: warn
 
       - name: Notify Discord (Test & Docs)
@@ -79,7 +77,6 @@ jobs:
           - user-service
           - popup-service
           - auction-service
-          - draw-service
 
     steps:
       - uses: actions/checkout@v4
