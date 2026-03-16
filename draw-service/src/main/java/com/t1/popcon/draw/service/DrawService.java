@@ -21,7 +21,7 @@ public class DrawService {
     private final Clock clock;
 
     public DrawDetailResponse getDrawDetail(Long drawId) {
-        Draw draw = drawRepository.findByIdAndDeletedFalse(drawId)
+        Draw draw = drawRepository.findById(drawId)
                 .orElseThrow(() -> new CustomException(ErrorCode.DRAW_NOT_FOUND));
 
         LocalDateTime serverTime = LocalDateTime.now(clock);

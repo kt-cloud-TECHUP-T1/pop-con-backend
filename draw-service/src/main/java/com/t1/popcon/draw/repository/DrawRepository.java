@@ -7,5 +7,4 @@ import java.util.Optional;
 
 public interface DrawRepository extends JpaRepository<Draw, Long> {
 
-    Optional<Draw> findByIdAndDeletedFalse(Long drawId);
 }
