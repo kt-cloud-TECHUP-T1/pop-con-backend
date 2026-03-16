@@ -51,7 +51,7 @@ public enum ErrorCode {
     AUCTION_OPTION_STOCK_INVALID("AU008", HttpStatus.BAD_REQUEST, "경매 옵션 재고 값이 올바르지 않습니다."),
 
     // Draw
-    DRAW_NOT_FOUND("DRAW404", HttpStatus.NOT_FOUND, "해당 팝업의 드로우 정보를 찾을 수 없습니다.");
+    DRAW_NOT_FOUND("D404", HttpStatus.NOT_FOUND, "해당 드로우 정보를 찾을 수 없습니다.");
 
     private final String code;
     private final HttpStatus status;

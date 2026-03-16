@@ -51,4 +51,4 @@ management:
 
   metrics:
     tags:
-      application: auction-service
+      application: draw-service
