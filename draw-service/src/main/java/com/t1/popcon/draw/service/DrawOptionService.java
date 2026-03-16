@@ -28,7 +28,7 @@ public class DrawOptionService {
     public List<DrawAvailableDateResponse> getAvailableDates(Long drawId) {
         Draw draw = getSelectableDraw(drawId);
 
-        return drawOptionRepository.findByDraw_IdOrderByEntryDateAscEntryTimeAsc(Draw.getId())
+        return drawOptionRepository.findByDraw_IdOrderByEntryDateAscEntryTimeAsc(draw.getId())
             .stream()
             .map(DrawOption::getEntryDate)
             .distinct()
