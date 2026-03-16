@@ -48,7 +48,8 @@ public enum ErrorCode {
     AUCTION_STREAM_SUBSCRIBE_FAILED("AU005", HttpStatus.INTERNAL_SERVER_ERROR, "경매 실시간 구독 연결에 실패했습니다."),
     AUCTION_OPTION_NOT_FOUND("AU006", HttpStatus.NOT_FOUND, "존재하지 않는 경매 옵션입니다."),
     AUCTION_OPTION_SOLD_OUT("AU007", HttpStatus.CONFLICT, "해당 회차는 매진되었습니다."),
-    AUCTION_OPTION_STOCK_INVALID("AU008", HttpStatus.BAD_REQUEST, "경매 옵션 재고 값이 올바르지 않습니다.");
+    AUCTION_OPTION_STOCK_INVALID("AU008", HttpStatus.BAD_REQUEST, "경매 옵션 재고 값이 올바르지 않습니다."),
+    AUCTION_PRICE_MISMATCH("AU009", HttpStatus.BAD_REQUEST, "요청하신 입찰 가격이 현재 경매가와 일치하지 않습니다.");
 
     private final String code;
     private final HttpStatus status;

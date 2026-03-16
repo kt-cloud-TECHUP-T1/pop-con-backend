@@ -28,7 +28,7 @@ import java.time.LocalTime;
 @SQLRestriction("deleted = false")
 public class AuctionOption extends BaseSoftDeleteEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "auction_id", nullable = false)
     private Auction auction;
 

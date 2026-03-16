@@ -1,11 +1,15 @@
-package com.t1.popcon.user.billing.infrastructure;
+package com.t1.popcon.common.infrastructure.portone;
+
+import java.util.Map;
 
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
-import com.t1.popcon.user.billing.dto.PortoneBillingKeyResponse;
+import com.t1.popcon.common.infrastructure.dto.PortoneBillingKeyResponse;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -50,6 +54,36 @@ public class PortoneHttpClient implements PortoneClient {
 			throw e;
 		} catch (Exception e) {
 			log.error(">>>> [Portone API Connection/Parsing Error] Message: {}", e.getMessage());
+			throw new CustomException(ErrorCode.PAYMENT_FETCH_FAILED);
+		}
+	}
+
+	@Override
+	public void executePayment(String billingKey, String merchantUid, int amount, String orderName) {
+		try {
+			restClient.post()
+				.uri("/payments/{merchantUid}/billing-key", merchantUid)
+				.header("Authorization", "Portone " + apiSecret.trim())
+				.contentType(MediaType.APPLICATION_JSON)
+				.body(Map.of(
+					"billingKey", billingKey,
+					"amount", Map.of(
+						"total", amount
+					),
+					"orderName", orderName,
+					"currency", "KRW"
+				))
+				.retrieve()
+				.onStatus(HttpStatusCode::isError, (req, res) -> {
+					log.error(">>>> [Portone Payment Error] Status: {}, MerchantUid: {}", res.getStatusCode(), merchantUid);
+					throw new CustomException(ErrorCode.PAYMENT_FETCH_FAILED);
+				})
+				.toBodilessEntity();
+
+			log.info(">>>> [Portone Payment Success] MerchantUid: {}", merchantUid);
+
+		} catch (Exception e) {
+			log.error(">>>> [Portone Payment Exception] MerchantUid: {}, Message: {}", merchantUid, e.getMessage());
 			throw new CustomException(ErrorCode.PAYMENT_FETCH_FAILED);
 		}
 	}

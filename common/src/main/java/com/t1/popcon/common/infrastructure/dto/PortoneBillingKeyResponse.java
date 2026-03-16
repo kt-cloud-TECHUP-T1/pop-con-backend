@@ -1,4 +1,4 @@
-package com.t1.popcon.user.billing.dto;
+package com.t1.popcon.common.infrastructure.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;

@@ -22,10 +22,11 @@ spring:
         show_sql: true
     defer-datasource-initialization: true
 
-  autoconfigure:
-    exclude:
-      - org.redisson.spring.starter.RedissonAutoConfigurationV2
-      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+  data:
+    redis:
+      host: localhost
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
 
 logging:
   level:
@@ -37,3 +38,9 @@ jwt:
   secret: popcon-backend-test-secret-key-1234567890-abcdefghijklmnopqrstuvwxyz-64bytes-over
   access-token-expiration: 3600000
   refresh-token-expiration: 604800000
+
+portone:
+  api:
+    secret: ${PORTONE_API_SECRET}
+    store-id: ${PORTONE_STORE_ID}
+  url: "https://api.portone.io"
