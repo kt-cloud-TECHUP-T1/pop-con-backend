@@ -3,6 +3,7 @@ package com.t1.popcon.auction.domain;
 import com.t1.popcon.common.entity.BaseSoftDeleteEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 
@@ -10,11 +11,8 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "auctions")
+@SQLRestriction("deleted = false")
 public class Auction extends BaseSoftDeleteEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     @Column(name = "start_price", nullable = false)
     private Integer startPrice;
