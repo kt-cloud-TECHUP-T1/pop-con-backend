@@ -15,6 +15,8 @@ public class AuctionQueryController {
 
     @GetMapping("/{auctionId}")
     public ApiResponse<AuctionDetailResponse> getAuctionDetail(@PathVariable Long auctionId) {
-        return ApiResponse.ok(auctionQueryService.getAuctionDetail(auctionId));
+        return ApiResponse.ok
+                ("경매 상세 조회를 성공했습니다.",
+                        auctionQueryService.getAuctionDetail(auctionId));
     }
 }
