@@ -38,6 +38,7 @@ public class Draw extends BaseSoftDeleteEntity {
             LocalDateTime drawCloseAt,
             Integer stockPerOption
     ) {
+        validateStockPerOption(stockPerOption);
         this.popupId = popupId;
         this.drawOpenAt = drawOpenAt;
         this.drawCloseAt = drawCloseAt;
@@ -50,6 +51,13 @@ public class Draw extends BaseSoftDeleteEntity {
     }
 
     public void updateStockPerOption(Integer stockPerOption) {
+        validateStockPerOption(stockPerOption);
         this.stockPerOption = stockPerOption;
+    }
+
+    private void validateStockPerOption(Integer stockPerOption) {
+        if (stockPerOption == null ||  stockPerOption <= 0) {
+            throw new IllegalArgumentException("회차당 응모 가능 수량은 0보다 커야 합니다.");
+        }
     }
 }

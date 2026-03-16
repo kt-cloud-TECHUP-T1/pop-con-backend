@@ -26,7 +26,7 @@ public class DrawOptionService {
 
     // 날짜 목록 조회
     public List<DrawAvailableDateResponse> getAvailableDates(Long drawId) {
-        Draw Draw = getSelectableDraw(drawId);
+        Draw draw = getSelectableDraw(drawId);
 
         return drawOptionRepository.findByDraw_IdOrderByEntryDateAscEntryTimeAsc(Draw.getId())
             .stream()
