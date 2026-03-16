@@ -3,6 +3,8 @@ package com.t1.popcon.auth.oauth.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.t1.popcon.auth.oauth.dto.RegisterPayload;
+import com.t1.popcon.common.exception.CustomException;
+import com.t1.popcon.common.exception.ErrorCode;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -41,7 +43,7 @@ public class RedisRegisterTokenStore implements RegisterTokenStore {
     @Override
     public void mergeCiHash(String registerToken, String ciHash, long ttlSecondsToExtend) {
         RegisterPayload payload = find(registerToken)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid or expired registerToken"));
+                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_TOKEN));
 
         RegisterPayload updated = payload.withCiHash(ciHash);
 
