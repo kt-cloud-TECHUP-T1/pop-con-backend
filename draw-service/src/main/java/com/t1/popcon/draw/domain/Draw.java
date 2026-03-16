@@ -57,7 +57,7 @@ public class Draw extends BaseSoftDeleteEntity {
 
     private void validateStockPerOption(Integer stockPerOption) {
         if (stockPerOption == null ||  stockPerOption <= 0) {
-            throw new IllegalArgumentException("회차당 응모 가능 수량은 0보다 커야 합니다.");
+            throw new IllegalArgumentException("회차당 당첨 수량은 0보다 커야 합니다.");
         }
     }
 }
