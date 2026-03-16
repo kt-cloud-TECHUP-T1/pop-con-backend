@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,7 +23,6 @@ public class DrawOptionService {
 
     private final DrawRepository drawRepository;
     private final DrawOptionRepository drawOptionRepository;
-    private final Clock clock;
 
     // 날짜 목록 조회
     public List<DrawAvailableDateResponse> getAvailableDates(Long drawId) {

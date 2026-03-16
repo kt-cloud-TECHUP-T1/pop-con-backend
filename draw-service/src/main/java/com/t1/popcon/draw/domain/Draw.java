@@ -49,7 +49,7 @@ public class Draw extends BaseSoftDeleteEntity {
         this.drawCloseAt = drawCloseAt;
     }
 
-    public void updatestockPerOption(Integer stockPerOption) {
+    public void updateStockPerOption(Integer stockPerOption) {
         this.stockPerOption = stockPerOption;
     }
 }
