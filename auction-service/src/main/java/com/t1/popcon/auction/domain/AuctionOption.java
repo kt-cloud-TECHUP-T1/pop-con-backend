@@ -20,7 +20,7 @@ import java.time.LocalTime;
     uniqueConstraints = {
         @UniqueConstraint(
             name = "uk_auction_options_schedule",
-            columnNames = {"auction_id", "entry_date", "entry_time"}
+            columnNames = {"auction_id", "entry_date", "entry_time", "deleted"}
         )
     }
 )

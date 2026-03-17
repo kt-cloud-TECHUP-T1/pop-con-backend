@@ -49,7 +49,13 @@ public enum ErrorCode {
     AUCTION_OPTION_NOT_FOUND("AU006", HttpStatus.NOT_FOUND, "존재하지 않는 경매 옵션입니다."),
     AUCTION_OPTION_SOLD_OUT("AU007", HttpStatus.CONFLICT, "해당 회차는 매진되었습니다."),
     AUCTION_OPTION_STOCK_INVALID("AU008", HttpStatus.BAD_REQUEST, "경매 옵션 재고 값이 올바르지 않습니다."),
-    AUCTION_PRICE_MISMATCH("AU009", HttpStatus.BAD_REQUEST, "요청하신 입찰 가격이 현재 경매가와 일치하지 않습니다.");
+    AUCTION_PRICE_MISMATCH("AU009", HttpStatus.BAD_REQUEST, "요청하신 입찰 가격이 현재 경매가와 일치하지 않습니다."),
+
+    // Draw
+    DRAW_NOT_FOUND("D001", HttpStatus.NOT_FOUND, "존재하지 않는 드로우입니다."),
+    DRAW_NOT_OPEN("D002", HttpStatus.BAD_REQUEST, "현재 진행 중인 드로우가 아닙니다."),
+    DRAW_ALREADY_CLOSED("D003", HttpStatus.BAD_REQUEST, "이미 종료된 드로우입니다."),
+    DRAW_OPTION_NOT_FOUND("D004", HttpStatus.NOT_FOUND, "존재하지 않는 드로우 옵션입니다.");
 
     private final String code;
     private final HttpStatus status;
