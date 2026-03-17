@@ -26,7 +26,7 @@ public class BidRedisRepository {
 
 	public void setStock(Long optionId, Integer stock) {
 		String key = String.format(STOCK_KEY_PREFIX, optionId);
-		redisTemplate.opsForValue().set(key, String.valueOf(stock), Duration.ofDays(1));
+		redisTemplate.opsForValue().set(key, String.valueOf(stock));
 	}
 
 	// 결제 실패 시 재고 복구

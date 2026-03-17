@@ -25,8 +25,8 @@ spring:
   data:
     redis:
       host: localhost
-      port: ${REDIS_PORT}
-      password: ${REDIS_PASSWORD}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
 
 logging:
   level:
@@ -41,6 +41,6 @@ jwt:
 
 portone:
   api:
-    secret: ${PORTONE_API_SECRET}
-    store-id: ${PORTONE_STORE_ID}
-  url: "https://api.portone.io"
+    secret: ${PORTONE_API_SECRET:test-portone-secret}
+    store-id: ${PORTONE_STORE_ID:test-store-id}
+  url: ${PORTONE_URL:http://localhost:18080}

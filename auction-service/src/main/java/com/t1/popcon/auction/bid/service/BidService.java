@@ -34,9 +34,10 @@ public class BidService {
 	private final AuctionPriceService auctionPriceService;
 	private final PortoneClient portoneClient;
 
-	public BidResponse attemptBid(Long memberId, BidRequest request) {
+	@Transactional
+	public BidResponse attemptBid(Long userId, BidRequest request) {
 		// [1] 사전 검증: 회차 존재 및 경매 진행 여부 확인
-		AuctionOption option = auctionOptionRepository.findById(request.auctionOptionId())
+		AuctionOption option = auctionOptionRepository.findByIdWithAuction(request.auctionOptionId())
 			.orElseThrow(() -> new CustomException(ErrorCode.AUCTION_OPTION_NOT_FOUND));
 
 		LocalDateTime now = LocalDateTime.now();
@@ -58,7 +59,7 @@ public class BidService {
 		// [4] 낙찰 기록 생성 (PENDING)
 		String merchantUid = UUID.randomUUID().toString();
 		Bid bid = bidRepository.save(Bid.builder()
-			.memberId(memberId)
+			.userId(userId)
 			.auctionOption(option)
 			.bidPrice(currentServerPrice)
 			.merchantUid(merchantUid)
@@ -77,9 +78,10 @@ public class BidService {
 
 		} catch (Exception e) {
 			// [7] 보상 트랜잭션: 결제 실패 시 Redis 재고 복구
+			log.error("결제 실패 - memberId: {}, optionId: {}", userId, option.getId(), e);
 			bid.failBid();
 			bidRedisRepository.incrementStock(option.getId());
-			throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED);
+			throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, e);
 		}
 	}
 
@@ -87,17 +89,5 @@ public class BidService {
 		if (auctionPriceService.calculateStatus(auction, now) != AuctionStatus.OPEN) {
 			throw new CustomException(ErrorCode.AUCTION_NOT_OPEN);
 		}
-	}
-
-	@Transactional
-	protected void finalizeSuccess(Bid bid, AuctionOption option) {
-		bid.completePayment(LocalDateTime.now());
-		option.decreaseStock(1); // 낙관적 락(@Version)으로 최종 방어
-	}
-
-	@Transactional
-	protected void handleFailure(Bid bid, AuctionOption option) {
-		bid.failBid();
-		bidRedisRepository.incrementStock(option.getId()); // 재고 복구 로직
 	}
 }

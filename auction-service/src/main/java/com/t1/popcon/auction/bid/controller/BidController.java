@@ -27,7 +27,7 @@ public class BidController {
 	public ResponseEntity<ApiResponse<BidResponse>> attemptBid(
 		// TODO: 인증 방식(SecurityContext 등)에 맞춰 memberId 가져와야 함, 헤더로 임시구현
 		// 예: @AuthenticationPrincipal UserPrincipal principal
-		@RequestHeader(value = "X-Member-Id", defaultValue = "1") Long memberId,
+		@RequestHeader(value = "X-Member-Id") Long memberId,
 		@Valid @RequestBody BidRequest request
 	) {
 

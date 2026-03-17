@@ -22,6 +22,7 @@ import java.time.LocalTime;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -48,9 +49,9 @@ class BidConcurrencyTest {
 			.startPrice(10000)
 			.minimumPrice(5000)
 			.priceDropUnit(1000)
-			.priceDropIntervalSeconds(60)
+			.priceDropIntervalSeconds(3600)
 			.stockPerOption(100)
-			.openedAt(LocalDateTime.now().minusHours(1))
+			.openedAt(LocalDateTime.now().minusMinutes(1))
 			.closedAt(LocalDateTime.now().plusHours(1))
 			.status(AuctionStatus.OPEN)
 			.build());
@@ -95,7 +96,9 @@ class BidConcurrencyTest {
 			});
 		}
 
-		latch.await();
+		boolean completed = latch.await(30, TimeUnit.SECONDS);
+		executorService.shutdown();
+		assertThat(completed).isTrue();
 
 		// [검증]
 		System.out.println("Final Success Count: " + successCount.get());

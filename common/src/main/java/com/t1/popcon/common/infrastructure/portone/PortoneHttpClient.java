@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -23,8 +24,12 @@ public class PortoneHttpClient implements PortoneClient {
 	private String apiSecret;
 
 	public PortoneHttpClient(@Value("${portone.url}") String baseUrl) {
+		SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+		requestFactory.setConnectTimeout(3000);
+		requestFactory.setReadTimeout(5000);
 		this.restClient = RestClient.builder()
 			.baseUrl(baseUrl)
+			.requestFactory(requestFactory)
 			.requestInterceptor((request, body, execution) -> {
 				log.info(">>>> [Portone V2 Request] {}", request.getMethod());
 				return execution.execute(request, body);
@@ -81,7 +86,8 @@ public class PortoneHttpClient implements PortoneClient {
 				.toBodilessEntity();
 
 			log.info(">>>> [Portone Payment Success] MerchantUid: {}", merchantUid);
-
+		} catch (CustomException e) {
+			throw e;
 		} catch (Exception e) {
 			log.error(">>>> [Portone Payment Exception] MerchantUid: {}, Message: {}", merchantUid, e.getMessage());
 			throw new CustomException(ErrorCode.PAYMENT_FETCH_FAILED);

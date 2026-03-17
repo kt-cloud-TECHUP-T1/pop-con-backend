@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 public class Bid extends BaseSoftDeleteEntity {
 
 	@Column(nullable = false)
-	private Long memberId; // 낙찰자 ID
+	private Long userId; // 낙찰자 ID
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "auction_option_id", nullable = false)
@@ -38,8 +38,11 @@ public class Bid extends BaseSoftDeleteEntity {
 	private LocalDateTime paidAt; // 결제 완료 시점
 
 	@Builder
-	public Bid(Long memberId, AuctionOption auctionOption, Integer bidPrice, String merchantUid) {
-		this.memberId = memberId;
+	public Bid(Long userId, AuctionOption auctionOption, Integer bidPrice, String merchantUid) {
+		if (userId == null || auctionOption == null || bidPrice == null || merchantUid == null) {
+			throw new IllegalArgumentException("Bid 생성에 필요한 필수 값이 누락되었습니다.");
+		}
+		this.userId = userId;
 		this.auctionOption = auctionOption;
 		this.bidPrice = bidPrice;
 		this.merchantUid = merchantUid;

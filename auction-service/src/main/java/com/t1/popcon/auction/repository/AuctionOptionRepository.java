@@ -1,10 +1,15 @@
 package com.t1.popcon.auction.repository;
 
 import com.t1.popcon.auction.domain.AuctionOption;
+
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface AuctionOptionRepository extends JpaRepository<AuctionOption, Long> {
 
@@ -17,4 +22,8 @@ public interface AuctionOptionRepository extends JpaRepository<AuctionOption, Lo
         Long auctionId,
         LocalDate entryDate
     );
+
+    @EntityGraph(attributePaths = "auction")
+    @Query("SELECT ao FROM AuctionOption ao WHERE ao.id = :id")
+    Optional<AuctionOption> findByIdWithAuction(@Param("id") Long id);
 }
