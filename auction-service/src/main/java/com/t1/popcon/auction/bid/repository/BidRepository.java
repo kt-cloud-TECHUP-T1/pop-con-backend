@@ -13,7 +13,7 @@ import org.springframework.data.repository.query.Param;
 public interface BidRepository extends JpaRepository<Bid, Long> {
 	@Modifying
 	@Query("UPDATE Bid b SET b.status = :toStatus, b.paidAt = :paidAt " +
-		"WHERE b.id = :id AND b.status = :fromStatus")
+		"WHERE b.id = :id AND b.status = :fromStatus AND b.deleted = false")
 	int updateStatusWithCAS(@Param("id") Long id,
 		@Param("fromStatus") BidStatus fromStatus,
 		@Param("toStatus") BidStatus toStatus,

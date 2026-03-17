@@ -38,11 +38,9 @@ public class BidService {
 			.orElseThrow(() -> new CustomException(ErrorCode.AUCTION_OPTION_NOT_FOUND));
 
 		LocalDateTime now = LocalDateTime.now();
-		Auction auction = option.getAuction();
-		validateAuctionOpen(auction, now);
+		validateAuctionOpen(option.getAuction(), now);
 
-		// [가격 검증 로직]
-		Integer currentServerPrice = auctionPriceService.calculateCurrentPrice(auction, now);
+		Integer currentServerPrice = auctionPriceService.calculateCurrentPrice(option.getAuction(), now);
 		if (!request.bidPrice().equals(currentServerPrice)) {
 			throw new CustomException(ErrorCode.AUCTION_PRICE_MISMATCH);
 		}
@@ -55,7 +53,7 @@ public class BidService {
 
 		String merchantUid = UUID.randomUUID().toString();
 		Bid bid = null;
-		boolean isPaymentApproved = false;
+		boolean paymentAttempted = false;
 
 		try {
 			// [Step 1] PENDING 기록 생성
@@ -63,37 +61,40 @@ public class BidService {
 
 			// [Step 2] 외부 결제 실행
 			String billingKey = "DUMMY_KEY";
-			portoneClient.executePayment(billingKey, bid.getMerchantUid(), bid.getBidPrice(), "입장권 낙찰");
-			isPaymentApproved = true;
 
-			// [Step 3] 최종 확정 (별도 트랜잭션)
+			// 결제 요청 직전에 시도 플래그를 세팅합니다.
+			paymentAttempted = true;
+			portoneClient.executePayment(billingKey, bid.getMerchantUid(), bid.getBidPrice(), "입장권 낙찰");
+
+			// [Step 3] 최종 확정 (DB 트랜잭션)
 			txManager.completeBidSuccess(bid.getId(), option.getId());
 
 			return new BidResponse(bid.getId(), BidStatus.SUCCESS, "낙찰이 완료되었습니다.");
 
 		} catch (Exception e) {
-			log.error(">>>> 낙찰 처리 실패 UserId: {}, OptionId: {}", userId, option.getId(), e);
+			log.error(">>>> 낙찰 처리 중 장애 발생: UserId {}, OptionId {}, Error: {}", userId, option.getId(), e.getMessage());
 
-			// [보상 로직] 결제 성공 후 DB 실패 시 결제 취소 호출
-			if (isPaymentApproved) {
+			if (paymentAttempted) {
 				try {
 					portoneClient.cancelPayment(merchantUid, "시스템 오류로 인한 자동 낙찰 취소");
+					log.info(">>>> [보상 완료] 결제 취소 요청 성공: {}", merchantUid);
 				} catch (Exception cancelEx) {
-					log.error("!!!! [경고] 결제 취소 API 호출 실패: {}", merchantUid, cancelEx);
+					log.error("!!!! [긴급] 결제 취소 API 호출 실패 - 수동 확인 필요: {}", merchantUid, cancelEx);
 				}
 			}
 
-			bidRedisRepository.incrementStock(option.getId()); // Redis 복구
+			// Redis 재고 복구
+			bidRedisRepository.incrementStock(option.getId());
 
+			// DB 상태 실패 처리
 			if (bid != null) {
-				txManager.completeBidFailure(bid.getId()); // DB 상태 FAILED 변경
+				txManager.completeBidFailure(bid.getId());
 			}
 
 			throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, e);
 		}
 	}
 
-	// 누락되었던 헬퍼 메서드 추가
 	private void validateAuctionOpen(Auction auction, LocalDateTime now) {
 		if (auctionPriceService.calculateStatus(auction, now) != AuctionStatus.OPEN) {
 			throw new CustomException(ErrorCode.AUCTION_NOT_OPEN);
