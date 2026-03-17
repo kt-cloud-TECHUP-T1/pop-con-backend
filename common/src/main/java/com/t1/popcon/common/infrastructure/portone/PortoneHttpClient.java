@@ -20,10 +20,10 @@ public class PortoneHttpClient implements PortoneClient {
 
 	private final RestClient restClient;
 
-	@Value("${portone.api.secret}")
+	@Value("${portone.api.secret:default_secret}")
 	private String apiSecret;
 
-	public PortoneHttpClient(@Value("${portone.url}") String baseUrl) {
+	public PortoneHttpClient(@Value("${portone.url:default_url}") String baseUrl) {
 		SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
 		requestFactory.setConnectTimeout(3000);
 		requestFactory.setReadTimeout(5000);
