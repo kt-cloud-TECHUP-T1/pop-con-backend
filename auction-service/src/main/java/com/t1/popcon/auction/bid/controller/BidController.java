@@ -25,15 +25,15 @@ public class BidController {
 
 	@PostMapping("/bids")
 	public ResponseEntity<ApiResponse<BidResponse>> attemptBid(
-		// TODO: 인증 방식(SecurityContext 등)에 맞춰 memberId 가져와야 함, 헤더로 임시구현
+		// TODO: 인증 방식(SecurityContext 등)에 맞춰 userId 가져와야 함, 헤더로 임시구현
 		// 예: @AuthenticationPrincipal UserPrincipal principal
-		@RequestHeader(value = "X-Member-Id") Long memberId,
+		@RequestHeader(value = "X-User-Id") Long userId,
 		@Valid @RequestBody BidRequest request
 	) {
 
-		log.info(">>>> [Bid Request] Member ID: {}, Option ID: {}", memberId, request.auctionOptionId());
+		log.info(">>>> [Bid Request] Member ID: {}, Option ID: {}", userId, request.auctionOptionId());
 
-		BidResponse response = bidService.attemptBid(memberId, request);
+		BidResponse response = bidService.attemptBid(userId, request);
 
 		return ResponseEntity.ok(ApiResponse.ok(response));
 	}

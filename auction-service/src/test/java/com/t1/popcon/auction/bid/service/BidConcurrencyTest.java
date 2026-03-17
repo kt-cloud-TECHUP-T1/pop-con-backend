@@ -81,10 +81,10 @@ class BidConcurrencyTest {
 		AtomicInteger failCount = new AtomicInteger();
 
 		for (int i = 0; i < threadCount; i++) {
-			long memberId = i + 1;
+			long userId = i + 1;
 			executorService.submit(() -> {
 				try {
-					bidService.attemptBid(memberId, new BidRequest(savedOptionId, 10000));
+					bidService.attemptBid(userId, new BidRequest(savedOptionId, 10000));
 					successCount.incrementAndGet();
 				} catch (Exception e) {
 					System.err.println("낙찰 실패 원인: " + e.getMessage());

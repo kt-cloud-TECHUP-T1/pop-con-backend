@@ -78,7 +78,7 @@ public class BidService {
 
 		} catch (Exception e) {
 			// [7] 보상 트랜잭션: 결제 실패 시 Redis 재고 복구
-			log.error("결제 실패 - memberId: {}, optionId: {}", userId, option.getId(), e);
+			log.error("결제 실패 - userId: {}, optionId: {}", userId, option.getId(), e);
 			bid.failBid();
 			bidRedisRepository.incrementStock(option.getId());
 			throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, e);
