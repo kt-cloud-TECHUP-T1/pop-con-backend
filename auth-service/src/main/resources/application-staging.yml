@@ -35,6 +35,10 @@ app:
     cookie-same-site: None
     cookie-domain: .popcon.store
 
+services:
+  user-service:
+    url: ${USER_SERVICE_URL}
+
 spring:
   datasource:
     url: ${DB_URL}

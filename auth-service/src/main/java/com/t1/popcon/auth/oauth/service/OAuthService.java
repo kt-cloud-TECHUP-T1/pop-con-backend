@@ -1,5 +1,7 @@
 package com.t1.popcon.auth.oauth.service;
 
+import com.t1.popcon.auth.oauth.client.UserServiceClient;
+import com.t1.popcon.auth.oauth.client.dto.UserSocialLookupResponse;
 import com.t1.popcon.auth.oauth.config.OAuthProperties;
 import com.t1.popcon.auth.oauth.dto.OAuthTokenResponse;
 import com.t1.popcon.auth.oauth.dto.OAuthUserInfo;
@@ -12,8 +14,7 @@ import com.t1.popcon.common.auth.domain.TokenType;
 import com.t1.popcon.common.auth.provider.TokenProvider;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
-import com.t1.popcon.user.domain.User;
-import com.t1.popcon.user.repository.UserRepository;
+import com.t1.popcon.common.response.ApiResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,7 +38,7 @@ public class OAuthService {
     private final OAuthClient oAuthClient;
     private final RegisterTokenStore registerTokenStore;
 
-    private final UserRepository userRepository;
+    private final UserServiceClient userServiceClient;
     private final TokenProvider tokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtProperties jwtProperties;
@@ -50,7 +51,7 @@ public class OAuthService {
             OAuthAuthorizeUrlBuilder urlBuilder,
             OAuthClient oAuthClient,
             RegisterTokenStore registerTokenStore,
-            UserRepository userRepository,
+            UserServiceClient userServiceClient,
             TokenProvider tokenProvider,
             RefreshTokenRepository refreshTokenRepository,
             JwtProperties jwtProperties
@@ -60,7 +61,7 @@ public class OAuthService {
         this.urlBuilder = urlBuilder;
         this.oAuthClient = oAuthClient;
         this.registerTokenStore = registerTokenStore;
-        this.userRepository = userRepository;
+        this.userServiceClient = userServiceClient;
         this.tokenProvider = tokenProvider;
         this.refreshTokenRepository = refreshTokenRepository;
         this.jwtProperties = jwtProperties;
@@ -89,32 +90,25 @@ public class OAuthService {
      */
     @Transactional
     public SocialLoginResponse handleCallback(OAuthProvider provider, String code, String state) {
-        // 1) state 검증 (CSRF 방지 + 1회성)
         boolean ok = stateStore.consume(state, provider);
         if (!ok) {
             throw new CustomException(ErrorCode.OAUTH_INVALID_STATE);
         }
 
-        // 2) code -> access_token
         OAuthTokenResponse token = oAuthClient.exchangeToken(provider, code, state);
         if (token == null || token.accessToken() == null || token.accessToken().isBlank()) {
             throw new CustomException(ErrorCode.OAUTH_TOKEN_EXCHANGE_FAILED);
         }
 
-        // 3) access_token -> userinfo
         OAuthUserInfo userInfo = oAuthClient.fetchUserInfo(provider, token.accessToken());
         if (userInfo == null || userInfo.providerUserId() == null || userInfo.providerUserId().isBlank()) {
             throw new CustomException(ErrorCode.OAUTH_USERINFO_FAILED);
         }
 
-        // 4) 기존회원 조회
-        Optional<User> userOpt = findByProvider(provider, userInfo.providerUserId());
+        UserSocialLookupResponse socialLookup = findByProvider(provider, userInfo.providerUserId());
 
-        // 4-1) 기존회원: access/refresh 발급
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-
-            String userId = String.valueOf(user.getId());
+        if (socialLookup.exists()) {
+            String userId = String.valueOf(socialLookup.userId());
 
             String accessToken = tokenProvider.createToken(
                     userId,
@@ -138,10 +132,9 @@ public class OAuthService {
                             .build()
             );
 
-            return SocialLoginResponse.existing(user.getId(), accessToken, refreshToken);
+            return SocialLoginResponse.existing(socialLookup.userId(), accessToken, refreshToken);
         }
 
-        // 4-2) 신규회원: registerToken 발급 + Redis 저장
         String registerToken = generateRandomUrlSafe(48);
 
         RegisterPayload payload = new RegisterPayload(
@@ -159,11 +152,21 @@ public class OAuthService {
         return SocialLoginResponse.newUser(registerToken, NEXT_STEP_VERIFY_IDENTITY);
     }
 
-    private Optional<User> findByProvider(OAuthProvider provider, String providerUserId) {
-        return switch (provider) {
-            case KAKAO -> userRepository.findByKakaoUserIdAndDeletedFalse(providerUserId);
-            case NAVER -> userRepository.findByNaverUserIdAndDeletedFalse(providerUserId);
-        };
+    private UserSocialLookupResponse findByProvider(OAuthProvider provider, String providerUserId) {
+        try {
+            ApiResponse<UserSocialLookupResponse> response =
+                    userServiceClient.findBySocial(provider.name(), providerUserId);
+
+            UserSocialLookupResponse data = response.getData();
+            if (data == null) {
+                return new UserSocialLookupResponse(false, null);
+            }
+            return data;
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.ERROR_SYSTEM, "기존 회원 조회에 실패했습니다.");
+        }
     }
 
     private String generateRandomUrlSafe(int byteLen) {

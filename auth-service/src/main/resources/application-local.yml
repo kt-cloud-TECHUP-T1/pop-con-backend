@@ -35,6 +35,10 @@ app:
     cookie-same-site: Lax
     cookie-domain:
 
+services:
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8081}
+
 spring:
   config:
     import: optional:file:.env[.properties]
