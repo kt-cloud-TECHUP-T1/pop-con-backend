@@ -13,17 +13,23 @@ plugins {
 
 group = 'com.t1.popcon'
 version = '0.0.1-SNAPSHOT'
-description = 'pop-con-backend'
+description = 'draw-service'
 
 java {
-    toolchain { languageVersion = JavaLanguageVersion.of(21) }
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
 }
 
 configurations {
-    compileOnly { extendsFrom annotationProcessor }
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
 }
 
-repositories { mavenCentral() }
+repositories {
+    mavenCentral()
+}
 
 dependencies {
     implementation project(':common')
@@ -33,16 +39,17 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
     compileOnly 'org.projectlombok:lombok'
-    runtimeOnly 'com.h2database:h2'
-    runtimeOnly 'com.mysql:mysql-connector-j'
     annotationProcessor 'org.projectlombok:lombok'
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 
-    // redis & redisson
+    runtimeOnly 'com.mysql:mysql-connector-j'
+    runtimeOnly 'com.h2database:h2'
+
+    // Redis (드로우 재고/중복 응모 제어 등 나중에 확장 가능)
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.redisson:redisson-spring-boot-starter:3.52.0'
 
-    // test & restdocs
+    // Test & RestDocs
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
@@ -51,20 +58,20 @@ dependencies {
     testAnnotationProcessor 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-    // Security & JWT
+    // JWT (나중에 인증 연동 시 사용)
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
-    // grafana, prometheus
+    // Monitoring
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
 }
 
 openapi3 {
-    servers = [{ url = 'http://localhost:8083' }]
-    title = '팝콘 더치경매 서비스 API 명세서'
-    description = '더치경매, 가격 하락, 구독, 입찰 API'
+    servers = [{ url = 'http://localhost:8084' }]
+    title = '팝콘 드로우 서비스 API 명세서'
+    description = '드로우 응모, 참여 내역, 당첨 조회 API'
     version = '0.1.0'
     format = 'yaml'
 }
@@ -119,7 +126,7 @@ tasks.register('copyOasToSwagger', Copy) {
     group = 'documentation'
     dependsOn 'enhanceOpenapiWithJwt'
     from layout.buildDirectory.file("api-spec/openapi3.yaml")
-    into layout.projectDirectory.dir("src/main/resources/static/swagger-ui/auction")
+    into layout.projectDirectory.dir("src/main/resources/static/swagger-ui/draw")
     doFirst {
         def target = file("${destinationDir.path}/openapi3.yaml")
         if (target.exists()) target.delete()

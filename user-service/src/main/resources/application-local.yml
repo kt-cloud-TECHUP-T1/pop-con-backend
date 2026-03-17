@@ -23,6 +23,11 @@ spring:
       port: ${REDIS_PORT}
       password: ${REDIS_PASSWORD}
 
+  http:
+    client:
+      connect-timeout: 3s
+      read-timeout: 5s
+
 logging:
   level:
     org.hibernate.SQL: debug
