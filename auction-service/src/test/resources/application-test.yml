@@ -22,12 +22,6 @@ spring:
         show_sql: true
     defer-datasource-initialization: true
 
-  data:
-    redis:
-      host: localhost
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
-
 logging:
   level:
     org.hibernate.SQL: debug
@@ -38,9 +32,3 @@ jwt:
   secret: popcon-backend-test-secret-key-1234567890-abcdefghijklmnopqrstuvwxyz-64bytes-over
   access-token-expiration: 3600000
   refresh-token-expiration: 604800000
-
-portone:
-  api:
-    secret: ${PORTONE_API_SECRET:test-portone-secret}
-    store-id: ${PORTONE_STORE_ID:test-store-id}
-  url: ${PORTONE_URL:http://localhost:18080}
