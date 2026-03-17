@@ -14,7 +14,7 @@ public class AuctionSecurityConfig {
     @Order(1)
     public SecurityFilterChain auctionSecurityFilterChain(HttpSecurity http) throws Exception {
         http
-                .securityMatcher("/auctions/**")
+                .securityMatcher("/auctions/**", "admin/auctions/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)

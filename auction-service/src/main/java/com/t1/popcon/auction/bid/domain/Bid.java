@@ -32,7 +32,7 @@ public class Bid extends BaseSoftDeleteEntity {
 	@Column(nullable = false, length = 20)
 	private BidStatus status; // 낙찰 진행 상태
 
-	@Column(unique = true)
+	@Column(nullable = false, unique = true)
 	private String merchantUid; // 결제 중복 방지용 고유 번호
 
 	private LocalDateTime paidAt; // 결제 완료 시점
