@@ -93,4 +93,8 @@ public class PortoneHttpClient implements PortoneClient {
 			throw new CustomException(ErrorCode.PAYMENT_FETCH_FAILED);
 		}
 	}
+
+	public void cancelPayment(String merchantUid, String reason) {
+		log.info("PortOne 결제 취소 요청: {}, 사유: {}", merchantUid, reason);
+	}
 }

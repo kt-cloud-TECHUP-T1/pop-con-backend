@@ -51,12 +51,22 @@ public class Bid extends BaseSoftDeleteEntity {
 
 	// 비즈니스 로직: 결제 성공 시 상태 업데이트
 	public void completePayment(LocalDateTime paidAt) {
+		if (this.status != BidStatus.PENDING) {
+			throw new IllegalStateException("PENDING 상태에서만 결제를 완료할 수 있습니다.");
+		}
+		if (paidAt == null) {
+			throw new IllegalArgumentException("paidAt은 null일 수 없습니다.");
+		}
 		this.status = BidStatus.SUCCESS;
 		this.paidAt = paidAt;
 	}
 
 	// 비즈니스 로직: 낙찰 실패 처리
 	public void failBid() {
+		if (this.status != BidStatus.PENDING) {
+			throw new IllegalStateException("PENDING 상태에서만 실패 처리할 수 있습니다.");
+		}
 		this.status = BidStatus.FAILED;
+		this.paidAt = null;
 	}
 }
