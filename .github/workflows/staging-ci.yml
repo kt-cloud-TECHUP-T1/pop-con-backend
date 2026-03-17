@@ -19,6 +19,7 @@ jobs:
       user: ${{ steps.filter.outputs.user }}
       popup: ${{ steps.filter.outputs.popup }}
       common: ${{ steps.filter.outputs.common }}
+      draw: ${{ steps.filter.outputs.draw }}
 
     steps:
       - name: Checkout
@@ -39,6 +40,8 @@ jobs:
               - 'auction-service/**'
             common:
               - 'common/**'
+            draw:
+              - 'draw-service/**'
 
   build-and-push:
     needs: detect-changes
@@ -51,6 +54,7 @@ jobs:
           - user-service
           - popup-service
           - auction-service
+          - draw-service
 
     steps:
       - name: Skip unchanged service
@@ -60,6 +64,7 @@ jobs:
             (matrix.service == 'user-service' && needs.detect-changes.outputs.user == 'true') ||
             (matrix.service == 'popup-service' && needs.detect-changes.outputs.popup == 'true') ||
             (matrix.service == 'auction-service' && needs.detect-changes.outputs.auction == 'true') ||
+            (matrix.service == 'draw-service' && needs.detect-changes.outputs.draw == 'true') ||
             (needs.detect-changes.outputs.common == 'true')
           )
         run: |
