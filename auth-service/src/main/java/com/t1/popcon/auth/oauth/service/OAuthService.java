@@ -1,6 +1,7 @@
 package com.t1.popcon.auth.oauth.service;
 
 import com.t1.popcon.auth.oauth.client.UserServiceClient;
+import com.t1.popcon.auth.oauth.client.dto.UserSocialLookupApiResponse;
 import com.t1.popcon.auth.oauth.client.dto.UserSocialLookupResponse;
 import com.t1.popcon.auth.oauth.config.OAuthProperties;
 import com.t1.popcon.auth.oauth.dto.OAuthTokenResponse;
@@ -14,17 +15,17 @@ import com.t1.popcon.common.auth.domain.TokenType;
 import com.t1.popcon.common.auth.provider.TokenProvider;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
-import com.t1.popcon.common.response.ApiResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.util.Base64;
-import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * OAuth 인가 시작 + 콜백 서비스
  */
+@Slf4j
 @Service
 public class OAuthService {
 
@@ -108,6 +109,7 @@ public class OAuthService {
         UserSocialLookupResponse socialLookup = findByProvider(provider, userInfo.providerUserId());
 
         if (socialLookup.exists()) {
+
             String userId = String.valueOf(socialLookup.userId());
 
             String accessToken = tokenProvider.createToken(
@@ -148,22 +150,18 @@ public class OAuthService {
         );
 
         registerTokenStore.save(registerToken, payload, REGISTER_TTL_SECONDS);
-
         return SocialLoginResponse.newUser(registerToken, NEXT_STEP_VERIFY_IDENTITY);
     }
 
     private UserSocialLookupResponse findByProvider(OAuthProvider provider, String providerUserId) {
         try {
-            ApiResponse<UserSocialLookupResponse> response =
+            UserSocialLookupApiResponse response =
                     userServiceClient.findBySocial(provider.name(), providerUserId);
 
-            UserSocialLookupResponse data = response.getData();
-            if (data == null) {
+            if (response.data() == null) {
                 return new UserSocialLookupResponse(false, null);
             }
-            return data;
-        } catch (CustomException e) {
-            throw e;
+            return response.data();
         } catch (Exception e) {
             throw new CustomException(ErrorCode.ERROR_SYSTEM, "기존 회원 조회에 실패했습니다.");
         }

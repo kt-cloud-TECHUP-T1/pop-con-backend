@@ -5,6 +5,7 @@ import com.t1.popcon.auth.oauth.dto.SocialLoginResponse;
 import com.t1.popcon.auth.oauth.service.OAuthProvider;
 import com.t1.popcon.auth.oauth.service.OAuthService;
 import com.t1.popcon.common.exception.CustomException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,7 @@ import java.time.Duration;
 /**
  * OAuth 인증 컨트롤러
  */
+@Slf4j
 @RestController
 @RequestMapping("/auth/oauth")
 public class OAuthController {
@@ -94,6 +96,7 @@ public class OAuthController {
             return redirect(frontendProps.callbackUrl(), refreshCookie);
 
         } catch (CustomException e) {
+            log.error("oauth callback failed provider={}, errorCode={}", provider, e.getErrorCode().getCode(), e);
             return redirect(frontendErrorUrl(e.getErrorCode().getCode()), null);
         }
     }
