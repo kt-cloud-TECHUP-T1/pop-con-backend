@@ -1,13 +1,15 @@
 package com.t1.popcon.auth.oauth.client;
 
 import com.t1.popcon.auth.oauth.client.dto.UserSocialLookupApiResponse;
+import com.t1.popcon.auth.oauth.config.FeignClientConfig;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(
         name = "userServiceClient",
-        url = "${services.user-service.url}"
+        url = "${services.user-service.url}",
+        configuration = FeignClientConfig.class
 )
 public interface UserServiceClient {
 
