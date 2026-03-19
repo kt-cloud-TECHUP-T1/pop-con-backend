@@ -5,6 +5,7 @@ import com.t1.popcon.auth.oauth.dto.SocialLoginResponse;
 import com.t1.popcon.auth.oauth.service.OAuthProvider;
 import com.t1.popcon.auth.oauth.service.OAuthService;
 import com.t1.popcon.common.exception.CustomException;
+import com.t1.popcon.common.auth.config.JwtProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -26,14 +27,15 @@ public class OAuthController {
     private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
 
     private static final Duration REGISTER_TOKEN_TTL = Duration.ofMinutes(10);
-    private static final Duration REFRESH_TOKEN_TTL = Duration.ofDays(14);
+    private final Duration refreshTokenTtl;
 
     private final OAuthService oAuthService;
     private final FrontendProperties frontendProps;
 
-    public OAuthController(OAuthService oAuthService, FrontendProperties frontendProps) {
+    public OAuthController(OAuthService oAuthService, FrontendProperties frontendProps, JwtProperties jwtProperties) {
         this.oAuthService = oAuthService;
         this.frontendProps = frontendProps;
+        this.refreshTokenTtl = Duration.ofMillis(jwtProperties.getRefreshTokenExpiration());
     }
 
     /**
@@ -90,7 +92,7 @@ public class OAuthController {
             ResponseCookie refreshCookie = buildCookie(
                     REFRESH_TOKEN_COOKIE,
                     res.refreshToken(),
-                    REFRESH_TOKEN_TTL
+                    refreshTokenTtl
             );
 
             return redirect(frontendProps.callbackUrl(), refreshCookie);

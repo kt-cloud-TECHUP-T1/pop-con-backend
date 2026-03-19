@@ -16,9 +16,19 @@ public class FeignClientConfig {
     }
 
     static class UserServiceFeignErrorDecoder implements ErrorDecoder {
+
+        private final ErrorDecoder defaultDecoder = new ErrorDecoder.Default();
+
         @Override
         public Exception decode(String methodKey, Response response) {
-            return new CustomException(ErrorCode.ERROR_SYSTEM, "user-service 호출에 실패했습니다.");
+            int status = response.status();
+            if (status >= 500) {
+                return new CustomException(ErrorCode.ERROR_SYSTEM, "user-service 호출에 실패했습니다.");
+            }
+            if (status == 400) {
+                return new CustomException(ErrorCode.INVALID_INPUT, "user-service 요청 값 오류");
+            }
+            return defaultDecoder.decode(methodKey, response);
         }
     }
 }

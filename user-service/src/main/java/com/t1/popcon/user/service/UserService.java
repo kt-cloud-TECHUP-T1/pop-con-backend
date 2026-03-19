@@ -56,6 +56,10 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public UserSocialLookupResponse findBySocial(String provider, String providerUserId) {
+        if (provider == null || provider.isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+
         if (providerUserId == null || providerUserId.isBlank()) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }

@@ -163,6 +163,8 @@ public class OAuthService {
             }
             return response.data();
         } catch (Exception e) {
+            log.error("기존 회원 조회 실패 - provider: {}, providerUserId: {}",
+                    provider, providerUserId, e);
             throw new CustomException(ErrorCode.ERROR_SYSTEM, "기존 회원 조회에 실패했습니다.");
         }
     }
