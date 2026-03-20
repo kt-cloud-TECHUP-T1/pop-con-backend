@@ -4,7 +4,10 @@ import com.t1.popcon.auth.oauth.client.UserServiceClient;
 import com.t1.popcon.auth.oauth.client.dto.UserSocialLookupApiResponse;
 import com.t1.popcon.auth.oauth.client.dto.UserSocialLookupResponse;
 import com.t1.popcon.auth.oauth.config.OAuthProperties;
-import com.t1.popcon.auth.oauth.dto.*;
+import com.t1.popcon.auth.oauth.dto.OAuthTokenResponse;
+import com.t1.popcon.auth.oauth.dto.OAuthUserInfo;
+import com.t1.popcon.auth.oauth.dto.RegisterPayload;
+import com.t1.popcon.auth.oauth.dto.SocialLoginResponse;
 import com.t1.popcon.auth.token.domain.RefreshToken;
 import com.t1.popcon.auth.token.domain.RefreshTokenRepository;
 import com.t1.popcon.common.auth.config.JwtProperties;
@@ -170,38 +173,5 @@ public class OAuthService {
         byte[] bytes = new byte[byteLen];
         random.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
-    @Transactional(readOnly = true)
-    public TokenReissueResponse reissue(String refreshToken) {
-        if (refreshToken == null || refreshToken.isBlank()) {
-            throw new CustomException(ErrorCode.AUTH_REFRESH_TOKEN_REQUIRED);
-        }
-
-        // 1. JWT 자체 유효성 검증 (만료/위조 등)
-        tokenProvider.validateToken(refreshToken);
-
-        // 2. 토큰 타입 검증
-        String tokenType = tokenProvider.getTokenType(refreshToken);
-        if (!TokenType.REFRESH.name().equals(tokenType)) {
-            throw new CustomException(ErrorCode.AUTH_INVALID_REFRESH_TOKEN);
-        }
-
-        // 3. 해시 후 Redis 저장값 조회
-        String hashedRefreshToken = tokenProvider.hashRefreshToken(refreshToken);
-
-        RefreshToken savedRefreshToken = refreshTokenRepository.findByToken(hashedRefreshToken)
-                .orElseThrow(() -> new CustomException(ErrorCode.AUTH_INVALID_REFRESH_TOKEN));
-
-        // 4. Redis에 저장된 userId로 새 access token 발급
-        String userId = savedRefreshToken.getUserId();
-
-        String newAccessToken = tokenProvider.createToken(
-                userId,
-                jwtProperties.getAccessTokenExpiration(),
-                TokenType.ACCESS
-        );
-
-        return new TokenReissueResponse(newAccessToken);
     }
 }
