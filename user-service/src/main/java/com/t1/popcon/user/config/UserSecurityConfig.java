@@ -4,6 +4,7 @@ import com.t1.popcon.common.auth.config.CommonSecurityConfig;
 import com.t1.popcon.common.auth.filter.JwtFilter;
 import com.t1.popcon.common.auth.handler.JwtAccessDeniedHandler;
 import com.t1.popcon.common.auth.handler.JwtAuthenticationEntryPoint;
+import com.t1.popcon.user.filter.InternalApiAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -16,27 +17,34 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableMethodSecurity
 public class UserSecurityConfig extends CommonSecurityConfig {
 
-	public UserSecurityConfig(JwtFilter jwtFilter,
-		JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
-		JwtAccessDeniedHandler jwtAccessDeniedHandler) {
-		super(jwtFilter, jwtAuthenticationEntryPoint, jwtAccessDeniedHandler);
-	}
+    private final InternalApiAuthFilter internalApiAuthFilter;
 
-	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-		super.configureCommonSettings(http);
+    public UserSecurityConfig(JwtFilter jwtFilter,
+                              JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
+                              JwtAccessDeniedHandler jwtAccessDeniedHandler,
+                              InternalApiAuthFilter internalApiAuthFilter) {
+        super(jwtFilter, jwtAuthenticationEntryPoint, jwtAccessDeniedHandler);
+        this.internalApiAuthFilter = internalApiAuthFilter;
+    }
 
-		http.authorizeHttpRequests(auth -> auth
-			.requestMatchers(
-				"/health",
-				"/v3/api-docs/**",
-				"/swagger-ui/**",
-				"/billing/**",
-				"/actuator/**"
-			).permitAll()
-			.anyRequest().authenticated()
-		);
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        super.configureCommonSettings(http);
 
-		return http.build();
-	}
+        http.addFilterBefore(internalApiAuthFilter, JwtFilter.class);
+
+        http.authorizeHttpRequests(auth -> auth
+                .requestMatchers(
+                        "/health",
+                        "/v3/api-docs/**",
+                        "/swagger-ui/**",
+                        "/billing/**",
+                        "/actuator/**"
+                ).permitAll()
+                .requestMatchers("/internal/users/**").permitAll()
+                .anyRequest().authenticated()
+        );
+
+        return http.build();
+    }
 }

@@ -9,10 +9,6 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 /**
  * application.yml의 app.oauth 설정을 바인딩하는 클래스
- *
- * prefix = app.oauth
- *
- * provider별 설정을 분리하여 관리
  */
 @ConfigurationProperties(prefix = "app.oauth")
 @Validated

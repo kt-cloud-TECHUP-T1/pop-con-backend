@@ -5,7 +5,8 @@ import com.t1.popcon.auth.oauth.dto.SocialLoginResponse;
 import com.t1.popcon.auth.oauth.service.OAuthProvider;
 import com.t1.popcon.auth.oauth.service.OAuthService;
 import com.t1.popcon.common.exception.CustomException;
-import com.t1.popcon.common.exception.ErrorCode;
+import com.t1.popcon.common.auth.config.JwtProperties;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -17,19 +18,24 @@ import java.time.Duration;
 /**
  * OAuth 인증 컨트롤러
  */
+@Slf4j
 @RestController
 @RequestMapping("/auth/oauth")
 public class OAuthController {
 
     private static final String REGISTER_TOKEN_COOKIE = "register_token";
+    private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
+
     private static final Duration REGISTER_TOKEN_TTL = Duration.ofMinutes(10);
+    private final Duration refreshTokenTtl;
 
     private final OAuthService oAuthService;
     private final FrontendProperties frontendProps;
 
-    public OAuthController(OAuthService oAuthService, FrontendProperties frontendProps) {
+    public OAuthController(OAuthService oAuthService, FrontendProperties frontendProps, JwtProperties jwtProperties) {
         this.oAuthService = oAuthService;
         this.frontendProps = frontendProps;
+        this.refreshTokenTtl = Duration.ofMillis(jwtProperties.getRefreshTokenExpiration());
     }
 
     /**
@@ -46,10 +52,10 @@ public class OAuthController {
     }
 
     /**
-     * OAuth 콜백 (방식 A)
-     * - 성공(기존회원) → FE /
-     * - 성공(신규회원) → FE /verify (+ register_token 쿠키)
-     * - 실패(에러)     → FE /login?error={CODE}
+     * OAuth 콜백
+     * - 기존회원 → refresh_token 쿠키 세팅 후 FE callback 경로 이동
+     * - 신규회원 → register_token 쿠키 세팅 후 FE verify 경로 이동
+     * - 실패     → FE login?error={CODE}
      */
     @GetMapping("/{provider}/callback")
     public ResponseEntity<Void> callback(
@@ -75,16 +81,24 @@ public class OAuthController {
             SocialLoginResponse res = oAuthService.handleCallback(p, code, state);
 
             if (res.isNewUser()) {
-                // ✅ 신규회원: register_token 쿠키 심고 /verify로 이동
-                ResponseCookie cookie = buildRegisterTokenCookie(res.registerToken());
-                return redirect(frontendProps.verifyUrl(), cookie);
+                ResponseCookie registerCookie = buildCookie(
+                        REGISTER_TOKEN_COOKIE,
+                        res.registerToken(),
+                        REGISTER_TOKEN_TTL
+                );
+                return redirect(frontendProps.verifyUrl(), registerCookie);
             }
 
-            // ✅ 기존회원: /로 이동 (토큰은 추후 쿠키/세션 API로 붙이기)
-            return redirect(frontendProps.homeUrl(), null);
+            ResponseCookie refreshCookie = buildCookie(
+                    REFRESH_TOKEN_COOKIE,
+                    res.refreshToken(),
+                    refreshTokenTtl
+            );
+
+            return redirect(frontendProps.callbackUrl(), refreshCookie);
 
         } catch (CustomException e) {
-            // ✅ 공통 예외는 ErrorCode.code를 프론트에 전달
+            log.error("oauth callback failed provider={}, errorCode={}", provider, e.getErrorCode().getCode(), e);
             return redirect(frontendErrorUrl(e.getErrorCode().getCode()), null);
         }
     }
@@ -108,20 +122,18 @@ public class OAuthController {
                 .toUriString();
     }
 
-    /**
-     * registerToken을 HttpOnly 쿠키로 설정
-     * - local(http): secure=false, SameSite=Lax
-     * - dev/prod(https + FE/BE 도메인 분리): SameSite=None + secure=true + domain 필요
-     *
-     * 지금은 local 기준값.
-     */
-    private ResponseCookie buildRegisterTokenCookie(String registerToken) {
-        return ResponseCookie.from(REGISTER_TOKEN_COOKIE, registerToken)
+    private ResponseCookie buildCookie(String name, String value, Duration ttl) {
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(name, value)
                 .httpOnly(true)
-                .secure(false)     // ✅ local 기준. dev/prod는 true로 분기 필요
-                .sameSite("Lax")   // ✅ local 기준. dev/prod는 None 권장
+                .secure(frontendProps.isCookieSecure())
+                .sameSite(frontendProps.resolvedSameSite())
                 .path("/")
-                .maxAge(REGISTER_TOKEN_TTL)
-                .build();
+                .maxAge(ttl);
+
+        if (frontendProps.cookieDomain() != null && !frontendProps.cookieDomain().isBlank()) {
+            builder.domain(frontendProps.cookieDomain());
+        }
+
+        return builder.build();
     }
 }

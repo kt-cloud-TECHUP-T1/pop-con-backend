@@ -3,12 +3,16 @@ package com.t1.popcon.auth.oauth.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.t1.popcon.auth.oauth.dto.RegisterPayload;
+import com.t1.popcon.common.exception.CustomException;
+import com.t1.popcon.common.exception.ErrorCode;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.util.Optional;
 
+@Slf4j
 @Component
 public class RedisRegisterTokenStore implements RegisterTokenStore {
 
@@ -26,8 +30,13 @@ public class RedisRegisterTokenStore implements RegisterTokenStore {
     public void save(String registerToken, RegisterPayload payload, long ttlSeconds) {
         if (ttlSeconds <= 0) ttlSeconds = 600;
 
-        String json = toJson(payload);
-        redis.opsForValue().set(key(registerToken), json, Duration.ofSeconds(ttlSeconds));
+        try {
+            String json = toJson(payload);
+            redis.opsForValue().set(key(registerToken), json, Duration.ofSeconds(ttlSeconds));
+        } catch (Exception e) {
+            log.error("failed to save register token registerToken={}", registerToken, e);
+            throw e;
+        }
     }
 
     @Override
@@ -41,7 +50,7 @@ public class RedisRegisterTokenStore implements RegisterTokenStore {
     @Override
     public void mergeCiHash(String registerToken, String ciHash, long ttlSecondsToExtend) {
         RegisterPayload payload = find(registerToken)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid or expired registerToken"));
+                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_TOKEN));
 
         RegisterPayload updated = payload.withCiHash(ciHash);
 
