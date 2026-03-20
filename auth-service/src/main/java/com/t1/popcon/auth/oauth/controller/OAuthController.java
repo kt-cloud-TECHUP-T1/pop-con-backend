@@ -2,10 +2,12 @@ package com.t1.popcon.auth.oauth.controller;
 
 import com.t1.popcon.auth.oauth.config.FrontendProperties;
 import com.t1.popcon.auth.oauth.dto.SocialLoginResponse;
+import com.t1.popcon.auth.oauth.dto.TokenReissueResponse;
 import com.t1.popcon.auth.oauth.service.OAuthProvider;
 import com.t1.popcon.auth.oauth.service.OAuthService;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.auth.config.JwtProperties;
+import com.t1.popcon.common.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -135,5 +137,12 @@ public class OAuthController {
         }
 
         return builder.build();
+    }
+
+    @PostMapping("/reissue")
+    public ApiResponse<TokenReissueResponse> reissue(
+            @CookieValue(name = REFRESH_TOKEN_COOKIE, required = false) String refreshToken
+    ) {
+        return ApiResponse.ok(oAuthService.reissue(refreshToken));
     }
 }
