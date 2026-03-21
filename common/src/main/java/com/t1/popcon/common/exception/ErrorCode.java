@@ -15,8 +15,8 @@ public enum ErrorCode {
     INVALID_INPUT("C001", HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다."),
 
     // Auth
-    SIGNUP_TOKEN_EXPIRED("A001", HttpStatus.UNAUTHORIZED, "회원가입 세션이 만료되었습니다. 다시 가입 절차를 진행해주세요."),
-    INVALID_TOKEN("A002", HttpStatus.UNAUTHORIZED, "인증 정보가 유효하지 않습니다."),
+    REGISTER_TOKEN_EXPIRED("A001", HttpStatus.UNAUTHORIZED, "회원가입 세션이 만료되었습니다. 다시 가입 절차를 진행해주세요."),
+    INVALID_TOKEN("A002", HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
     TOKEN_EXPIRED("A003", HttpStatus.UNAUTHORIZED, "인증이 만료되었습니다. 다시 로그인해주세요."),
     ACCESS_DENIED("A004", HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
 
@@ -25,6 +25,10 @@ public enum ErrorCode {
     OAUTH_INVALID_STATE("OA002", HttpStatus.UNAUTHORIZED, "유효하지 않거나 만료된 state 입니다."),
     OAUTH_TOKEN_EXCHANGE_FAILED("OA003", HttpStatus.BAD_GATEWAY, "소셜 로그인 토큰 발급에 실패했습니다."),
     OAUTH_USERINFO_FAILED("OA004", HttpStatus.BAD_GATEWAY, "소셜 로그인 사용자 정보 조회에 실패했습니다."),
+
+    // Identity Verification
+    IDENTITY_VERIFICATION_FETCH_FAILED("I001", HttpStatus.BAD_GATEWAY, "본인인증 정보 조회에 실패했습니다."),
+    IDENTITY_VERIFICATION_FAILED("I002", HttpStatus.UNAUTHORIZED, "본인인증 검증에 실패했습니다."),
 
     // Join
     AGE_RESTRICTED("J001", HttpStatus.FORBIDDEN, "만 14세 미만은 가입이 제한됩니다."),
