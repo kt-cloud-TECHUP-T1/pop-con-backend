@@ -76,9 +76,44 @@ public class UserService {
     }
 
     /**
-     * 소셜 추가 연결 - 본인인증에서 CI 기반 기존 계정 확인 시
+     * CI 해시로 사용자 조회 (본인인증 완료 후 기존 회원 확인)
      */
-    public void linkKakaoByCi(String ciHash, String kakaoUserId) {
+    @Transactional(readOnly = true)
+    public UserSocialLookupResponse findByCiHash(String ciHash) {
+        if (ciHash == null || ciHash.isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+
+        return userRepository.findByCiHashAndDeletedFalse(ciHash)
+                .map(user -> UserSocialLookupResponse.found(user.getId()))
+                .orElseGet(UserSocialLookupResponse::notFound);
+    }
+
+    /**
+     * CI 기반 소셜 계정 연결 (본인인증 완료 후 기존 회원이 소셜 로그인 연결)
+     */
+    public void linkSocialByCi(String ciHash, String provider, String providerUserId) {
+        if (ciHash == null || ciHash.isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+
+        if (provider == null || provider.isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_PROVIDER);
+        }
+
+        validateSocialId(providerUserId);
+
+        switch (provider.toUpperCase()) {
+            case "KAKAO" -> linkKakaoByCi(ciHash, providerUserId);
+            case "NAVER" -> linkNaverByCi(ciHash, providerUserId);
+            default -> throw new CustomException(ErrorCode.INVALID_PROVIDER);
+        }
+    }
+
+    /**
+     * 소셜 추가 연결 - 카카오
+     */
+    private void linkKakaoByCi(String ciHash, String kakaoUserId) {
         validateSocialId(kakaoUserId);
 
         User user = userRepository.findByCiHashAndDeletedFalse(ciHash)
@@ -87,7 +122,10 @@ public class UserService {
         user.connectKakao(kakaoUserId, LocalDateTime.now());
     }
 
-    public void linkNaverByCi(String ciHash, String naverUserId) {
+    /**
+     * 소셜 추가 연결 - 네이버
+     */
+    private void linkNaverByCi(String ciHash, String naverUserId) {
         validateSocialId(naverUserId);
 
         User user = userRepository.findByCiHashAndDeletedFalse(ciHash)

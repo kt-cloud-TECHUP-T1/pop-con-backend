@@ -1,4 +1,4 @@
-package com.t1.popcon.auth.oauth.config;
+package com.t1.popcon.auth.client.user.config;
 
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
