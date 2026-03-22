@@ -20,4 +20,4 @@ spring:
     defer-datasource-initialization: true
 
 encryption:
-  secret: ${ENCRYPTION_SECRET:default_test_secret_key_32_chars}
+  secret: ${ENCRYPTION_SECRET}
