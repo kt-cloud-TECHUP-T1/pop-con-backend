@@ -4,7 +4,7 @@ import com.t1.popcon.common.domain.Gender;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.user.domain.User;
-import com.t1.popcon.user.dto.UserSocialLookupResponse;
+import com.t1.popcon.user.dto.UserLookupResponse;
 import com.t1.popcon.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -55,7 +55,7 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public UserSocialLookupResponse findBySocial(String provider, String providerUserId) {
+    public UserLookupResponse findBySocial(String provider, String providerUserId) {
         if (provider == null || provider.isBlank()) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
@@ -66,11 +66,11 @@ public class UserService {
 
         return switch (provider.toUpperCase()) {
             case "KAKAO" -> userRepository.findByKakaoUserIdAndDeletedFalse(providerUserId)
-                    .map(user -> UserSocialLookupResponse.found(user.getId()))
-                    .orElseGet(UserSocialLookupResponse::notFound);
+                    .map(user -> UserLookupResponse.found(user.getId()))
+                    .orElseGet(UserLookupResponse::notFound);
             case "NAVER" -> userRepository.findByNaverUserIdAndDeletedFalse(providerUserId)
-                    .map(user -> UserSocialLookupResponse.found(user.getId()))
-                    .orElseGet(UserSocialLookupResponse::notFound);
+                    .map(user -> UserLookupResponse.found(user.getId()))
+                    .orElseGet(UserLookupResponse::notFound);
             default -> throw new CustomException(ErrorCode.INVALID_PROVIDER);
         };
     }
@@ -79,14 +79,14 @@ public class UserService {
      * CI 해시로 사용자 조회 (본인인증 완료 후 기존 회원 확인)
      */
     @Transactional(readOnly = true)
-    public UserSocialLookupResponse findByCiHash(String ciHash) {
+    public UserLookupResponse findByCiHash(String ciHash) {
         if (ciHash == null || ciHash.isBlank()) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
 
         return userRepository.findByCiHashAndDeletedFalse(ciHash)
-                .map(user -> UserSocialLookupResponse.found(user.getId()))
-                .orElseGet(UserSocialLookupResponse::notFound);
+                .map(user -> UserLookupResponse.found(user.getId()))
+                .orElseGet(UserLookupResponse::notFound);
     }
 
     /**

@@ -1,7 +1,7 @@
 package com.t1.popcon.user.controller;
 
 import com.t1.popcon.common.response.ApiResponse;
-import com.t1.popcon.user.dto.UserSocialLookupResponse;
+import com.t1.popcon.user.dto.UserLookupResponse;
 import com.t1.popcon.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,7 +22,7 @@ public class InternalUserController {
      * 소셜 로그인 정보로 사용자 조회
      */
     @GetMapping("/internal/users/social")
-    public ApiResponse<UserSocialLookupResponse> findBySocial(
+    public ApiResponse<UserLookupResponse> findBySocial(
             @RequestParam String provider,
             @RequestParam String providerUserId
     ) {
@@ -33,7 +33,7 @@ public class InternalUserController {
      * CI 해시로 사용자 조회 (본인인증 완료 후 기존 회원 확인)
      */
     @GetMapping("/internal/users/ci")
-    public ApiResponse<UserSocialLookupResponse> findByCiHash(
+    public ApiResponse<UserLookupResponse> findByCiHash(
             @RequestParam String ciHash
     ) {
         return ApiResponse.ok(userService.findByCiHash(ciHash));
