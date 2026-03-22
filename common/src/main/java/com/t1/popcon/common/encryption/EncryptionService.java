@@ -28,15 +28,22 @@ public class EncryptionService {
     private static final int GCM_TAG_LENGTH = 128;
     private static final int IV_LENGTH = 12;
 
-    @Value("${encryption.secret-key}")
+    @Value("${encryption.secret}")
     private String secretKey;
 
     private SecretKeySpec key;
 
     @PostConstruct
     public void init() {
-        byte[] keyBytes = sha256(secretKey).getBytes(StandardCharsets.UTF_8);
-        this.key = new SecretKeySpec(keyBytes, "AES");
+        try {
+            // 서버 기동 시 비밀키를 32바이트(256비트) AES 암호화 열쇠로 초기화
+            byte[] keyBytes = digestTo256Bits(secretKey);
+            this.key = new SecretKeySpec(keyBytes, "AES");
+            log.info("[암호화 서비스] AES-256 키 초기화 완료");
+        } catch (Exception e) {
+            log.error("[암호화 서비스] 초기화 실패: {}", e.getMessage());
+            throw new CustomException(ErrorCode.ENCRYPTION_FAILED);
+        }
     }
 
     /**
@@ -66,7 +73,7 @@ public class EncryptionService {
 
             return Base64.getEncoder().encodeToString(encryptedWithIv);
         } catch (Exception e) {
-            log.error("Encryption failed: {}", e.getMessage());
+            log.error("[암호화 실패] 데이터 암호화 중 오류 발생: {}", e.getMessage());
             throw new CustomException(ErrorCode.ENCRYPTION_FAILED);
         }
     }
@@ -96,7 +103,7 @@ public class EncryptionService {
             byte[] plainText = cipher.doFinal(cipherText);
             return new String(plainText, StandardCharsets.UTF_8);
         } catch (Exception e) {
-            log.error("Decryption failed: {}", e.getMessage());
+            log.error("[복호화 실패] 암호문 복호화 중 오류 발생: {}", e.getMessage());
             throw new CustomException(ErrorCode.DECRYPTION_FAILED);
         }
     }
@@ -107,21 +114,41 @@ public class EncryptionService {
      * @param plainText 해시할 평문
      * @return Base64 인코딩된 해시값
      */
-    public String hash(String plainText) {
+    public String generateHash(String plainText) {
         if (plainText == null || plainText.isBlank()) {
             return plainText;
         }
-        return sha256(plainText);
+        return Base64.getEncoder().encodeToString(digestTo256Bits(plainText));
     }
 
-    private String sha256(String input) {
+    private byte[] digestTo256Bits(String input) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
-            return Base64.getEncoder().encodeToString(hash);
+            return digest.digest(input.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
-            log.error("Hashing failed: {}", e.getMessage());
+            log.error("[해시 실패] SHA-256 처리 중 오류 발생: {}", e.getMessage());
             throw new CustomException(ErrorCode.ENCRYPTION_FAILED);
+        }
+    }
+    public static void main(String[] args) {
+        try {
+            EncryptionService service = new EncryptionService();
+            service.secretKey = "test-secret-key";
+
+            System.out.println("초기화 시작...");
+            service.init();
+            System.out.println("초기화 완료!");
+
+            String original = "010-1234-5678";
+            String encrypted = service.encrypt(original);
+            String decrypted = service.decrypt(encrypted);
+
+            System.out.println("원문: " + original);
+            System.out.println("암호문: " + encrypted);
+            System.out.println("복호화 결과: " + decrypted);
+            System.out.println("최종 결과: " + original.equals(decrypted));
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

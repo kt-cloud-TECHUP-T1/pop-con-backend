@@ -18,3 +18,6 @@ spring:
         format_sql: true
         show_sql: true
     defer-datasource-initialization: true
+
+encryption:
+  secret: ${ENCRYPTION_SECRET:default_test_secret_key_32_chars}
