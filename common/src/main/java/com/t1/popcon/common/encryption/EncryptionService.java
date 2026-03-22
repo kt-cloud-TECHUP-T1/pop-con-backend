@@ -130,25 +130,4 @@ public class EncryptionService {
             throw new CustomException(ErrorCode.ENCRYPTION_FAILED);
         }
     }
-    public static void main(String[] args) {
-        try {
-            EncryptionService service = new EncryptionService();
-            service.secretKey = "test-secret-key";
-
-            System.out.println("초기화 시작...");
-            service.init();
-            System.out.println("초기화 완료!");
-
-            String original = "010-1234-5678";
-            String encrypted = service.encrypt(original);
-            String decrypted = service.decrypt(encrypted);
-
-            System.out.println("원문: " + original);
-            System.out.println("암호문: " + encrypted);
-            System.out.println("복호화 결과: " + decrypted);
-            System.out.println("최종 결과: " + original.equals(decrypted));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 }
