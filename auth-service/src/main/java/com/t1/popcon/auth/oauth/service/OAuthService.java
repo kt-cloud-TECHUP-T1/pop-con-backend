@@ -2,10 +2,11 @@ package com.t1.popcon.auth.oauth.service;
 
 import com.t1.popcon.auth.client.user.UserServiceClient;
 import com.t1.popcon.auth.client.user.dto.UserLookupResponse;
+import com.t1.popcon.auth.common.RegisterPayload;
+import com.t1.popcon.auth.common.RegisterTokenStore;
 import com.t1.popcon.auth.oauth.config.OAuthProperties;
 import com.t1.popcon.auth.oauth.dto.OAuthTokenResponse;
 import com.t1.popcon.auth.oauth.dto.OAuthUserInfo;
-import com.t1.popcon.auth.oauth.dto.RegisterPayload;
 import com.t1.popcon.auth.oauth.dto.SocialLoginResponse;
 import com.t1.popcon.auth.token.domain.RefreshToken;
 import com.t1.popcon.auth.token.domain.RefreshTokenRepository;
@@ -139,14 +140,13 @@ public class OAuthService {
 
         String registerToken = generateRandomUrlSafe(48);
 
-        RegisterPayload payload = new RegisterPayload(
+        RegisterPayload payload = RegisterPayload.fromOAuth(
                 provider,
                 userInfo.providerUserId(),
                 userInfo.email(),
                 userInfo.nickname(),
                 userInfo.name(),
-                userInfo.profileImageUrl(),
-                null
+                userInfo.profileImageUrl()
         );
 
         registerTokenStore.save(registerToken, payload, REGISTER_TTL_SECONDS);
