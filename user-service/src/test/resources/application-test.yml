@@ -40,3 +40,6 @@ jwt:
 
 internal:
   api-secret: ${INTERNAL_API_SECRET:changeme-local-secret}
+
+encryption:
+  secret: ${ENCRYPTION_SECRET:default_test_secret_key_32_chars}
