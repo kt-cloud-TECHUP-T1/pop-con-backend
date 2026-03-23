@@ -90,6 +90,9 @@ public class EncryptionService {
 
         try {
             byte[] decoded = Base64.getDecoder().decode(encryptedText);
+	        if (decoded.length <= IV_LENGTH) {
+		        throw new CustomException(ErrorCode.DECRYPTION_FAILED);
+	        }
 
             byte[] iv = new byte[IV_LENGTH];
             byte[] cipherText = new byte[decoded.length - IV_LENGTH];

@@ -67,9 +67,9 @@ jwt:
 
 portone:
   api:
-    secret: ${PORTONE_API_SECRET}
-    store-id: ${PORTONE_STORE_ID}
-  url: "https://api.portone.io"
+    secret: ${PORTONE_API_SECRET:test-portone-secret}
+    store-id: ${PORTONE_STORE_ID:test-store-id}
+  url: ${PORTONE_URL:http://localhost:18080}
 
 encryption:
   secret: ${ENCRYPTION_SECRET:default_test_secret_key_32_chars}
