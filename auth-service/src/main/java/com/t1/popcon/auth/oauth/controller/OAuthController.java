@@ -1,6 +1,6 @@
 package com.t1.popcon.auth.oauth.controller;
 
-import com.t1.popcon.auth.common.config.FrontendProperties;
+import com.t1.popcon.auth.config.FrontendProperties;
 import com.t1.popcon.auth.oauth.dto.SocialLoginResponse;
 import com.t1.popcon.auth.oauth.service.OAuthProvider;
 import com.t1.popcon.auth.oauth.service.OAuthService;

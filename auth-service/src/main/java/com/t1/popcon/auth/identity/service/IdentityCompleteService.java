@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
@@ -39,11 +40,13 @@ public class IdentityCompleteService {
 	private final RefreshTokenRepository refreshTokenRepository;
 	private final JwtProperties jwtProperties;
 	private final EncryptionService encryptionService;
+	private final Clock clock;
 
 	@Transactional
 	public IdentityCompleteResult complete(IdentityCompleteRequest request, String registerToken) {
-		log.info("본인인증 완료 처리 시작 - identityVerificationId: {}, registerToken: {}",
-				request.identityVerificationId(), registerToken);
+		log.info("본인인증 완료 처리 시작 - identityVerificationIdHash: {}, registerTokenHash: {}",
+				shortHash(request.identityVerificationId()),
+				shortHash(registerToken));
 
 		validateRegisterToken(registerToken);
 
@@ -152,10 +155,10 @@ public class IdentityCompleteService {
 	) {
 		// 민감정보는 암호화 후 Redis payload에 병합
 		String encryptedName = encryptionService.encrypt(customer.name());
-		String encryptedGender = encryptionService.encrypt(customer.gender());
+		String encryptedGender = encryptNullable(customer.gender());
 		String encryptedBirthDate = encryptionService.encrypt(customer.birthDate());
 		String encryptedPhoneNumber = encryptionService.encrypt(customer.phoneNumber());
-		String encryptedForeigner = encryptionService.encrypt(
+		String encryptedForeigner = encryptNullable(
 				customer.isForeigner() == null ? null : String.valueOf(customer.isForeigner())
 		);
 
@@ -197,7 +200,7 @@ public class IdentityCompleteService {
 
 		try {
 			LocalDate birthDate = LocalDate.parse(birthDateStr);
-			LocalDate cutoffDate = LocalDate.now().minusYears(14);
+			LocalDate cutoffDate = LocalDate.now(clock).minusYears(14);
 
 			if (birthDate.isAfter(cutoffDate)) {
 				throw new CustomException(ErrorCode.AGE_RESTRICTED);
@@ -230,5 +233,17 @@ public class IdentityCompleteService {
 		public boolean isExistingUser() {
 			return response instanceof IdentityCompleteResponse.ExistingUserComplete;
 		}
+	}
+
+	private String encryptNullable(String value) {
+		return value == null ? null : encryptionService.encrypt(value);
+	}
+
+	private String shortHash(String value) {
+		if (value == null || value.isBlank()) {
+			return "null";
+		}
+		String hashed = encryptionService.generateHash(value);
+		return hashed.length() <= 8 ? hashed : hashed.substring(0, 8);
 	}
 }

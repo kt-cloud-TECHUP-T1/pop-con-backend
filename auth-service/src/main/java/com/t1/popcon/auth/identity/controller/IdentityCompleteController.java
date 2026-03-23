@@ -3,7 +3,7 @@ package com.t1.popcon.auth.identity.controller;
 import com.t1.popcon.auth.identity.dto.IdentityCompleteRequest;
 import com.t1.popcon.auth.identity.dto.IdentityCompleteResponse;
 import com.t1.popcon.auth.identity.service.IdentityCompleteService;
-import com.t1.popcon.auth.common.config.FrontendProperties;
+import com.t1.popcon.auth.config.FrontendProperties;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.common.response.ApiResponse;

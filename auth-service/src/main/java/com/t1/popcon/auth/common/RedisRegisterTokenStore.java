@@ -2,6 +2,7 @@ package com.t1.popcon.auth.common;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.t1.popcon.common.encryption.EncryptionService;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
@@ -21,10 +22,12 @@ public class RedisRegisterTokenStore implements RegisterTokenStore {
 
     private final StringRedisTemplate redis;
     private final ObjectMapper objectMapper;
+	private final EncryptionService encryptionService;
 
-    public RedisRegisterTokenStore(StringRedisTemplate redis, ObjectMapper objectMapper) {
+    public RedisRegisterTokenStore(StringRedisTemplate redis, ObjectMapper objectMapper, EncryptionService encryptionService) {
         this.redis = redis;
         this.objectMapper = objectMapper;
+	    this.encryptionService = encryptionService;
     }
 
     @Override
@@ -34,14 +37,14 @@ public class RedisRegisterTokenStore implements RegisterTokenStore {
         try {
             String json = toJson(payload);
             redis.opsForValue().set(key(registerToken), json, Duration.ofSeconds(ttlSeconds));
-            log.debug("registerToken saved: {}", registerToken);
+            log.debug("registerToken saved: {}", shortHash(registerToken));
         } catch (CustomException e) {
 	        throw e;
         } catch (RedisConnectionFailureException e) {
-	        log.error("registerToken Redis 저장 실패: registerToken={}", registerToken, e);
+	        log.error("registerToken Redis 저장 실패: registerTokenHash={}", shortHash(registerToken), e);
 	        throw new CustomException(ErrorCode.ERROR_SYSTEM);
         } catch (Exception e) {
-	        log.error("registerToken 저장 실패: registerToken={}", registerToken, e);
+	        log.error("registerToken 저장 실패: registerTokenHash={}", shortHash(registerToken), e);
 	        throw new CustomException(ErrorCode.ERROR_SYSTEM);
         }
     }
@@ -52,10 +55,10 @@ public class RedisRegisterTokenStore implements RegisterTokenStore {
 		    Boolean exists = redis.hasKey(key(registerToken));
 		    return Boolean.TRUE.equals(exists);
 	    } catch (RedisConnectionFailureException e) {
-		    log.error("registerToken 존재 여부 조회 실패: registerToken={}", registerToken, e);
+		    log.error("registerToken 존재 여부 조회 실패: registerTokenHash={}", shortHash(registerToken), e);
 		    throw new CustomException(ErrorCode.ERROR_SYSTEM);
 	    } catch (Exception e) {
-		    log.error("registerToken 존재 여부 조회 중 오류: registerToken={}", registerToken, e);
+		    log.error("registerToken 존재 여부 조회 중 오류: registerTokenHash={}", shortHash(registerToken), e);
 		    throw new CustomException(ErrorCode.ERROR_SYSTEM);
 	    }
     }
@@ -71,10 +74,10 @@ public class RedisRegisterTokenStore implements RegisterTokenStore {
 	    } catch (CustomException e) {
 		    throw e;
 	    } catch (RedisConnectionFailureException e) {
-		    log.error("registerToken 조회 실패: registerToken={}", registerToken, e);
+		    log.error("registerToken 조회 실패: registerTokenHash={}", shortHash(registerToken), e);
 		    throw new CustomException(ErrorCode.ERROR_SYSTEM);
 	    } catch (Exception e) {
-		    log.error("registerToken 조회 중 오류: registerToken={}", registerToken, e);
+		    log.error("registerToken 조회 중 오류: registerTokenHash={}", shortHash(registerToken), e);
 		    throw new CustomException(ErrorCode.ERROR_SYSTEM);
 	    }
     }
@@ -110,12 +113,12 @@ public class RedisRegisterTokenStore implements RegisterTokenStore {
     public void delete(String registerToken) {
 	    try {
 		    redis.delete(key(registerToken));
-		    log.debug("registerToken deleted: {}", registerToken);
+		    log.debug("registerToken deleted: {}", shortHash(registerToken));
 	    } catch (RedisConnectionFailureException e) {
-		    log.error("registerToken 삭제 실패: registerToken={}", registerToken, e);
+		    log.error("registerToken 삭제 실패: registerTokenHash={}", shortHash(registerToken), e);
 		    throw new CustomException(ErrorCode.ERROR_SYSTEM);
 	    } catch (Exception e) {
-		    log.error("registerToken 삭제 중 오류: registerToken={}", registerToken, e);
+		    log.error("registerToken 삭제 중 오류: registerTokenHash={}", shortHash(registerToken), e);
 		    throw new CustomException(ErrorCode.ERROR_SYSTEM);
 	    }
     }
@@ -138,7 +141,15 @@ public class RedisRegisterTokenStore implements RegisterTokenStore {
             return objectMapper.readValue(json, RegisterPayload.class);
         } catch (JsonProcessingException e) {
 	        log.error("RegisterPayload 역직렬화 실패", e);
-	        throw new CustomException(ErrorCode.INVALID_TOKEN);
+	        throw new CustomException(ErrorCode.ERROR_SYSTEM);
         }
     }
+
+	private String shortHash(String value) {
+		if (value == null || value.isBlank()) {
+			return "null";
+		}
+		String hashed = encryptionService.generateHash(value);
+		return hashed.length() <= 8 ? hashed : hashed.substring(0, 8);
+	}
 }

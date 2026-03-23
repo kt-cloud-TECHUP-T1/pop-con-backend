@@ -21,10 +21,10 @@ public class PortOneHttpClient implements PortOneClient {
 
 	private final RestClient restClient;
 
-	@Value("${portone.api.secret}")
+	@Value("${portone.api.secret:default_secret}")
 	private String apiSecret;
 
-	public PortOneHttpClient(@Value("${portone.url}") String baseUrl) {
+	public PortOneHttpClient(@Value("${portone.url:default_url}") String baseUrl) {
 		if (baseUrl == null || baseUrl.isBlank()) {
 			throw new IllegalStateException("portone.url must be configured");
 		}
@@ -35,7 +35,7 @@ public class PortOneHttpClient implements PortOneClient {
 			.baseUrl(baseUrl)
 			.requestFactory(requestFactory)
 			.requestInterceptor((request, body, execution) -> {
-				log.info(">>>> [PortOne V2 Request] Method: {}, URI: {}", request.getMethod(), request.getURI().getPath());
+				log.info(">>>> [PortOne V2 Request] Method: {}", request.getMethod());
 				return execution.execute(request, body);
 			})
 			.build();

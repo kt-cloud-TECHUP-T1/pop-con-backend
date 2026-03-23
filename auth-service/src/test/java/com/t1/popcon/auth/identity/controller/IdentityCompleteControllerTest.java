@@ -6,7 +6,7 @@ import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.t1.popcon.auth.common.config.FrontendProperties;
+import com.t1.popcon.auth.config.FrontendProperties;
 import com.t1.popcon.auth.identity.dto.IdentityCompleteRequest;
 import com.t1.popcon.auth.identity.dto.IdentityCompleteResponse;
 import com.t1.popcon.auth.identity.service.IdentityCompleteService;
