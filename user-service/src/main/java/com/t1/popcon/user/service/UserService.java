@@ -1,6 +1,5 @@
 package com.t1.popcon.user.service;
 
-import com.t1.popcon.common.domain.Gender;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.user.domain.User;
@@ -10,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Service
@@ -24,34 +22,53 @@ public class UserService {
      * User 생성 - 카카오
      */
     public User createUserWithKakao(
-        String ciHash,
-        LocalDateTime ciVerifiedAt,
-        String name,
-        String phone,
-        LocalDate birthDate,
-        Gender gender,
-        String kakaoUserId
+		    String ciHash,
+		    String encryptedName,
+		    String encryptedPhoneNumber,
+		    String encryptedBirthDate,
+		    String encryptedGender,
+		    String encryptedNationality,
+		    String email,
+		    String kakaoUserId
     ) {
-        validateSocialId(kakaoUserId);
-        User user = User.createUserWithKakao(ciHash, ciVerifiedAt, name, phone, birthDate, gender, kakaoUserId);
-        return userRepository.save(user);
+	    User user = User.createUserWithKakao(
+			    ciHash,
+			    encryptedName,
+			    encryptedPhoneNumber,
+			    encryptedBirthDate,
+			    encryptedGender,
+			    encryptedNationality,
+			    email,
+			    kakaoUserId
+	    );
+
+	    return userRepository.save(user);
     }
 
     /**
      * User 생성 - 네이버
      */
     public User createUserWithNaver(
-        String ciHash,
-        LocalDateTime ciVerifiedAt,
-        String name,
-        String phone,
-        LocalDate birthDate,
-        Gender gender,
-        String naverUserId
+		    String ciHash,
+		    String encryptedName,
+		    String encryptedPhoneNumber,
+		    String encryptedBirthDate,
+		    String encryptedGender,
+		    String encryptedNationality,
+		    String email,
+		    String naverUserId
     ) {
-        validateSocialId(naverUserId);
-        User user = User.createUserWithNaver(ciHash, ciVerifiedAt, name, phone, birthDate, gender, naverUserId);
-        return userRepository.save(user);
+	    User user = User.createUserWithNaver(
+			    ciHash,
+			    encryptedName,
+			    encryptedPhoneNumber,
+			    encryptedBirthDate,
+			    encryptedGender,
+			    encryptedNationality,
+			    email,
+			    naverUserId
+	    );
+	    return userRepository.save(user);
     }
 
     @Transactional(readOnly = true)
@@ -65,10 +82,10 @@ public class UserService {
         }
 
         return switch (provider.toUpperCase()) {
-            case "KAKAO" -> userRepository.findByKakaoUserIdAndDeletedFalse(providerUserId)
+            case "KAKAO" -> userRepository.findByKakaoUserId(providerUserId)
                     .map(user -> UserLookupResponse.found(user.getId()))
                     .orElseGet(UserLookupResponse::notFound);
-            case "NAVER" -> userRepository.findByNaverUserIdAndDeletedFalse(providerUserId)
+            case "NAVER" -> userRepository.findByNaverUserId(providerUserId)
                     .map(user -> UserLookupResponse.found(user.getId()))
                     .orElseGet(UserLookupResponse::notFound);
             default -> throw new CustomException(ErrorCode.INVALID_PROVIDER);
@@ -84,7 +101,7 @@ public class UserService {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
 
-        return userRepository.findByCiHashAndDeletedFalse(ciHash)
+        return userRepository.findByCiHash(ciHash)
                 .map(user -> UserLookupResponse.found(user.getId()))
                 .orElseGet(UserLookupResponse::notFound);
     }
@@ -116,7 +133,7 @@ public class UserService {
     private void linkKakaoByCi(String ciHash, String kakaoUserId) {
         validateSocialId(kakaoUserId);
 
-        User user = userRepository.findByCiHashAndDeletedFalse(ciHash)
+        User user = userRepository.findByCiHash(ciHash)
             .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         user.connectKakao(kakaoUserId, LocalDateTime.now());
@@ -128,7 +145,7 @@ public class UserService {
     private void linkNaverByCi(String ciHash, String naverUserId) {
         validateSocialId(naverUserId);
 
-        User user = userRepository.findByCiHashAndDeletedFalse(ciHash)
+        User user = userRepository.findByCiHash(ciHash)
             .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         user.connectNaver(naverUserId, LocalDateTime.now());
@@ -153,7 +170,7 @@ public class UserService {
     }
 
     private User getUserOrThrow(Long userId) {
-        return userRepository.findByIdAndDeletedFalse(userId)
+        return userRepository.findById(userId)
             .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
     }
 }
