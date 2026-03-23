@@ -36,6 +36,11 @@ public class EncryptionService {
     @PostConstruct
     public void init() {
         try {
+	        if (secretKey == null || secretKey.isBlank()) {
+		        log.error("[암호화 서비스] encryption.secret 설정이 비어 있습니다.");
+		        throw new CustomException(ErrorCode.ENCRYPTION_FAILED);
+			}
+
             // 서버 기동 시 비밀키를 32바이트(256비트) AES 암호화 열쇠로 초기화
             byte[] keyBytes = digestTo256Bits(secretKey);
             this.key = new SecretKeySpec(keyBytes, "AES");

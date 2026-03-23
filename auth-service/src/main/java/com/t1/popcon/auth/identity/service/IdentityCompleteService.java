@@ -206,7 +206,7 @@ public class IdentityCompleteService {
 				throw new CustomException(ErrorCode.AGE_RESTRICTED);
 			}
 		} catch (DateTimeParseException e) {
-			log.warn("생년월일 파싱 실패 - birthDate={}", birthDateStr, e);
+			log.warn("잘못된 birthDate 형식입니다.", e);
 			throw new CustomException(ErrorCode.IDENTITY_VERIFICATION_FAILED);
 		}
 	}
