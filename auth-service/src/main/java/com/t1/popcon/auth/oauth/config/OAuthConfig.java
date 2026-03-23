@@ -1,5 +1,6 @@
 package com.t1.popcon.auth.oauth.config;
 
+import com.t1.popcon.auth.common.config.FrontendProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 

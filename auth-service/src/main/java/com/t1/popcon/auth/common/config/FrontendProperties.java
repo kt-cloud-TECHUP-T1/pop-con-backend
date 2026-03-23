@@ -1,4 +1,4 @@
-package com.t1.popcon.auth.oauth.config;
+package com.t1.popcon.auth.common.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
