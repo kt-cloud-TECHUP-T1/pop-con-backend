@@ -1,6 +1,6 @@
 package com.t1.popcon.auth.signup.util;
 
-import com.t1.popcon.auth.oauth.config.FrontendProperties;
+import com.t1.popcon.auth.config.FrontendProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;

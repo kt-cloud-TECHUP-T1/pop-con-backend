@@ -1,7 +1,7 @@
 package com.t1.popcon.auth.signup.service;
 
-import com.t1.popcon.auth.oauth.dto.RegisterPayload;
-import com.t1.popcon.auth.oauth.service.RegisterTokenStore;
+import com.t1.popcon.auth.common.RegisterPayload;
+import com.t1.popcon.auth.common.RegisterTokenStore;
 import com.t1.popcon.auth.signup.client.SignUpUserServiceClient;
 import com.t1.popcon.auth.signup.client.dto.UserCreateRequest;
 import com.t1.popcon.auth.signup.client.dto.UserCreateResponse;

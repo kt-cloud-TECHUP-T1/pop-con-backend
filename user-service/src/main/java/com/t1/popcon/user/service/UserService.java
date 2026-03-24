@@ -12,12 +12,51 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+import com.t1.popcon.user.dto.UserCreateRequest;
+import com.t1.popcon.user.dto.UserCreateResponse;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class UserService {
 
     private final UserRepository userRepository;
+
+    /**
+     * 통합 회원 생성 (소셜 제공자 분기 처리)
+     */
+    public UserCreateResponse createUser(UserCreateRequest request) {
+        if (request.provider() == null || request.provider().isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_PROVIDER);
+        }
+
+        User user = switch (request.provider().toUpperCase()) {
+            case "KAKAO" -> User.createUserWithKakao(
+                    request.ciHash(),
+                    request.encryptedName(),
+                    request.encryptedPhoneNumber(),
+                    request.encryptedBirthDate(),
+                    request.encryptedGender(),
+                    request.encryptedNationality(),
+                    request.email(),
+                    request.providerUserId()
+            );
+            case "NAVER" -> User.createUserWithNaver(
+                    request.ciHash(),
+                    request.encryptedName(),
+                    request.encryptedPhoneNumber(),
+                    request.encryptedBirthDate(),
+                    request.encryptedGender(),
+                    request.encryptedNationality(),
+                    request.email(),
+                    request.providerUserId()
+            );
+            default -> throw new CustomException(ErrorCode.INVALID_PROVIDER);
+        };
+
+        User savedUser = userRepository.save(user);
+        return UserCreateResponse.from(savedUser);
+    }
 
     /**
      * User 생성 - 카카오

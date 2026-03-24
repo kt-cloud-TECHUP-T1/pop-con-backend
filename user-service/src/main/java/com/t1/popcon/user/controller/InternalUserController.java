@@ -3,11 +3,10 @@ package com.t1.popcon.user.controller;
 import com.t1.popcon.common.response.ApiResponse;
 import com.t1.popcon.user.dto.UserLookupResponse;
 import com.t1.popcon.user.service.UserService;
+import com.t1.popcon.user.dto.UserCreateRequest;
+import com.t1.popcon.user.dto.UserCreateResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 내부 서비스 간 통신용 API
@@ -17,6 +16,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class InternalUserController {
 
     private final UserService userService;
+
+    /**
+     * 신규 회원 생성 (본인인증 완료 후 회원가입 절차)
+     */
+    @PostMapping("/internal/users")
+    public ApiResponse<UserCreateResponse> createUser(@RequestBody UserCreateRequest request) {
+        return ApiResponse.ok(userService.createUser(request));
+    }
 
     /**
      * 소셜 로그인 정보로 사용자 조회

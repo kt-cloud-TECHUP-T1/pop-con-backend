@@ -14,6 +14,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 )
 public interface SignUpUserServiceClient {
 
-	@PostMapping("/users")
+	@PostMapping("/internal/users")
 	ApiResponse<UserCreateResponse> createUser(@RequestBody UserCreateRequest request);
 }
