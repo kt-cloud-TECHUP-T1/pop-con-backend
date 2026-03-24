@@ -5,7 +5,7 @@ import java.time.Duration;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
-import com.t1.popcon.auth.oauth.config.FrontendProperties;
+import com.t1.popcon.auth.config.FrontendProperties;
 import com.t1.popcon.common.auth.config.JwtProperties;
 
 import lombok.RequiredArgsConstructor;

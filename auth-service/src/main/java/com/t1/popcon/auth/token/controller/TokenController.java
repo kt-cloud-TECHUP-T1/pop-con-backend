@@ -12,6 +12,8 @@ import com.t1.popcon.auth.token.dto.TokenRefreshResponse;
 import com.t1.popcon.auth.token.service.TokenService;
 import com.t1.popcon.auth.token.service.TokenService.TokenReissueResult;
 import com.t1.popcon.auth.token.util.CookieProvider;
+import com.t1.popcon.common.exception.CustomException;
+import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.common.response.ApiResponse;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,8 +29,12 @@ public class TokenController {
 
 	@PostMapping("/refresh")
 	public ResponseEntity<ApiResponse<TokenRefreshResponse>> refreshToken(
-		@CookieValue(name = CookieProvider.REFRESH_TOKEN_COOKIE) String refreshToken,
+		@CookieValue(name = CookieProvider.REFRESH_TOKEN_COOKIE, required = false) String refreshToken,
 		HttpServletResponse response) {
+
+		if (refreshToken == null || refreshToken.isBlank()) {
+			throw new CustomException(ErrorCode.INVALID_INPUT);
+		}
 
 		TokenReissueResult result = tokenService.reissueToken(refreshToken);
 
