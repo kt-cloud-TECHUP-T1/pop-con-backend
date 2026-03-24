@@ -20,6 +20,11 @@ app:
       userinfo-url: https://openapi.naver.com/v1/nid/me
       scopes: name,email,profile_image
 
+services:
+  user-service:
+    url: http://localhost:8081
+    internal-secret: ${INTERNAL_API_SECRET:changeme-local-secret}
+
 spring:
   config:
     import: optional:file:.env[.properties]

@@ -4,6 +4,7 @@ import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.user.domain.Gender;
 import com.t1.popcon.user.domain.User;
+import com.t1.popcon.user.dto.UserSocialLookupResponse;
 import com.t1.popcon.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -51,6 +52,27 @@ public class UserService {
         validateSocialId(naverUserId);
         User user = User.createUserWithNaver(ciHash, ciVerifiedAt, name, phone, birthDate, gender, naverUserId);
         return userRepository.save(user);
+    }
+
+    @Transactional(readOnly = true)
+    public UserSocialLookupResponse findBySocial(String provider, String providerUserId) {
+        if (provider == null || provider.isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+
+        if (providerUserId == null || providerUserId.isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+
+        return switch (provider.toUpperCase()) {
+            case "KAKAO" -> userRepository.findByKakaoUserIdAndDeletedFalse(providerUserId)
+                    .map(user -> UserSocialLookupResponse.found(user.getId()))
+                    .orElseGet(UserSocialLookupResponse::notFound);
+            case "NAVER" -> userRepository.findByNaverUserIdAndDeletedFalse(providerUserId)
+                    .map(user -> UserSocialLookupResponse.found(user.getId()))
+                    .orElseGet(UserSocialLookupResponse::notFound);
+            default -> throw new CustomException(ErrorCode.INVALID_PROVIDER);
+        };
     }
 
     /**

@@ -1,20 +1,31 @@
 package com.t1.popcon.auth.oauth.service;
 
+import com.t1.popcon.auth.oauth.client.UserServiceClient;
+import com.t1.popcon.auth.oauth.client.dto.UserSocialLookupApiResponse;
+import com.t1.popcon.auth.oauth.client.dto.UserSocialLookupResponse;
 import com.t1.popcon.auth.oauth.config.OAuthProperties;
-import com.t1.popcon.auth.oauth.dto.*;
-//import com.t1.popcon.user.domain.User;
-//import com.t1.popcon.user.repository.UserRepository;
-import org.springframework.stereotype.Service;
+import com.t1.popcon.auth.oauth.dto.OAuthTokenResponse;
+import com.t1.popcon.auth.oauth.dto.OAuthUserInfo;
+import com.t1.popcon.auth.oauth.dto.RegisterPayload;
+import com.t1.popcon.auth.oauth.dto.SocialLoginResponse;
+import com.t1.popcon.auth.token.domain.RefreshToken;
+import com.t1.popcon.auth.token.domain.RefreshTokenRepository;
+import com.t1.popcon.common.auth.config.JwtProperties;
+import com.t1.popcon.common.auth.domain.TokenType;
+import com.t1.popcon.common.auth.provider.TokenProvider;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.util.Base64;
-import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * OAuth 인가 시작 + 콜백 서비스
  */
+@Slf4j
 @Service
 public class OAuthService {
 
@@ -26,24 +37,35 @@ public class OAuthService {
     private final OAuthStateStore stateStore;
     private final OAuthAuthorizeUrlBuilder urlBuilder;
     private final OAuthClient oAuthClient;
-
-    //private final UserRepository userRepository;
     private final RegisterTokenStore registerTokenStore;
+
+    private final UserServiceClient userServiceClient;
+    private final TokenProvider tokenProvider;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final JwtProperties jwtProperties;
 
     private final SecureRandom random = new SecureRandom();
 
-    public OAuthService(OAuthProperties props,
-                        OAuthStateStore stateStore,
-                        OAuthAuthorizeUrlBuilder urlBuilder,
-                        OAuthClient oAuthClient,
-                        //UserRepository userRepository,
-                        RegisterTokenStore registerTokenStore) {
+    public OAuthService(
+            OAuthProperties props,
+            OAuthStateStore stateStore,
+            OAuthAuthorizeUrlBuilder urlBuilder,
+            OAuthClient oAuthClient,
+            RegisterTokenStore registerTokenStore,
+            UserServiceClient userServiceClient,
+            TokenProvider tokenProvider,
+            RefreshTokenRepository refreshTokenRepository,
+            JwtProperties jwtProperties
+    ) {
         this.props = props;
         this.stateStore = stateStore;
         this.urlBuilder = urlBuilder;
         this.oAuthClient = oAuthClient;
-        //this.userRepository = userRepository;
         this.registerTokenStore = registerTokenStore;
+        this.userServiceClient = userServiceClient;
+        this.tokenProvider = tokenProvider;
+        this.refreshTokenRepository = refreshTokenRepository;
+        this.jwtProperties = jwtProperties;
     }
 
     /**
@@ -60,47 +82,61 @@ public class OAuthService {
     }
 
     /**
-     * OAuth 콜백 처리 (최종 분기)
-     * 1) state 검증(1회성 consume)
+     * OAuth 콜백 처리
+     * 1) state 검증
      * 2) code -> token 교환
      * 3) userinfo 조회
-     * 4) 기존회원이면 로그인 응답 / 신규회원이면 registerToken 발급
+     * 4) 기존회원이면 access/refresh 발급
+     * 5) 신규회원이면 registerToken 발급 + Redis 저장
      */
+    @Transactional
     public SocialLoginResponse handleCallback(OAuthProvider provider, String code, String state) {
-        // 1) state 검증 (CSRF 방지 + 1회성)
         boolean ok = stateStore.consume(state, provider);
         if (!ok) {
             throw new CustomException(ErrorCode.OAUTH_INVALID_STATE);
         }
 
-        // 2) code -> access_token
         OAuthTokenResponse token = oAuthClient.exchangeToken(provider, code, state);
         if (token == null || token.accessToken() == null || token.accessToken().isBlank()) {
             throw new CustomException(ErrorCode.OAUTH_TOKEN_EXCHANGE_FAILED);
         }
 
-        // 3) access_token -> userinfo
         OAuthUserInfo userInfo = oAuthClient.fetchUserInfo(provider, token.accessToken());
         if (userInfo == null || userInfo.providerUserId() == null || userInfo.providerUserId().isBlank()) {
-            // userInfo가 비정상이면 이후 로직 진행 불가
             throw new CustomException(ErrorCode.OAUTH_USERINFO_FAILED);
         }
 
-        // 4) 기존회원 조회
-        //Optional<User> userOpt = findByProvider(provider, userInfo.providerUserId());
+        UserSocialLookupResponse socialLookup = findByProvider(provider, userInfo.providerUserId());
 
-        // 4-1) 기존회원: 로그인 완료
-        /*if (userOpt.isPresent()) {
-            User user = userOpt.get();
+        if (socialLookup.exists()) {
 
-            // TODO: JWT로 교체 예정
-            String accessToken = "stub_access_token_for_user_" + user.getId();
-            String refreshToken = "stub_refresh_token_for_user_" + user.getId();
+            String userId = String.valueOf(socialLookup.userId());
 
-            return SocialLoginResponse.existing(user.getId(), accessToken, refreshToken);
-        }*/
+            String accessToken = tokenProvider.createToken(
+                    userId,
+                    jwtProperties.getAccessTokenExpiration(),
+                    TokenType.ACCESS
+            );
 
-        // 4-2) 신규회원: registerToken 발급 + Redis 저장
+            String refreshToken = tokenProvider.createToken(
+                    userId,
+                    jwtProperties.getRefreshTokenExpiration(),
+                    TokenType.REFRESH
+            );
+
+            long refreshTokenExpirationSeconds = jwtProperties.getRefreshTokenExpiration() / 1000;
+
+            refreshTokenRepository.save(
+                    RefreshToken.builder()
+                            .userId(userId)
+                            .token(tokenProvider.hashRefreshToken(refreshToken))
+                            .expiration(refreshTokenExpirationSeconds)
+                            .build()
+            );
+
+            return SocialLoginResponse.existing(socialLookup.userId(), accessToken, refreshToken);
+        }
+
         String registerToken = generateRandomUrlSafe(48);
 
         RegisterPayload payload = new RegisterPayload(
@@ -114,16 +150,24 @@ public class OAuthService {
         );
 
         registerTokenStore.save(registerToken, payload, REGISTER_TTL_SECONDS);
-
         return SocialLoginResponse.newUser(registerToken, NEXT_STEP_VERIFY_IDENTITY);
     }
 
-    /*private Optional<User> findByProvider(OAuthProvider provider, String providerUserId) {
-        return switch (provider) {
-            case KAKAO -> userRepository.findByKakaoUserIdAndDeletedFalse(providerUserId);
-            case NAVER -> userRepository.findByNaverUserIdAndDeletedFalse(providerUserId);
-        };
-    }*/
+    private UserSocialLookupResponse findByProvider(OAuthProvider provider, String providerUserId) {
+        try {
+            UserSocialLookupApiResponse response =
+                    userServiceClient.findBySocial(provider.name(), providerUserId);
+
+            if (response.data() == null) {
+                return new UserSocialLookupResponse(false, null);
+            }
+            return response.data();
+        } catch (Exception e) {
+            log.error("기존 회원 조회 실패 - provider: {}, providerUserId: {}",
+                    provider, providerUserId, e);
+            throw new CustomException(ErrorCode.ERROR_SYSTEM, "기존 회원 조회에 실패했습니다.");
+        }
+    }
 
     private String generateRandomUrlSafe(int byteLen) {
         byte[] bytes = new byte[byteLen];
