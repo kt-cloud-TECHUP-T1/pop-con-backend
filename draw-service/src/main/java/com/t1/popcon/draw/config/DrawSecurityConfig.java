@@ -34,7 +34,8 @@ public class DrawSecurityConfig extends CommonSecurityConfig {
                         "/health",
                         "/v3/api-docs/**",
                         "/swagger-ui/**",
-                        "/actuator/**"
+                        "/actuator/**",
+                  "/draws/**"
                 ).permitAll()
                 .requestMatchers(HttpMethod.GET, "/draws/**").permitAll()
                 .anyRequest().authenticated()
