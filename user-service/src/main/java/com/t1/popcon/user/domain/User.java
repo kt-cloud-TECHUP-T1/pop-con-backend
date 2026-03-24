@@ -1,5 +1,6 @@
 package com.t1.popcon.user.domain;
 
+import com.t1.popcon.common.domain.Gender;
 import com.t1.popcon.common.entity.BaseSoftDeleteEntity;
 import jakarta.persistence.*;
 import lombok.*;

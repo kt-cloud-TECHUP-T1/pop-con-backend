@@ -12,7 +12,7 @@ import com.t1.popcon.auction.repository.AuctionOptionRepository;
 import com.t1.popcon.auction.service.AuctionPriceService;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
-import com.t1.popcon.common.infrastructure.portone.PortoneClient;
+import com.t1.popcon.common.infrastructure.portone.PortOneClient;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +29,7 @@ public class BidService {
 	private final BidRedisRepository bidRedisRepository;
 	private final AuctionOptionRepository auctionOptionRepository;
 	private final AuctionPriceService auctionPriceService;
-	private final PortoneClient portoneClient;
+	private final PortOneClient portOneClient;
 	private final BidTransactionManager txManager;
 
 	public BidResponse attemptBid(Long userId, BidRequest request) {
@@ -64,7 +64,7 @@ public class BidService {
 
 			// 결제 요청 직전에 시도 플래그를 세팅합니다.
 			paymentAttempted = true;
-			portoneClient.executePayment(billingKey, bid.getMerchantUid(), bid.getBidPrice(), "입장권 낙찰");
+			portOneClient.executePayment(billingKey, bid.getMerchantUid(), bid.getBidPrice(), "입장권 낙찰");
 
 			// [Step 3] 최종 확정 (DB 트랜잭션)
 			txManager.completeBidSuccess(bid.getId(), option.getId());
@@ -76,7 +76,7 @@ public class BidService {
 
 			if (paymentAttempted) {
 				try {
-					portoneClient.cancelPayment(merchantUid, "시스템 오류로 인한 자동 낙찰 취소");
+					portOneClient.cancelPayment(merchantUid, "시스템 오류로 인한 자동 낙찰 취소");
 					log.info(">>>> [보상 완료] 결제 취소 요청 성공: {}", merchantUid);
 				} catch (Exception cancelEx) {
 					log.error("!!!! [긴급] 결제 취소 API 호출 실패 - 수동 확인 필요: {}", merchantUid, cancelEx);

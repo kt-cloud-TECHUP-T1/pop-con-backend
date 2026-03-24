@@ -64,3 +64,6 @@ jwt:
   secret: popcon-backend-test-secret-key-1234567890-abcdefghijklmnopqrstuvwxyz-64bytes-over
   access-token-expiration: 3600000
   refresh-token-expiration: 604800000
+
+encryption:
+  secret: ${ENCRYPTION_SECRET:default_test_secret_key_32_chars}
