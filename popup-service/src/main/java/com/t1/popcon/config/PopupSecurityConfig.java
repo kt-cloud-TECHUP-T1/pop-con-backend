@@ -31,7 +31,9 @@ public class PopupSecurityConfig extends CommonSecurityConfig {
 				"/health",
 				"/v3/api-docs/**",
 				"/swagger-ui/**",
-				"/actuator/**"
+				"/actuator/**",
+				"/popups/**",
+				"/magazines"
 			).permitAll()
 			.anyRequest().authenticated()
 		);
