@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record PortoneBillingKeyResponse(
+public record PortOneBillingKeyResponse(
 	@JsonProperty("billingKey") String billingKey, // V2 필드명 매핑
 	String status,
 	List<Method> methods,   // 배열 형태 대응

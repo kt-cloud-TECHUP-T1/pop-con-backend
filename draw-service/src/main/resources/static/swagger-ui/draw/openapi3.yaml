@@ -1,0 +1,18 @@
+openapi: 3.0.1
+info:
+  title: 팝콘 드로우 서비스 API 명세서
+  description: 드로우 응모, 참여 내역, 당첨 조회 API
+  version: 0.1.0
+servers:
+- url: http://localhost:8084
+tags: []
+paths: {}
+components:
+  schemas: {}
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+- bearerAuth: []

@@ -6,8 +6,10 @@ import com.t1.popcon.common.exception.ErrorCode;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @JsonPropertyOrder({"code", "message", "data"})
 public class ApiResponse<T> {
@@ -15,11 +17,11 @@ public class ApiResponse<T> {
     private static final String SUCCESS = "SUCCESS";
     private static final String DEFAULT_SUCCESS_MESSAGE = "성공하였습니다.";
 
-    private final String code;
-    private final String message;
+    private String code;
+    private String message;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    private final T data;
+    private T data;
 
     // ====== 성공 응답 ======
     public static <T> ApiResponse<T> ok(String message, T data) {
