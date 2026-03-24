@@ -1,5 +1,6 @@
 package com.t1.popcon.user.service;
 
+import com.t1.popcon.common.domain.Gender;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.user.domain.User;
