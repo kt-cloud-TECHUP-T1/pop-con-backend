@@ -7,8 +7,6 @@ import com.t1.popcon.common.auth.config.JwtProperties;
 import com.t1.popcon.auth.token.domain.RefreshToken;
 import com.t1.popcon.auth.token.domain.RefreshTokenRepository;
 import com.t1.popcon.common.auth.domain.TokenType;
-import com.t1.popcon.auth.token.dto.TokenRefreshRequest;
-import com.t1.popcon.auth.token.dto.TokenRefreshResponse;
 import com.t1.popcon.common.auth.provider.TokenProvider;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
@@ -24,8 +22,7 @@ public class TokenService {
 	private final JwtProperties jwtProperties;
 
 	@Transactional
-	public TokenRefreshResponse reissueToken(TokenRefreshRequest request) {
-		final String refreshToken = request.refreshToken();
+	public TokenReissueResult reissueToken(String refreshToken) {
 
 		// 1. Refresh Token 유효성 검증 (서명, 만료)
 		if (!tokenProvider.validateToken(refreshToken)) {
@@ -64,11 +61,14 @@ public class TokenService {
 			.expiration(refreshTokenExpirationSeconds)
 			.build());
 
-		// 7. 새로운 토큰 반환
-		return TokenRefreshResponse.builder()
-			.accessToken(newAccessToken)
-			.refreshToken(newRefreshToken)
-			.expiresIn(jwtProperties.getRefreshTokenExpiration() / 1000)
-			.build();
+		// 7. 결과 반환 (컨트롤러에서 AccessToken과 RefreshToken을 각각 바디와 쿠키로 처리)
+		return new TokenReissueResult(newAccessToken, newRefreshToken, jwtProperties.getRefreshTokenExpiration() / 1000);
+	}
+
+	public record TokenReissueResult(
+		String accessToken,
+		String refreshToken,
+		long expiresIn
+	) {
 	}
 }
