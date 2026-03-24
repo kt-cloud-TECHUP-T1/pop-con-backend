@@ -35,9 +35,6 @@ public class User extends BaseSoftDeleteEntity {
     @Column(name = "ci_hash", length = 64, nullable = false)
     private String ciHash;
 
-    @Column(name = "ci_verified_at", nullable = false)
-    private LocalDateTime ciVerifiedAt;
-
 	// 암호화 저장 개인정보
 	@Column(name = "encrypted_name", length = 255, nullable = false)
 	private String encryptedName;

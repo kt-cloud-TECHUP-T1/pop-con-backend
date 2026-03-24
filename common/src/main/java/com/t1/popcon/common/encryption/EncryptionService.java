@@ -120,14 +120,25 @@ public class EncryptionService {
      * SHA-256 단방향 해시
      * CI 등 변경되지 않아야 하는 식별자 해시에 사용
      * @param plainText 해시할 평문
-     * @return Base64 인코딩된 해시값
+     * @return 16진수(hex) 인코딩된 해시값
      */
     public String generateHash(String plainText) {
         if (plainText == null || plainText.isBlank()) {
             return plainText;
         }
-        return Base64.getEncoder().encodeToString(digestTo256Bits(plainText));
+        return toHex(digestTo256Bits(plainText));
     }
+
+	private String toHex(byte[] bytes) {
+		char[] out = new char[bytes.length * 2];
+		final char[] hex = "0123456789abcdef".toCharArray();
+		for (int i = 0; i < bytes.length; i++) {
+			int v = bytes[i] & 0xFF;
+			out[i * 2] = hex[v >>> 4];
+			out[i * 2 + 1] = hex[v & 0x0F];
+			}
+		return new String(out);
+	}
 
     private byte[] digestTo256Bits(String input) {
         try {
