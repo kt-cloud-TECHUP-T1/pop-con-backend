@@ -62,7 +62,7 @@ public class TokenService {
 			.build());
 
 		// 7. 결과 반환 (컨트롤러에서 AccessToken과 RefreshToken을 각각 바디와 쿠키로 처리)
-		return new TokenReissueResult(newAccessToken, newRefreshToken, jwtProperties.getRefreshTokenExpiration() / 1000);
+		return new TokenReissueResult(newAccessToken, newRefreshToken, jwtProperties.getAccessTokenExpiration() / 1000);
 	}
 
 	public record TokenReissueResult(
