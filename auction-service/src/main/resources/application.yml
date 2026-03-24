@@ -24,3 +24,6 @@ portone:
     secret: ${PORTONE_API_SECRET}
     store-id: ${PORTONE_STORE_ID}
   url: "https://api.portone.io"
+
+encryption:
+  secret: ${ENCRYPTION_SECRET}

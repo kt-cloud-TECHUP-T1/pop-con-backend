@@ -156,9 +156,9 @@ class SignUpControllerTest extends AbstractRestDocsTest {
 		void 실패_Case3_가입세션_토큰_만료() throws Exception {
 			// given
 			SignUpRequest.Signup request = new SignUpRequest.Signup("expired_token", new SignUpRequest.Agreements(true, true, true, true));
-			ApiResponse<Void> expectedResponse = ApiResponse.fail(ErrorCode.SIGNUP_TOKEN_EXPIRED);
+			ApiResponse<Void> expectedResponse = ApiResponse.fail(ErrorCode.REGISTER_TOKEN_EXPIRED);
 
-			given(signUpService.signup(any())).willThrow(new CustomException(ErrorCode.SIGNUP_TOKEN_EXPIRED));
+			given(signUpService.signup(any())).willThrow(new CustomException(ErrorCode.REGISTER_TOKEN_EXPIRED));
 
 			// when & then
 			mockMvc.perform(restDocsFactory.createRequest(DEFAULT_URL + "/signup", request, HttpMethod.POST, objectMapper))

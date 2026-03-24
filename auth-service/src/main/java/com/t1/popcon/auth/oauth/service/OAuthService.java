@@ -1,12 +1,12 @@
 package com.t1.popcon.auth.oauth.service;
 
-import com.t1.popcon.auth.oauth.client.UserServiceClient;
-import com.t1.popcon.auth.oauth.client.dto.UserSocialLookupApiResponse;
-import com.t1.popcon.auth.oauth.client.dto.UserSocialLookupResponse;
+import com.t1.popcon.auth.client.user.UserServiceClient;
+import com.t1.popcon.auth.client.user.dto.UserLookupResponse;
+import com.t1.popcon.auth.common.RegisterPayload;
+import com.t1.popcon.auth.common.RegisterTokenStore;
 import com.t1.popcon.auth.oauth.config.OAuthProperties;
 import com.t1.popcon.auth.oauth.dto.OAuthTokenResponse;
 import com.t1.popcon.auth.oauth.dto.OAuthUserInfo;
-import com.t1.popcon.auth.oauth.dto.RegisterPayload;
 import com.t1.popcon.auth.oauth.dto.SocialLoginResponse;
 import com.t1.popcon.auth.token.domain.RefreshToken;
 import com.t1.popcon.auth.token.domain.RefreshTokenRepository;
@@ -15,6 +15,7 @@ import com.t1.popcon.common.auth.domain.TokenType;
 import com.t1.popcon.common.auth.provider.TokenProvider;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
+import com.t1.popcon.common.response.ApiResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -106,7 +107,7 @@ public class OAuthService {
             throw new CustomException(ErrorCode.OAUTH_USERINFO_FAILED);
         }
 
-        UserSocialLookupResponse socialLookup = findByProvider(provider, userInfo.providerUserId());
+        UserLookupResponse socialLookup = findByProvider(provider, userInfo.providerUserId());
 
         if (socialLookup.exists()) {
 
@@ -139,29 +140,28 @@ public class OAuthService {
 
         String registerToken = generateRandomUrlSafe(48);
 
-        RegisterPayload payload = new RegisterPayload(
+        RegisterPayload payload = RegisterPayload.fromOAuth(
                 provider,
                 userInfo.providerUserId(),
                 userInfo.email(),
                 userInfo.nickname(),
                 userInfo.name(),
-                userInfo.profileImageUrl(),
-                null
+                userInfo.profileImageUrl()
         );
 
         registerTokenStore.save(registerToken, payload, REGISTER_TTL_SECONDS);
         return SocialLoginResponse.newUser(registerToken, NEXT_STEP_VERIFY_IDENTITY);
     }
 
-    private UserSocialLookupResponse findByProvider(OAuthProvider provider, String providerUserId) {
+    private UserLookupResponse findByProvider(OAuthProvider provider, String providerUserId) {
         try {
-            UserSocialLookupApiResponse response =
+            ApiResponse<UserLookupResponse> response =
                     userServiceClient.findBySocial(provider.name(), providerUserId);
 
-            if (response.data() == null) {
-                return new UserSocialLookupResponse(false, null);
+            if (response == null || response.getData() == null) {
+                return new UserLookupResponse(false, null);
             }
-            return response.data();
+            return response.getData();
         } catch (Exception e) {
             log.error("기존 회원 조회 실패 - provider: {}, providerUserId: {}",
                     provider, providerUserId, e);

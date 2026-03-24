@@ -1,0 +1,18 @@
+openapi: 3.0.1
+info:
+  title: 팝업 스토어 API 명세서
+  description: 예약 및 드로우, 굿즈 관리 API
+  version: 0.1.0
+servers:
+- url: /
+tags: []
+paths: {}
+components:
+  schemas: {}
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+- bearerAuth: []
