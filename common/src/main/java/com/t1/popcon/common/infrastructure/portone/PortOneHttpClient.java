@@ -7,6 +7,7 @@ import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.common.infrastructure.dto.PortOneBillingKeyResponse;
 import com.t1.popcon.common.infrastructure.dto.PortOneIdentityVerificationResponse;
 
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
@@ -21,10 +22,13 @@ public class PortOneHttpClient implements PortOneClient {
 
 	private final RestClient restClient;
 
-	@Value("${portone.api.secret:default_secret}")
+	@Value("${portone.api.secret}")
 	private String apiSecret;
 
-	public PortOneHttpClient(@Value("${portone.url:default_url}") String baseUrl) {
+	public PortOneHttpClient(@Value("${portone.url}") String baseUrl) {
+		if (baseUrl == null || baseUrl.isBlank()) {
+			throw new IllegalStateException("portone.url must be configured");
+		}
 		SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
 		requestFactory.setConnectTimeout(3000);
 		requestFactory.setReadTimeout(5000);
@@ -32,10 +36,17 @@ public class PortOneHttpClient implements PortOneClient {
 			.baseUrl(baseUrl)
 			.requestFactory(requestFactory)
 			.requestInterceptor((request, body, execution) -> {
-				log.info(">>>> [PortOne V2 Request] Method: {}, URI: {}", request.getMethod(), request.getURI());
+				log.info(">>>> [PortOne V2 Request] Method: {}", request.getMethod());
 				return execution.execute(request, body);
 			})
 			.build();
+	}
+
+	@PostConstruct
+	void validateConfig() {
+		if (apiSecret == null || apiSecret.isBlank()) {
+			throw new IllegalStateException("portone.api.secret must be configured");
+		}
 	}
 
 	@Override
@@ -122,8 +133,7 @@ public class PortOneHttpClient implements PortOneClient {
 				throw new CustomException(ErrorCode.IDENTITY_VERIFICATION_FETCH_FAILED);
 			}
 
-			log.info(">>>> [PortOne Identity Verification Response] id={}, status={}",
-				response.id(), response.status());
+			log.info(">>>> [PortOne Identity Verification Response] status={}", response.status());
 
 			return response;
 		} catch (CustomException e) {

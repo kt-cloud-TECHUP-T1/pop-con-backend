@@ -4,6 +4,8 @@ import com.t1.popcon.common.domain.Gender;
 import com.t1.popcon.common.entity.BaseSoftDeleteEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -25,30 +27,35 @@ import java.time.LocalDateTime;
         @Index(name = "idx_users_role", columnList = "role")
     }
 )
+@SQLDelete(sql = "UPDATE users SET deleted = true, deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@SQLRestriction("deleted = false")
 public class User extends BaseSoftDeleteEntity {
 
-    // 유저 식별
+    // 본인인증 식별 정보
     @Column(name = "ci_hash", length = 64, nullable = false)
     private String ciHash;
 
-    @Column(name = "ci_verified_at", nullable = false)
-    private LocalDateTime ciVerifiedAt;
+	// 암호화 저장 개인정보
+	@Column(name = "encrypted_name", length = 255, nullable = false)
+	private String encryptedName;
 
-    // 개인 식별 정보
-    @Column(name = "name", length = 255, nullable = false)
-    private String name;
+	@Column(name = "encrypted_phone_number", length = 255, nullable = false)
+	private String encryptedPhoneNumber;
 
-    @Column(name = "phone", length = 20, nullable = false)
-    private String phone;
+	@Column(name = "encrypted_birth_date", length = 255, nullable = false)
+	private String encryptedBirthDate;
 
-    @Column(name = "birth_date", nullable = false)
-    private LocalDate birthDate;
+	@Column(name = "encrypted_gender", length = 255)
+	private String encryptedGender;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "gender", nullable = false, length = 10)
-    private Gender gender;
+	@Column(name = "encrypted_nationality", length = 255)
+	private String encryptedNationality;
 
-    // 소셜 연결
+	// 소셜 프로필 정보
+	@Column(name = "email", length = 255, nullable = true)
+	private String email;
+
+    // 소셜 연결 정보
     @Column(name = "kakao_user_id", length = 128)
     private String kakaoUserId;
 
@@ -70,58 +77,79 @@ public class User extends BaseSoftDeleteEntity {
     @Column(name = "status", nullable = false, length = 10)
     private UserStatus status;
 
-    // 내부 공통 로직
-    private static User.UserBuilder baseBuilder(
-        String ciHash,
-        LocalDateTime ciVerifiedAt,
-        String name,
-        String phone,
-        LocalDate birthDate,
-        Gender gender
-    ) {
-        return User.builder()
-            .ciHash(ciHash)
-            .ciVerifiedAt(ciVerifiedAt)
-            .name(name)
-            .phone(phone)
-            .birthDate(birthDate)
-            .gender(gender)
-            .role(Role.USER)
-            .status(UserStatus.ACTIVE);
-    }
+	private static UserBuilder baseBuilder(
+			String ciHash,
+			String encryptedName,
+			String encryptedPhoneNumber,
+			String encryptedBirthDate,
+			String encryptedGender,
+			String encryptedNationality,
+			String email
+	) {
+		return User.builder()
+				.ciHash(ciHash)
+				.encryptedName(encryptedName)
+				.encryptedPhoneNumber(encryptedPhoneNumber)
+				.encryptedBirthDate(encryptedBirthDate)
+				.encryptedGender(encryptedGender)
+				.encryptedNationality(encryptedNationality)
+				.email(email)
+				.role(Role.USER)
+				.status(UserStatus.ACTIVE);
+	}
 
     /**
      * 카카오로 회원 생성
      */
     public static User createUserWithKakao(
-        String ciHash,
-        LocalDateTime ciVerifiedAt,
-        String name,
-        String phone,
-        LocalDate birthDate,
-        Gender gender,
-        String kakaoUserId
+		    String ciHash,
+		    String encryptedName,
+		    String encryptedPhoneNumber,
+		    String encryptedBirthDate,
+		    String encryptedGender,
+		    String encryptedNationality,
+		    String email,
+		    String kakaoUserId
     ) {
-        User user = baseBuilder(ciHash, ciVerifiedAt, name, phone, birthDate, gender).build();
-        user.connectKakao(kakaoUserId, LocalDateTime.now());
-        return user;
+	    User user = baseBuilder(
+			    ciHash,
+			    encryptedName,
+			    encryptedPhoneNumber,
+			    encryptedBirthDate,
+			    encryptedGender,
+			    encryptedNationality,
+			    email
+	    ).build();
+
+	    user.connectKakao(kakaoUserId, LocalDateTime.now());
+	    return user;
     }
 
     /**
      * 네이버로 회원 생성
      */
     public static User createUserWithNaver(
-        String ciHash,
-        LocalDateTime ciVerifiedAt,
-        String name,
-        String phone,
-        LocalDate birthDate,
-        Gender gender,
-        String naverUserId
+		    String ciHash,
+		    String encryptedName,
+		    String encryptedPhoneNumber,
+		    String encryptedBirthDate,
+		    String encryptedGender,
+		    String encryptedNationality,
+		    String email,
+		    String naverUserId
     ) {
-        User user = baseBuilder(ciHash, ciVerifiedAt, name, phone, birthDate, gender).build();
-        user.connectNaver(naverUserId, LocalDateTime.now());
-        return user;
+	    User user = baseBuilder(
+			    ciHash,
+			    encryptedName,
+			    encryptedPhoneNumber,
+			    encryptedBirthDate,
+			    encryptedGender,
+			    encryptedNationality,
+			    email
+	    ).build();
+
+	    user.connectNaver(naverUserId, LocalDateTime.now());
+	    return user;
     }
 
     public void connectKakao(String kakaoUserId, LocalDateTime connectedAt) {

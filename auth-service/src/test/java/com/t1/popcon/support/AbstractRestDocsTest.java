@@ -35,7 +35,8 @@ public abstract class AbstractRestDocsTest {
 	@Autowired
 	protected ObjectMapper objectMapper;
 
-	@MockitoBean RefreshTokenRepository refreshTokenRepository;
+	@MockitoBean
+	RefreshTokenRepository refreshTokenRepository;
 
     @MockitoBean
     StringRedisTemplate stringRedisTemplate;
