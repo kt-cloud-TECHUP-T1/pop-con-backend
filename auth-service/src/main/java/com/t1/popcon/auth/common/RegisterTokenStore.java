@@ -17,6 +17,12 @@ public interface RegisterTokenStore {
     Optional<RegisterPayload> find(String registerToken);
 
     /**
+     * registerToken을 원자적으로 조회하고 삭제합니다. (GETDEL)
+     * 회원가입 완료 등 1회성 소모가 필요한 시점에 동시성 제어를 위해 사용합니다.
+     */
+    Optional<RegisterPayload> consume(String registerToken);
+
+    /**
      * 본인인증 정보를 registerToken payload에 병합
      */
     void mergeIdentityVerification(

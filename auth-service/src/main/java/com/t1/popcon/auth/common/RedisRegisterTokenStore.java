@@ -83,6 +83,26 @@ public class RedisRegisterTokenStore implements RegisterTokenStore {
     }
 
     @Override
+    public Optional<RegisterPayload> consume(String registerToken) {
+        try {
+            String json = redis.opsForValue().getAndDelete(key(registerToken));
+            if (json == null || json.isBlank()) {
+                return Optional.empty();
+            }
+            log.debug("registerToken consumed (GETDEL): {}", shortHash(registerToken));
+            return Optional.of(fromJson(json));
+        } catch (CustomException e) {
+            throw e;
+        } catch (RedisConnectionFailureException e) {
+            log.error("registerToken 소모 실패: registerTokenHash={}", shortHash(registerToken), e);
+            throw new CustomException(ErrorCode.ERROR_SYSTEM);
+        } catch (Exception e) {
+            log.error("registerToken 소모 중 오류: registerTokenHash={}", shortHash(registerToken), e);
+            throw new CustomException(ErrorCode.ERROR_SYSTEM);
+        }
+    }
+
+    @Override
     public void mergeIdentityVerification(
             String registerToken,
             String ciHash,

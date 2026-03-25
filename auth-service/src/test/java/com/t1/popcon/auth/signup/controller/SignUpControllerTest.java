@@ -12,12 +12,13 @@ import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.common.response.ApiResponse;
 import com.t1.popcon.support.AbstractRestDocsTest;
 import com.t1.popcon.support.RestDocsFactory;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean; // 👈 변경된 임포트
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -53,19 +54,20 @@ class SignUpControllerTest extends AbstractRestDocsTest {
 		void 성공() throws Exception {
 			// given
 			SignUpRequest.Signup request = new SignUpRequest.Signup(
-				"test_register_token_1234",
 				new SignUpRequest.Agreements(true, true, true, true)
 			);
 
 			SignUpResponse.Signup responseDto = new SignUpResponse.Signup(
-				1L, "홍길동", "access_token", "refresh_token", LocalDateTime.now()
+				1L, "홍길동", "access_token", LocalDateTime.now()
 			);
 
-			// 💡 1. 실제 컨트롤러가 응답하는 형태와 동일하게 ApiResponse로 묶어줍니다.
 			ApiResponse<SignUpResponse.Signup> expectedResponse = ApiResponse.ok("약관 동의 및 회원가입이 완료되었습니다.", responseDto);
 
-			// 서비스 모킹은 그대로 DTO를 반환하도록 둡니다.
-			given(signUpService.signup(any())).willReturn(responseDto);
+			given(signUpService.signup(any(), any())).willReturn(new SignUpService.SignupResult(
+				new com.t1.popcon.auth.signup.client.dto.UserCreateResponse(1L, "홍길동", "test@test.com"),
+				"access_token",
+				"refresh_token"
+			));
 
 			// when & then
 			mockMvc.perform(
@@ -74,7 +76,7 @@ class SignUpControllerTest extends AbstractRestDocsTest {
 						request,
 						HttpMethod.POST,
 						objectMapper
-					)
+					).cookie(new Cookie("register_token", "test_register_token_1234"))
 				)
 				.andExpect(status().isOk())
 				.andDo(
@@ -84,7 +86,7 @@ class SignUpControllerTest extends AbstractRestDocsTest {
 						DESCRIPTION,
 						"Auth",
 						request,
-						expectedResponse // 💡 2. 쌩 DTO가 아닌 ApiResponse 래퍼 객체를 전달합니다.
+						expectedResponse
 					)
 				);
 		}
@@ -92,18 +94,17 @@ class SignUpControllerTest extends AbstractRestDocsTest {
 		@Test
 		void 실패_Case1_입력값_오류() throws Exception {
 			// given
-			// 의도적으로 잘못된 요청값 생성 (토큰 누락, 필수 약관 미동의)
+			// 의도적으로 잘못된 요청값 생성 (필수 약관 미동의)
 			SignUpRequest.Signup request = new SignUpRequest.Signup(
-				null,
 				new SignUpRequest.Agreements(false, false, false, null)
 			);
 
-			// REST Docs 문서화를 위한 예상 에러 응답 객체 구성 (실제 GlobalExceptionHandler 로직과 동일)
+			// REST Docs 문서화를 위한 예상 에러 응답 객체 구성
 			Map<String, String> fieldErrors = Map.of(
-				"registerToken", "가입 진행 토큰이 필요합니다.",
 				"agreements.isPrivacyPolicyAgreed", "필수 동의 항목입니다.",
 				"agreements.isIdentifierPolicyAgreed", "필수 동의 항목입니다.",
-				"agreements.isServicePolicyAgreed", "필수 동의 항목입니다."
+				"agreements.isServicePolicyAgreed", "필수 동의 항목입니다.",
+				"agreements.isMarketingAgreed", "선택 약관 항목이 누락되었습니다."
 			);
 			ApiResponse<Map<String, String>> expectedResponse = ApiResponse.fail(ErrorCode.INVALID_INPUT, fieldErrors);
 
@@ -114,7 +115,7 @@ class SignUpControllerTest extends AbstractRestDocsTest {
 						request,
 						HttpMethod.POST,
 						objectMapper
-					)
+					).cookie(new Cookie("register_token", "test_register_token_1234"))
 				)
 				.andExpect(status().isBadRequest())
 				.andDo(
@@ -132,13 +133,14 @@ class SignUpControllerTest extends AbstractRestDocsTest {
 		@Test
 		void 실패_Case2_이미_가입된_회원() throws Exception {
 			// given
-			SignUpRequest.Signup request = new SignUpRequest.Signup("valid_token", new SignUpRequest.Agreements(true, true, true, true));
+			SignUpRequest.Signup request = new SignUpRequest.Signup(new SignUpRequest.Agreements(true, true, true, true));
 			ApiResponse<Void> expectedResponse = ApiResponse.fail(ErrorCode.ALREADY_SIGNED_UP);
 
-			given(signUpService.signup(any())).willThrow(new CustomException(ErrorCode.ALREADY_SIGNED_UP));
+			given(signUpService.signup(any(), any())).willThrow(new CustomException(ErrorCode.ALREADY_SIGNED_UP));
 
 			// when & then
-			mockMvc.perform(restDocsFactory.createRequest(DEFAULT_URL + "/signup", request, HttpMethod.POST, objectMapper))
+			mockMvc.perform(restDocsFactory.createRequest(DEFAULT_URL + "/signup", request, HttpMethod.POST, objectMapper)
+					.cookie(new Cookie("register_token", "valid_token")))
 				.andExpect(status().isConflict())
 				.andDo(
 					restDocsFactory.failure(
@@ -155,13 +157,14 @@ class SignUpControllerTest extends AbstractRestDocsTest {
 		@Test
 		void 실패_Case3_가입세션_토큰_만료() throws Exception {
 			// given
-			SignUpRequest.Signup request = new SignUpRequest.Signup("expired_token", new SignUpRequest.Agreements(true, true, true, true));
+			SignUpRequest.Signup request = new SignUpRequest.Signup(new SignUpRequest.Agreements(true, true, true, true));
 			ApiResponse<Void> expectedResponse = ApiResponse.fail(ErrorCode.REGISTER_TOKEN_EXPIRED);
 
-			given(signUpService.signup(any())).willThrow(new CustomException(ErrorCode.REGISTER_TOKEN_EXPIRED));
+			given(signUpService.signup(any(), any())).willThrow(new CustomException(ErrorCode.REGISTER_TOKEN_EXPIRED));
 
 			// when & then
-			mockMvc.perform(restDocsFactory.createRequest(DEFAULT_URL + "/signup", request, HttpMethod.POST, objectMapper))
+			mockMvc.perform(restDocsFactory.createRequest(DEFAULT_URL + "/signup", request, HttpMethod.POST, objectMapper)
+					.cookie(new Cookie("register_token", "expired_token")))
 				.andExpect(status().isUnauthorized())
 				.andDo(
 					restDocsFactory.failure(
@@ -178,13 +181,14 @@ class SignUpControllerTest extends AbstractRestDocsTest {
 		@Test
 		void 실패_Case4_인증정보_유효하지_않음() throws Exception {
 			// given
-			SignUpRequest.Signup request = new SignUpRequest.Signup("invalid_token", new SignUpRequest.Agreements(true, true, true, true));
+			SignUpRequest.Signup request = new SignUpRequest.Signup(new SignUpRequest.Agreements(true, true, true, true));
 			ApiResponse<Void> expectedResponse = ApiResponse.fail(ErrorCode.INVALID_TOKEN);
 
-			given(signUpService.signup(any())).willThrow(new CustomException(ErrorCode.INVALID_TOKEN));
+			given(signUpService.signup(any(), any())).willThrow(new CustomException(ErrorCode.INVALID_TOKEN));
 
 			// when & then
-			mockMvc.perform(restDocsFactory.createRequest(DEFAULT_URL + "/signup", request, HttpMethod.POST, objectMapper))
+			mockMvc.perform(restDocsFactory.createRequest(DEFAULT_URL + "/signup", request, HttpMethod.POST, objectMapper)
+					.cookie(new Cookie("register_token", "invalid_token")))
 				.andExpect(status().isUnauthorized())
 				.andDo(
 					restDocsFactory.failure(
@@ -201,13 +205,14 @@ class SignUpControllerTest extends AbstractRestDocsTest {
 		@Test
 		void 실패_Case5_소셜정보_누락() throws Exception {
 			// given
-			SignUpRequest.Signup request = new SignUpRequest.Signup("no_social_info_token", new SignUpRequest.Agreements(true, true, true, true));
+			SignUpRequest.Signup request = new SignUpRequest.Signup(new SignUpRequest.Agreements(true, true, true, true));
 			ApiResponse<Void> expectedResponse = ApiResponse.fail(ErrorCode.SOCIAL_INFO_MISSING);
 
-			given(signUpService.signup(any())).willThrow(new CustomException(ErrorCode.SOCIAL_INFO_MISSING));
+			given(signUpService.signup(any(), any())).willThrow(new CustomException(ErrorCode.SOCIAL_INFO_MISSING));
 
 			// when & then
-			mockMvc.perform(restDocsFactory.createRequest(DEFAULT_URL + "/signup", request, HttpMethod.POST, objectMapper))
+			mockMvc.perform(restDocsFactory.createRequest(DEFAULT_URL + "/signup", request, HttpMethod.POST, objectMapper)
+					.cookie(new Cookie("register_token", "no_social_info_token")))
 				.andExpect(status().isBadRequest())
 				.andDo(
 					restDocsFactory.failure(
@@ -224,14 +229,15 @@ class SignUpControllerTest extends AbstractRestDocsTest {
 		@Test
 		void 실패_Case6_서버_오류() throws Exception {
 			// given
-			SignUpRequest.Signup request = new SignUpRequest.Signup("valid_token", new SignUpRequest.Agreements(true, true, true, true));
+			SignUpRequest.Signup request = new SignUpRequest.Signup(new SignUpRequest.Agreements(true, true, true, true));
 			ApiResponse<Void> expectedResponse = ApiResponse.fail(ErrorCode.ERROR_SYSTEM);
 
 			// 예기치 않은 서버 내부 오류(RuntimeException) 발생 시뮬레이션
-			given(signUpService.signup(any())).willThrow(new RuntimeException("DB Connection Timeout 등 예기치 않은 예외"));
+			given(signUpService.signup(any(), any())).willThrow(new RuntimeException("DB Connection Timeout 등 예기치 않은 예외"));
 
 			// when & then
-			mockMvc.perform(restDocsFactory.createRequest(DEFAULT_URL + "/signup", request, HttpMethod.POST, objectMapper))
+			mockMvc.perform(restDocsFactory.createRequest(DEFAULT_URL + "/signup", request, HttpMethod.POST, objectMapper)
+					.cookie(new Cookie("register_token", "valid_token")))
 				.andExpect(status().isInternalServerError())
 				.andDo(
 					restDocsFactory.failure(

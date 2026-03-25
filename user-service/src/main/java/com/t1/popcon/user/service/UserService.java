@@ -1,6 +1,5 @@
 package com.t1.popcon.user.service;
 
-import com.t1.popcon.common.domain.Gender;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.user.domain.User;
@@ -12,6 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+import com.t1.popcon.user.dto.UserCreateRequest;
+import com.t1.popcon.user.dto.UserCreateResponse;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -20,56 +22,39 @@ public class UserService {
     private final UserRepository userRepository;
 
     /**
-     * User 생성 - 카카오
+     * 통합 회원 생성 (소셜 제공자 분기 처리)
      */
-    public User createUserWithKakao(
-		    String ciHash,
-		    String encryptedName,
-		    String encryptedPhoneNumber,
-		    String encryptedBirthDate,
-		    String encryptedGender,
-		    String encryptedNationality,
-		    String email,
-		    String kakaoUserId
-    ) {
-	    User user = User.createUserWithKakao(
-			    ciHash,
-			    encryptedName,
-			    encryptedPhoneNumber,
-			    encryptedBirthDate,
-			    encryptedGender,
-			    encryptedNationality,
-			    email,
-			    kakaoUserId
-	    );
+    public UserCreateResponse createUser(UserCreateRequest request) {
+        if (request.provider() == null || request.provider().isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_PROVIDER);
+        }
 
-	    return userRepository.save(user);
-    }
+        User user = switch (request.provider().toUpperCase()) {
+            case "KAKAO" -> User.createUserWithKakao(
+                    request.ciHash(),
+                    request.encryptedName(),
+                    request.encryptedPhoneNumber(),
+                    request.encryptedBirthDate(),
+                    request.encryptedGender(),
+                    request.encryptedNationality(),
+                    request.email(),
+                    request.providerUserId()
+            );
+            case "NAVER" -> User.createUserWithNaver(
+                    request.ciHash(),
+                    request.encryptedName(),
+                    request.encryptedPhoneNumber(),
+                    request.encryptedBirthDate(),
+                    request.encryptedGender(),
+                    request.encryptedNationality(),
+                    request.email(),
+                    request.providerUserId()
+            );
+            default -> throw new CustomException(ErrorCode.INVALID_PROVIDER);
+        };
 
-    /**
-     * User 생성 - 네이버
-     */
-    public User createUserWithNaver(
-		    String ciHash,
-		    String encryptedName,
-		    String encryptedPhoneNumber,
-		    String encryptedBirthDate,
-		    String encryptedGender,
-		    String encryptedNationality,
-		    String email,
-		    String naverUserId
-    ) {
-	    User user = User.createUserWithNaver(
-			    ciHash,
-			    encryptedName,
-			    encryptedPhoneNumber,
-			    encryptedBirthDate,
-			    encryptedGender,
-			    encryptedNationality,
-			    email,
-			    naverUserId
-	    );
-	    return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        return UserCreateResponse.from(savedUser);
     }
 
     @Transactional(readOnly = true)

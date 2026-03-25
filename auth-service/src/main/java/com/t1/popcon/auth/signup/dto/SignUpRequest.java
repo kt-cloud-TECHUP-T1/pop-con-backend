@@ -7,10 +7,6 @@ import jakarta.validation.constraints.NotNull;
 public class SignUpRequest {
 
 	public record Signup(
-
-		@NotNull(message = "가입 진행 토큰이 필요합니다.")
-		String registerToken,
-
 		@Valid
 		@NotNull(message = "약관 동의 정보가 필요합니다.")
 		Agreements agreements
