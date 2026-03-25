@@ -5,6 +5,8 @@ import com.t1.popcon.user.dto.UserLookupResponse;
 import com.t1.popcon.user.service.UserService;
 import com.t1.popcon.user.dto.UserCreateRequest;
 import com.t1.popcon.user.dto.UserCreateResponse;
+
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +23,7 @@ public class InternalUserController {
      * 신규 회원 생성 (본인인증 완료 후 회원가입 절차)
      */
     @PostMapping("/internal/users")
-    public ApiResponse<UserCreateResponse> createUser(@RequestBody UserCreateRequest request) {
+    public ApiResponse<UserCreateResponse> createUser(@Valid @RequestBody UserCreateRequest request) {
         return ApiResponse.ok(userService.createUser(request));
     }
 

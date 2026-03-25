@@ -39,9 +39,16 @@ public class SignUpController {
 			Duration.ofMillis(jwtProperties.getRefreshTokenExpiration())
 		);
 
+		ResponseCookie clearRegisterCookie = cookieManager.buildCookie(
+			"register_token",
+			"",
+			Duration.ZERO
+		);
+
 		// 3. 응답 (Set-Cookie 헤더 포함)
 		return ResponseEntity.ok()
 			.header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+			.header(HttpHeaders.SET_COOKIE, clearRegisterCookie.toString())
 			.body(ApiResponse.ok("약관 동의 및 회원가입이 완료되었습니다.", result.toResponse()));
 	}
 }

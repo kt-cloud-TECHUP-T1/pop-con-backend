@@ -1,6 +1,5 @@
 package com.t1.popcon.user.service;
 
-import com.t1.popcon.common.domain.Gender;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.user.domain.User;
@@ -56,59 +55,6 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
         return UserCreateResponse.from(savedUser);
-    }
-
-    /**
-     * User 생성 - 카카오
-     */
-    public User createUserWithKakao(
-		    String ciHash,
-		    String encryptedName,
-		    String encryptedPhoneNumber,
-		    String encryptedBirthDate,
-		    String encryptedGender,
-		    String encryptedNationality,
-		    String email,
-		    String kakaoUserId
-    ) {
-	    User user = User.createUserWithKakao(
-			    ciHash,
-			    encryptedName,
-			    encryptedPhoneNumber,
-			    encryptedBirthDate,
-			    encryptedGender,
-			    encryptedNationality,
-			    email,
-			    kakaoUserId
-	    );
-
-	    return userRepository.save(user);
-    }
-
-    /**
-     * User 생성 - 네이버
-     */
-    public User createUserWithNaver(
-		    String ciHash,
-		    String encryptedName,
-		    String encryptedPhoneNumber,
-		    String encryptedBirthDate,
-		    String encryptedGender,
-		    String encryptedNationality,
-		    String email,
-		    String naverUserId
-    ) {
-	    User user = User.createUserWithNaver(
-			    ciHash,
-			    encryptedName,
-			    encryptedPhoneNumber,
-			    encryptedBirthDate,
-			    encryptedGender,
-			    encryptedNationality,
-			    email,
-			    naverUserId
-	    );
-	    return userRepository.save(user);
     }
 
     @Transactional(readOnly = true)

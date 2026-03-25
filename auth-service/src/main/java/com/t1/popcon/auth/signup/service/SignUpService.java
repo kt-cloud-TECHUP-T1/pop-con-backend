@@ -33,8 +33,8 @@ public class SignUpService {
 
 	@Transactional
 	public SignupResult signup(String registerToken, SignUpRequest.Signup request) {
-		// 1. registerToken으로 Redis에서 임시 가입 정보 조회
-		RegisterPayload payload = registerTokenStore.find(registerToken)
+		// 1. registerToken을 원자적으로 조회하고 즉시 삭제 (동시성 제어)
+		RegisterPayload payload = registerTokenStore.consume(registerToken)
 			.orElseThrow(() -> new CustomException(ErrorCode.INVALID_TOKEN));
 
 		// 2. user-service에 회원 저장 요청
@@ -57,9 +57,6 @@ public class SignUpService {
 			.token(tokenProvider.hashRefreshToken(refreshToken))
 			.expiration(jwtProperties.getRefreshTokenExpiration() / 1000)
 			.build());
-
-		// 5. 사용 완료된 registerToken 삭제
-		registerTokenStore.delete(registerToken);
 
 		return new SignupResult(savedUser, accessToken, refreshToken);
 	}
