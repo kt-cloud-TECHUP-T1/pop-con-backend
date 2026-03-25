@@ -2,6 +2,7 @@ package com.t1.popcon.auth.signup.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.restdocs.cookies.CookieDocumentation.cookieWithName;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.t1.popcon.auth.signup.dto.SignUpRequest;
@@ -86,7 +87,8 @@ class SignUpControllerTest extends AbstractRestDocsTest {
 						DESCRIPTION,
 						"Auth",
 						request,
-						expectedResponse
+						expectedResponse,
+						cookieWithName("register_token").description("회원가입 세션 유지를 위한 임시 토큰")
 					)
 				);
 		}
@@ -125,7 +127,8 @@ class SignUpControllerTest extends AbstractRestDocsTest {
 						DESCRIPTION,
 						"Auth",
 						request,
-						expectedResponse
+						expectedResponse,
+						cookieWithName("register_token").description("회원가입 세션 유지를 위한 임시 토큰")
 					)
 				);
 		}
@@ -149,7 +152,8 @@ class SignUpControllerTest extends AbstractRestDocsTest {
 						DESCRIPTION,
 						"Auth",
 						request,
-						expectedResponse
+						expectedResponse,
+						cookieWithName("register_token").description("회원가입 세션 유지를 위한 임시 토큰")
 					)
 				);
 		}
@@ -173,7 +177,8 @@ class SignUpControllerTest extends AbstractRestDocsTest {
 						DESCRIPTION,
 						"Auth",
 						request,
-						expectedResponse
+						expectedResponse,
+						cookieWithName("register_token").description("회원가입 세션 유지를 위한 임시 토큰")
 					)
 				);
 		}
@@ -197,7 +202,8 @@ class SignUpControllerTest extends AbstractRestDocsTest {
 						DESCRIPTION,
 						"Auth",
 						request,
-						expectedResponse
+						expectedResponse,
+						cookieWithName("register_token").description("회원가입 세션 유지를 위한 임시 토큰")
 					)
 				);
 		}
@@ -221,7 +227,8 @@ class SignUpControllerTest extends AbstractRestDocsTest {
 						DESCRIPTION,
 						"Auth",
 						request,
-						expectedResponse
+						expectedResponse,
+						cookieWithName("register_token").description("회원가입 세션 유지를 위한 임시 토큰")
 					)
 				);
 		}
@@ -246,7 +253,8 @@ class SignUpControllerTest extends AbstractRestDocsTest {
 						DESCRIPTION,
 						"Auth",
 						request,
-						expectedResponse
+						expectedResponse,
+						cookieWithName("register_token").description("회원가입 세션 유지를 위한 임시 토큰")
 					)
 				);
 		}

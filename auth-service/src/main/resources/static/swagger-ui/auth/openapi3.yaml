@@ -173,7 +173,7 @@ paths:
                         "userId" : 1,
                         "name" : "홍길동",
                         "accessToken" : "access_token",
-                        "createdAt" : "2026-03-25T03:26:32.704742"
+                        "createdAt" : "2026-03-25T23:56:03.05916"
                       }
                     }
         '409':
@@ -268,6 +268,30 @@ paths:
                     }
 components:
   schemas:
+    Signup:
+      title: Signup
+      type: object
+      properties:
+        agreements:
+          type: object
+          properties:
+            isMarketingAgreed:
+              type: boolean
+              description: isMarketingAgreed
+              nullable: true
+            isPrivacyPolicyAgreed:
+              type: boolean
+              description: isPrivacyPolicyAgreed
+              nullable: true
+            isServicePolicyAgreed:
+              type: boolean
+              description: isServicePolicyAgreed
+              nullable: true
+            isIdentifierPolicyAgreed:
+              type: boolean
+              description: isIdentifierPolicyAgreed
+              nullable: true
+          description: agreements
     ApiResponse:
       title: ApiResponse
       type: object
@@ -300,30 +324,6 @@ components:
           type: string
           description: message
           nullable: true
-    Signup:
-      title: Signup
-      type: object
-      properties:
-        agreements:
-          type: object
-          properties:
-            isMarketingAgreed:
-              type: boolean
-              description: isMarketingAgreed
-              nullable: true
-            isPrivacyPolicyAgreed:
-              type: boolean
-              description: isPrivacyPolicyAgreed
-              nullable: true
-            isServicePolicyAgreed:
-              type: boolean
-              description: isServicePolicyAgreed
-              nullable: true
-            isIdentifierPolicyAgreed:
-              type: boolean
-              description: isIdentifierPolicyAgreed
-              nullable: true
-          description: agreements
   securitySchemes:
     bearerAuth:
       type: http
