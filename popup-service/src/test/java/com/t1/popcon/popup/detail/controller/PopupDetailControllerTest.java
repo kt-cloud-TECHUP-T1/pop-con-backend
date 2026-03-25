@@ -4,6 +4,9 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalTime;
+import java.util.List;
+
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,19 +24,44 @@ import com.t1.popcon.support.RestDocsFactory;
 @ActiveProfiles("test")
 class PopupDetailControllerTest extends AbstractRestDocsTest {
 
-	private static final String DEFAULT_URL = "/popups";
+    private static final String DEFAULT_URL = "/popups";
 
-	@Autowired
-	private RestDocsFactory restDocsFactory;
+    @Autowired
+    private RestDocsFactory restDocsFactory;
 
-	@MockitoBean
-	private PopupDetailService popupDetailService;
+    @MockitoBean
+    private PopupDetailService popupDetailService;
 
-	@Nested
-	class 팝업스토어_상세_조회_API {
+    private PopupDetailResponse createPopupDetailResponse(Long popupId) {
+        return PopupDetailResponse.builder()
+                .popupId(popupId)
+                .phaseType(null)
+                .auctionId(null)
+                .drawId(null)
+                .liked(false)
+                .thumbnailUrl("https://example.com/thumb.jpg")
+                .images(List.of())
+                .title("테스트 팝업")
+                .subtitle("테스트 서브타이틀")
+                .viewCount(10L)
+                .likeCount(5L)
+                .description("테스트 설명")
+                .location("서울 성수동")
+                .reviewCount(3L)
+                .openAt("2026-03-26")
+                .closeAt("2026-03-30")
+                .weekdayOpen(LocalTime.of(10, 0))
+                .weekdayClose(LocalTime.of(20, 0))
+                .weekendOpen(LocalTime.of(11, 0))
+                .weekendClose(LocalTime.of(21, 0))
+                .build();
+    }
 
-		private static final String SUMMARY = "팝업스토어 상세 조회";
-		private static final String DESCRIPTION = """
+    @Nested
+    class 팝업스토어_상세_조회_API {
+
+        private static final String SUMMARY = "팝업스토어 상세 조회";
+        private static final String DESCRIPTION = """
 			팝업스토어의 상세 정보를 조회합니다.
 			로그인 여부에 따라 좋아요(liked) 상태가 포함됩니다.
 			
@@ -41,68 +69,69 @@ class PopupDetailControllerTest extends AbstractRestDocsTest {
 			- 500 (S001): 서버 오류
 			""";
 
-		@Test
-		void 성공() throws Exception {
-			// given
-			Long popupId = 1L;
-			PopupDetailResponse responseDto = PopupDetailResponse.ofMock(popupId);
-			ApiResponse<PopupDetailResponse> expectedResponse = ApiResponse.ok("팝업스토어 조회를 성공했습니다.", responseDto);
+        @Test
+        void 성공() throws Exception {
+            // given
+            Long popupId = 1L;
+            PopupDetailResponse responseDto = createPopupDetailResponse(popupId);
+            ApiResponse<PopupDetailResponse> expectedResponse =
+                    ApiResponse.ok("팝업스토어 조회를 성공했습니다.", responseDto);
 
-			given(popupDetailService.getPopupDetail(anyLong())).willReturn(responseDto);
+            given(popupDetailService.getPopupDetail(anyLong())).willReturn(responseDto);
 
-			// when & then
-			mockMvc.perform(
-					restDocsFactory.createRequest(
-						DEFAULT_URL + "/{popupId}",
-						null,
-						HttpMethod.GET,
-						objectMapper,
-						popupId
-					)
-				)
-				.andExpect(status().isOk())
-				.andDo(
-					restDocsFactory.success(
-						"popup-detail-get-success",
-						SUMMARY,
-						DESCRIPTION,
-						"Popup",
-						null,
-						expectedResponse
-					)
-				);
-		}
+            // when & then
+            mockMvc.perform(
+                            restDocsFactory.createRequest(
+                                    DEFAULT_URL + "/{popupId}",
+                                    null,
+                                    HttpMethod.GET,
+                                    objectMapper,
+                                    popupId
+                            )
+                    )
+                    .andExpect(status().isOk())
+                    .andDo(
+                            restDocsFactory.success(
+                                    "popup-detail-get-success",
+                                    SUMMARY,
+                                    DESCRIPTION,
+                                    "Popup",
+                                    null,
+                                    expectedResponse
+                            )
+                    );
+        }
 
-		@Test
-		void 실패_서버_오류() throws Exception {
-			// given
-			Long popupId = 1L;
-			ApiResponse<Void> expectedResponse = ApiResponse.fail(ErrorCode.ERROR_SYSTEM);
+        @Test
+        void 실패_서버_오류() throws Exception {
+            // given
+            Long popupId = 1L;
+            ApiResponse<Void> expectedResponse = ApiResponse.fail(ErrorCode.ERROR_SYSTEM);
 
-			given(popupDetailService.getPopupDetail(anyLong()))
-				.willThrow(new RuntimeException("Internal Server Error"));
+            given(popupDetailService.getPopupDetail(anyLong()))
+                    .willThrow(new RuntimeException("Internal Server Error"));
 
-			// when & then
-			mockMvc.perform(
-					restDocsFactory.createRequest(
-						DEFAULT_URL + "/{popupId}",
-						null,
-						HttpMethod.GET,
-						objectMapper,
-						popupId
-					)
-				)
-				.andExpect(status().isInternalServerError())
-				.andDo(
-					restDocsFactory.failure(
-						"popup-detail-get-fail-server-error",
-						SUMMARY,
-						DESCRIPTION,
-						"Popup",
-						null,
-						expectedResponse
-					)
-				);
-		}
-	}
+            // when & then
+            mockMvc.perform(
+                            restDocsFactory.createRequest(
+                                    DEFAULT_URL + "/{popupId}",
+                                    null,
+                                    HttpMethod.GET,
+                                    objectMapper,
+                                    popupId
+                            )
+                    )
+                    .andExpect(status().isInternalServerError())
+                    .andDo(
+                            restDocsFactory.failure(
+                                    "popup-detail-get-fail-server-error",
+                                    SUMMARY,
+                                    DESCRIPTION,
+                                    "Popup",
+                                    null,
+                                    expectedResponse
+                            )
+                    );
+        }
+    }
 }
