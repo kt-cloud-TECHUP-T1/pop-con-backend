@@ -2,7 +2,6 @@ package com.t1.popcon.popup.featured.service;
 
 import com.t1.popcon.popup.detail.entity.Popup;
 import com.t1.popcon.popup.dto.card.PhaseStatus;
-import com.t1.popcon.popup.dto.card.PhaseType;
 import com.t1.popcon.popup.dto.card.PopupCardDto;
 import com.t1.popcon.popup.dto.section.PopupSectionResponse;
 import com.t1.popcon.popup.dto.section.SectionKey;
@@ -12,7 +11,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
+import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.List;
 
@@ -37,14 +36,13 @@ public class PopupFeaturedService {
     }
 
     private PopupCardDto toPopupCardDto(Popup popup) {
-        PhaseType phaseType = popup.getPhaseType();
-        LocalDateTime phaseOpenAt = getPhaseOpenAt(popup, phaseType);
-        LocalDateTime phaseCloseAt = getPhaseCloseAt(popup, phaseType);
+        LocalDateTime phaseOpenAt = popup.getOpenAt().atStartOfDay();
+        LocalDateTime phaseCloseAt = popup.getCloseAt().atTime(LocalTime.MAX);
 
         return new PopupCardDto(
                 popup.getId(),
                 popup.getTitle(),
-                null,
+                popup.getSubtitle(),
                 popup.getSubText() != null ? popup.getSubText() : popup.getLocation(),
                 popup.getCaption(),
                 popup.getThumbnailUrl(),
@@ -55,20 +53,12 @@ public class PopupFeaturedService {
                 ),
                 null,
                 new PopupCardDto.PhaseDto(
-                        phaseType,
+                        popup.getPhaseType(),
                         calculatePhaseStatus(phaseOpenAt, phaseCloseAt),
                         phaseOpenAt.atOffset(KST_OFFSET),
                         phaseCloseAt.atOffset(KST_OFFSET)
                 )
         );
-    }
-
-    private LocalDateTime getPhaseOpenAt(Popup popup, PhaseType phaseType) {
-        return phaseType == PhaseType.AUCTION ? popup.getAuctionOpenAt() : popup.getDrawOpenAt();
-    }
-
-    private LocalDateTime getPhaseCloseAt(Popup popup, PhaseType phaseType) {
-        return phaseType == PhaseType.AUCTION ? popup.getAuctionCloseAt() : popup.getDrawCloseAt();
     }
 
     private PhaseStatus calculatePhaseStatus(LocalDateTime openAt, LocalDateTime closeAt) {

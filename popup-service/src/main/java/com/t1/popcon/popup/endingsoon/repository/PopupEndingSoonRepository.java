@@ -5,7 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 public interface PopupEndingSoonRepository extends JpaRepository<Popup, Long> {
@@ -17,5 +17,5 @@ public interface PopupEndingSoonRepository extends JpaRepository<Popup, Long> {
           and p.closeAt <= :deadline
         order by p.closeAt asc, p.id desc
     """)
-    List<Popup> findEndingSoonPopups(LocalDateTime now, LocalDateTime deadline, Pageable pageable);
+    List<Popup> findEndingSoonPopups(LocalDate now, LocalDate deadline, Pageable pageable);
 }

@@ -2,7 +2,6 @@ package com.t1.popcon.popup.endingsoon.service;
 
 import com.t1.popcon.popup.detail.entity.Popup;
 import com.t1.popcon.popup.dto.card.PhaseStatus;
-import com.t1.popcon.popup.dto.card.PhaseType;
 import com.t1.popcon.popup.dto.card.PopupCardDto;
 import com.t1.popcon.popup.dto.section.PopupSectionResponse;
 import com.t1.popcon.popup.dto.section.SectionKey;
@@ -11,7 +10,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.List;
 
@@ -24,8 +25,8 @@ public class PopupEndingSoonService {
     private final PopupEndingSoonRepository popupEndingSoonRepository;
 
     public PopupSectionResponse<PopupCardDto> getEndingSoonPopups(int limit) {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime deadline = now.plusDays(3);
+        LocalDate now = LocalDate.now();
+        LocalDate deadline = now.plusDays(3);
 
         List<PopupCardDto> items = popupEndingSoonRepository.findEndingSoonPopups(
                         now,
@@ -39,14 +40,13 @@ public class PopupEndingSoonService {
     }
 
     private PopupCardDto toPopupCardDto(Popup popup) {
-        PhaseType phaseType = popup.getPhaseType();
-        LocalDateTime phaseOpenAt = getPhaseOpenAt(popup, phaseType);
-        LocalDateTime phaseCloseAt = getPhaseCloseAt(popup, phaseType);
+        LocalDateTime phaseOpenAt = popup.getOpenAt().atStartOfDay();
+        LocalDateTime phaseCloseAt = popup.getCloseAt().atTime(LocalTime.MAX);
 
         return new PopupCardDto(
                 popup.getId(),
                 popup.getTitle(),
-                null,
+                popup.getSubtitle(),
                 popup.getSubText() != null ? popup.getSubText() : popup.getLocation(),
                 popup.getCaption(),
                 popup.getThumbnailUrl(),
@@ -57,7 +57,7 @@ public class PopupEndingSoonService {
                 ),
                 null,
                 new PopupCardDto.PhaseDto(
-                        phaseType,
+                        popup.getPhaseType(),
                         calculatePhaseStatus(phaseOpenAt, phaseCloseAt),
                         phaseOpenAt.atOffset(KST_OFFSET),
                         phaseCloseAt.atOffset(KST_OFFSET)
@@ -65,13 +65,6 @@ public class PopupEndingSoonService {
         );
     }
 
-    private LocalDateTime getPhaseOpenAt(Popup popup, PhaseType phaseType) {
-        return phaseType == PhaseType.AUCTION ? popup.getAuctionOpenAt() : popup.getDrawOpenAt();
-    }
-
-    private LocalDateTime getPhaseCloseAt(Popup popup, PhaseType phaseType) {
-        return phaseType == PhaseType.AUCTION ? popup.getAuctionCloseAt() : popup.getDrawCloseAt();
-    }
 
     private PhaseStatus calculatePhaseStatus(LocalDateTime openAt, LocalDateTime closeAt) {
         LocalDateTime now = LocalDateTime.now();

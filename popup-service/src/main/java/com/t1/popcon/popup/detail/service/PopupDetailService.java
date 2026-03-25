@@ -1,21 +1,52 @@
 package com.t1.popcon.popup.detail.service;
 
+import com.t1.popcon.common.exception.CustomException;
+import com.t1.popcon.common.exception.ErrorCode;
+import com.t1.popcon.popup.detail.dto.PopupDetailResponse;
+import com.t1.popcon.popup.detail.entity.Popup;
+import com.t1.popcon.popup.detail.repository.PopupRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.t1.popcon.popup.detail.dto.PopupDetailResponse;
-import com.t1.popcon.popup.detail.repository.PopupRepository;
-
-import lombok.RequiredArgsConstructor;
 
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class PopupDetailService {
 
-	private final PopupRepository popupRepository;
+    private final PopupRepository popupRepository;
 
-	public PopupDetailResponse getPopupDetail(Long popupId) {
-		return PopupDetailResponse.ofMock(popupId);
-	}
+    public PopupDetailResponse getPopupDetail(Long popupId) {
+        Popup popup = popupRepository.findWithImagesById(popupId)
+                .orElseThrow(() -> new CustomException(ErrorCode.POPUP_NOT_FOUND));
+
+        return PopupDetailResponse.builder()
+                .phaseType(popup.getPhaseType())
+                .auctionId(popup.getAuctionId())
+                .drawId(popup.getDrawId())
+                .popupId(popup.getId())
+                .liked(false)
+                .thumbnailUrl(popup.getThumbnailUrl())
+                .images(popup.getImages().stream()
+                        .map(image -> new PopupDetailResponse.ImageResponse(
+                                image.getId(),
+                                image.getImageUrl(),
+                                image.getSortOrder()
+                        ))
+                        .toList())
+                .title(popup.getTitle())
+                .subtitle(popup.getSubtitle())
+                .viewCount(popup.getViewCount())
+                .likeCount(popup.getLikeCount())
+                .description(popup.getDescription())
+                .location(popup.getLocation())
+                .reviewCount(popup.getReviewCount())
+                .openAt(popup.getOpenAt().toString())
+                .closeAt(popup.getCloseAt().toString())
+                .weekdayOpen(popup.getWeekdayOpen())
+                .weekdayClose(popup.getWeekdayClose())
+                .weekendOpen(popup.getWeekendOpen())
+                .weekendClose(popup.getWeekendClose())
+                .build();
+    }
 }
