@@ -1,11 +1,11 @@
 package com.t1.popcon.auth.token.controller;
 
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +38,15 @@ class TokenControllerTest extends AbstractRestDocsTest {
 
 	@MockitoBean
 	private CookieProvider cookieProvider;
+
+	@BeforeEach
+	void setUpMocks() {
+		ResponseCookie emptyCookie = ResponseCookie.from(CookieProvider.REFRESH_TOKEN_COOKIE, "")
+			.path("/")
+			.maxAge(0)
+			.build();
+		given(cookieProvider.removeRefreshTokenCookie()).willReturn(emptyCookie);
+	}
 
 	@Nested
 	class 토큰_재발급_API {
