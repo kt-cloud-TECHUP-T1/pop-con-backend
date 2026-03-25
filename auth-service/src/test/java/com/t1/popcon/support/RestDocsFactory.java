@@ -19,6 +19,11 @@ import java.util.Set;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.NotNull;
+import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.RecordComponent;
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.mockmvc.RestDocumentationResultHandler;
 import org.springframework.restdocs.payload.FieldDescriptor;
@@ -179,7 +184,7 @@ public class RestDocsFactory {
 
 		List<Snippet> snippets = new ArrayList<>();
 		snippets.add(resource(builder.build()));
-		if (cookies.length > 0) {
+		if (cookies != null && cookies.length > 0) {
 			snippets.add(CookieDocumentation.requestCookies(cookies));
 		}
 
@@ -241,7 +246,7 @@ public class RestDocsFactory {
 
 		List<Snippet> snippets = new ArrayList<>();
 		snippets.add(resource(builder.build()));
-		if (cookies.length > 0) {
+		if (cookies != null && cookies.length > 0) {
 			snippets.add(CookieDocumentation.requestCookies(cookies));
 		}
 
@@ -358,8 +363,11 @@ public class RestDocsFactory {
 				FieldDescriptor descriptor = PayloadDocumentation
 					.subsectionWithPath(fieldPath)
 					.type(JsonFieldType.OBJECT)
-					.description(field.getName())
-					.optional();
+					.description(field.getName());
+
+				if (isOptional(dto.getClass(), field)) {
+					descriptor.optional();
+				}
 				fields.add(descriptor);
 				continue;
 			}
@@ -367,8 +375,11 @@ public class RestDocsFactory {
 			JsonFieldType fieldType = determineFieldType(fieldTypeClass, fieldValue);
 			FieldDescriptor descriptor = PayloadDocumentation.fieldWithPath(fieldPath)
 				.type(fieldType)
-				.description(field.getName())
-				.optional();
+				.description(field.getName());
+
+			if (isOptional(dto.getClass(), field)) {
+				descriptor.optional();
+			}
 			fields.add(descriptor);
 
 			if (fieldType == JsonFieldType.ARRAY) {
@@ -443,5 +454,21 @@ public class RestDocsFactory {
 			return JsonFieldType.STRING;
 		}
 		return JsonFieldType.OBJECT;
+	}
+
+	private <T> boolean isOptional(Class<T> clazz, Field field) {
+		// Record의 경우 Component에서 어노테이션을 찾아야 함
+		if (clazz.isRecord()) {
+			for (RecordComponent component : clazz.getRecordComponents()) {
+				if (component.getName().equals(field.getName())) {
+					return !hasRequiredAnnotation(component);
+				}
+			}
+		}
+		return !hasRequiredAnnotation(field);
+	}
+
+	private boolean hasRequiredAnnotation(AnnotatedElement element) {
+		return element.isAnnotationPresent(NotNull.class) || element.isAnnotationPresent(AssertTrue.class);
 	}
 }

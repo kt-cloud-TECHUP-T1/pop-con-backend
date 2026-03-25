@@ -132,10 +132,10 @@ paths:
                       "code" : "C001",
                       "message" : "입력값이 올바르지 않습니다.",
                       "data" : {
-                        "agreements.isIdentifierPolicyAgreed" : "필수 동의 항목입니다.",
-                        "agreements.isMarketingAgreed" : "선택 약관 항목이 누락되었습니다.",
                         "agreements.isPrivacyPolicyAgreed" : "필수 동의 항목입니다.",
-                        "agreements.isServicePolicyAgreed" : "필수 동의 항목입니다."
+                        "agreements.isServicePolicyAgreed" : "필수 동의 항목입니다.",
+                        "agreements.isMarketingAgreed" : "선택 약관 항목이 누락되었습니다.",
+                        "agreements.isIdentifierPolicyAgreed" : "필수 동의 항목입니다."
                       }
                     }
         '401':
@@ -173,7 +173,7 @@ paths:
                         "userId" : 1,
                         "name" : "홍길동",
                         "accessToken" : "access_token",
-                        "createdAt" : "2026-03-26T02:15:28.698607"
+                        "createdAt" : "2026-03-26T02:42:17.652455"
                       }
                     }
         '409':

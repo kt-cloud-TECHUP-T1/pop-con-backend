@@ -52,12 +52,8 @@ public class TokenController {
 			return ResponseEntity.ok(ApiResponse.ok("토큰이 재발급되었습니다.", tokenResponse));
 		} catch (CustomException e) {
 			// 인증 관련 에러 발생 시 브라우저의 잘못된 쿠키 삭제
-			if (e.getErrorCode() == ErrorCode.INVALID_TOKEN ||
-				e.getErrorCode() == ErrorCode.TOKEN_EXPIRED ||
-				e.getErrorCode() == ErrorCode.INVALID_INPUT) {
-				ResponseCookie clearCookie = cookieProvider.removeRefreshTokenCookie();
-				response.addHeader(HttpHeaders.SET_COOKIE, clearCookie.toString());
-			}
+			ResponseCookie clearCookie = cookieProvider.removeRefreshTokenCookie();
+			response.addHeader(HttpHeaders.SET_COOKIE, clearCookie.toString());
 			throw e;
 		}
 	}
