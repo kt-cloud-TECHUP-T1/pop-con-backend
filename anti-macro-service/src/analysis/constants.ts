@@ -36,7 +36,7 @@ export const THRESHOLDS = {
 // --- VQA 난이도 기준 ---
 export const VQA_DIFFICULTY = {
   EASY_MAX: 20,
-  MEDIUM_MAX: 50,
+  MEDIUM_MAX: 49,
 } as const;
 
 // --- 의심 WebGL 렌더러 ---
