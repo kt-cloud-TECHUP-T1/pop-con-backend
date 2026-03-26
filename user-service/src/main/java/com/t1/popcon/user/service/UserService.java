@@ -163,7 +163,12 @@ public class UserService {
         if (nickname == null || nickname.isBlank()) {
             return null;
         }
-        return nickname.trim();
+
+        String normalized = nickname.trim();
+        if (normalized.length() > 50) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+        return normalized;
     }
 
     private User getUserOrThrow(Long userId) {

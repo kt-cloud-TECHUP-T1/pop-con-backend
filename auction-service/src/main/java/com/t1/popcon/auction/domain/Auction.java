@@ -1,11 +1,7 @@
 package com.t1.popcon.auction.domain;
 
 import com.t1.popcon.common.entity.BaseSoftDeleteEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -17,11 +13,19 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "auction")
+@Table(
+        name = "auction",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_auction_popup_id_deleted",
+                        columnNames = {"popup_id", "deleted"}
+                )
+        }
+)
 @SQLRestriction("deleted = false")
 public class Auction extends BaseSoftDeleteEntity {
 
-    @Column(name = "popup_id", nullable = false, unique = true)
+    @Column(name = "popup_id", nullable = false)
     private Long popupId;
 
     @Column(name = "start_price", nullable = false)
@@ -119,7 +123,7 @@ public class Auction extends BaseSoftDeleteEntity {
             throw new IllegalArgumentException("팝업이 존재해야 합니다.");
         }
         if (startPrice == null || startPrice <= 0) {
-            throw new IllegalArgumentException("시작가는 0보다 커야 합니다..");
+            throw new IllegalArgumentException("시작가는 0보다 커야 합니다.");
         }
         if (minimumPrice == null || minimumPrice <= 0) {
             throw new IllegalArgumentException("최저가는 0보다 커야 합니다.");

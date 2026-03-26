@@ -76,7 +76,7 @@ public class Bid extends BaseSoftDeleteEntity {
 
     public void failBid() {
         if (this.status != BidStatus.PENDING) {
-            throw new IllegalStateException("PENDING 상태에서만 실패 처리할 수 있습니다..");
+            throw new IllegalStateException("PENDING 상태에서만 실패 처리할 수 있습니다.");
         }
         this.status = BidStatus.FAILED;
         this.paidAt = null;

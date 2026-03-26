@@ -58,7 +58,7 @@ public class User extends BaseSoftDeleteEntity {
     @Column(name = "encrypted_nationality", length = 255)
     private String encryptedNationality;
 
-    @Column(name = "nickname", length = 50, unique = true)
+    @Column(name = "nickname", length = 50)
     private String nickname;
 
     @Column(name = "email", length = 255)
