@@ -1,6 +1,7 @@
 package com.t1.popcon.magazine.entity;
 
 import com.t1.popcon.common.entity.BaseSoftDeleteEntity;
+import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -17,6 +18,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "magazines")
 @SQLRestriction("deleted = false")
+@AttributeOverride(name = "id", column = @Column(name = "magazine_id"))
 public class Magazine extends BaseSoftDeleteEntity {
 
     @Column(nullable = false, length = 100)

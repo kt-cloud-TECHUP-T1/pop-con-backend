@@ -81,6 +81,10 @@ public class Auction extends BaseSoftDeleteEntity {
                 closedAt
         );
 
+        if (status == null) {
+            throw new IllegalArgumentException("경매 상태는 필수입니다.");
+        }
+
         this.popupId = popupId;
         this.startPrice = startPrice;
         this.minimumPrice = minimumPrice;
