@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
+@Table(name = "banners")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Banner extends BaseAuditEntity {
 
