@@ -1,7 +1,6 @@
 import { Router, Request, Response } from 'express';
 import type { AntiMacroSubmission } from '../types';
 import { analyzeRawData } from '../analysis/analyze';
-import { createNonce, validateAndConsumeNonce } from '../services/nonce.service';
 import { resolveIdentityKey, updatePageScore, getTotalScore, mergeScores } from '../services/score-aggregator';
 import { saveIfSuspicious } from '../services/suspicious-logger';
 
@@ -12,18 +11,7 @@ router.post('/signals', async (req: Request, res: Response) => {
   const body: AntiMacroSubmission = req.body;
   const { payload } = body;
 
-  // 항상 200 응답 (사일런트) - 매크로에게 힌트 주지 않음
-  const silentResponse = { received: true, vqaDifficulty: 'easy' as const, drawResult: undefined };
-
-  // 1. nonce 검증
-  const nonceValid = await validateAndConsumeNonce(body.nonce);
-  if (!nonceValid) {
-    console.log(`[anti-macro] nonce 검증 실패: ${body.nonce}`);
-    res.json(silentResponse);
-    return;
-  }
-
-  // 2. 시그널 분석
+  // 1. 시그널 분석
   const result = analyzeRawData(payload);
 
   // 3. identity 결정 + 점수 집계
@@ -70,12 +58,6 @@ router.post('/signals', async (req: Request, res: Response) => {
     vqaDifficulty: result.vqaDifficulty,
     drawResult: result.drawResult,
   });
-});
-
-// GET /api/nonce - nonce 발급 (Redis 저장)
-router.get('/nonce', async (_req: Request, res: Response) => {
-  const nonceData = await createNonce();
-  res.json(nonceData);
 });
 
 export default router;

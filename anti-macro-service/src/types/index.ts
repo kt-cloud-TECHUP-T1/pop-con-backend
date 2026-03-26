@@ -75,10 +75,8 @@ export type PageSignalPayload = {
 };
 
 export type AntiMacroSubmission = {
-  nonce: string;
   timestamp: number;
   payload: PageSignalPayload;
-  signature: string;
   visitorId?: string;
   userId?: string;
 };
