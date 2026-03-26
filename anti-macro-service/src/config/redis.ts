@@ -16,3 +16,12 @@ export const redis = new Redis({
 
 redis.on('connect', () => console.log('[redis] 연결 성공'));
 redis.on('error', (err) => console.error('[redis] 연결 에러:', err.message));
+
+/** Redis 연결 완료 대기 */
+export function waitForRedis(): Promise<void> {
+  if (redis.status === 'ready') return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    redis.once('ready', resolve);
+    redis.once('error', reject);
+  });
+}

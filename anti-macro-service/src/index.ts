@@ -1,8 +1,14 @@
+import dotenv from 'dotenv';
+import path from 'path';
+
+// 부모 디렉토리의 .env 로드 (로컬 개발용)
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
 import express from 'express';
 import cors from 'cors';
 import signalsRouter from './routes/signals';
 import { env } from './config/env';
-import { redis } from './config/redis';
+import { redis, waitForRedis } from './config/redis';
 import { testConnection, pool } from './config/database';
 import type { Server } from 'http';
 
@@ -24,7 +30,8 @@ let server: Server;
 // 서버 시작
 async function start() {
   try {
-    // Redis 연결 확인
+    // Redis 연결 대기
+    await waitForRedis();
     await redis.ping();
     console.log('[redis] ping 성공');
 
