@@ -7,8 +7,8 @@ const KEY_PREFIX = 'score:';
  * identityKey 결정: visitorId를 기본으로, userId가 있으면 userId 우선
  * 단, 상세 페이지에서 둘 다 오면 visitorId 기반 점수를 userId로 병합
  */
-export function resolveIdentityKey(visitorId?: string, userId?: string): string {
-  return userId || visitorId || 'unknown';
+export function resolveIdentityKey(visitorId?: string, userId?: string): string | undefined {
+  return userId || visitorId || undefined;
 }
 
 /** 페이지별 점수 업데이트 (Redis Hash) */

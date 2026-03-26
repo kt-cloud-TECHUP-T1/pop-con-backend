@@ -51,5 +51,5 @@ async function insertLog(params: LogParams): Promise<void> {
     params.userAgent || null,
   ]);
 
-  console.log(`[db] 의심 로그 저장: identity=${params.identityKey} page=${params.page} score=${params.pageScore} total=${params.totalScore}`);
+  console.log(`[db] 의심 로그 저장: page=${params.page} score=${params.pageScore} total=${params.totalScore}`);
 }
