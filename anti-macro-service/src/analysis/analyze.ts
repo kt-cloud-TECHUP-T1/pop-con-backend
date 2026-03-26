@@ -100,7 +100,7 @@ export function analyzeRawData(payload: PageSignalPayload): AnalysisResult {
     });
   }
 
-  if (movements.length === 0) {
+  if (movements.length === 0 && payload.page !== 'popup-detail') {
     detected.push({
       ...SIGNAL_WEIGHTS.zero_mouse_touch_events,
       name: 'zero_mouse_touch_events',
@@ -110,7 +110,8 @@ export function analyzeRawData(payload: PageSignalPayload): AnalysisResult {
 
   // === 타이밍 ===
   if (rawData.loadToFirstClickMs !== null && rawData.loadToFirstClickMs !== undefined
-    && rawData.loadToFirstClickMs < THRESHOLDS.FAST_CLICK_MS) {
+    && rawData.loadToFirstClickMs < THRESHOLDS.FAST_CLICK_MS
+    && payload.page !== 'popup-detail') {
     detected.push({
       ...SIGNAL_WEIGHTS.fast_load_to_click,
       name: 'fast_load_to_click',

@@ -25,7 +25,7 @@ export const SIGNAL_WEIGHTS: Record<string, { tier: SignalTier; weight: number }
 
 // --- 임계값 ---
 export const THRESHOLDS = {
-  FAST_CLICK_MS: 500,
+  FAST_CLICK_MS: 200,
   INHUMAN_CLICK_INTERVAL_MS: 50,
   CLICK_INTERVAL_STDDEV_MS: 20,
   BUTTON_CENTER_DISTANCE_PX: 1,
