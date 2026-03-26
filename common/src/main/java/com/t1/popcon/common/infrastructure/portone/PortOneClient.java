@@ -15,7 +15,7 @@ public interface PortOneClient {
     void executePayment(String billingKey, String merchantUid, int amount, String orderName);
 
     // 결제 취소
-    void cancelPayment(String merchantUid, String reason);
+    void cancelPayment(String paymentId, int amount);
 
     // 본인인증 결과 조회
     PortOneIdentityVerificationResponse fetchIdentityVerification(String identityVerificationId);

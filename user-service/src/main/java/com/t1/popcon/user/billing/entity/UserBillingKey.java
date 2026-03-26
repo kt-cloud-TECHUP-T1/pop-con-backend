@@ -11,7 +11,10 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "user_billing_key",
-	indexes = {@Index(name = "idx_user_billing_active", columnList = "userId, isActive")})
+	indexes = {
+		@Index(name = "idx_user_billing_active", columnList = "userId, isActive"),
+		@Index(name = "idx_user_billing_default", columnList = "userId, isDefault, isActive")
+	})
 public class UserBillingKey extends BaseSoftDeleteEntity {
 
 	@Column(nullable = false)
@@ -29,18 +32,26 @@ public class UserBillingKey extends BaseSoftDeleteEntity {
 	@Column(nullable = false)
 	private boolean isActive = true;
 
+	@Column(nullable = false)
+	private boolean isDefault = false;
+
 	@Builder
 	public UserBillingKey(Long userId, String customerUid, String pgProvider,
-		String cardName, String cardNumber) {
+		String cardName, String cardNumber, boolean isDefault) {
 		this.userId = userId;
 		this.customerUid = customerUid;
 		this.pgProvider = pgProvider;
 		this.cardName = cardName;
 		this.cardNumber = cardNumber;
+		this.isDefault = isDefault;
 		this.createdBy = userId;
 	}
 
 	public void deactivate() {
 		this.isActive = false;
+	}
+
+	public void updateDefault(boolean isDefault) {
+		this.isDefault = isDefault;
 	}
 }

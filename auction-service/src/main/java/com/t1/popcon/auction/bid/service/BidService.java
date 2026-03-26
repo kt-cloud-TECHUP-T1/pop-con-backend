@@ -1,5 +1,7 @@
 package com.t1.popcon.auction.bid.service;
 
+import com.t1.popcon.auction.bid.client.UserBillingClient;
+import com.t1.popcon.auction.bid.client.dto.BillingKeyInternalResponse;
 import com.t1.popcon.auction.bid.domain.Bid;
 import com.t1.popcon.auction.bid.domain.BidStatus;
 import com.t1.popcon.auction.bid.dto.BidRequest;
@@ -13,12 +15,14 @@ import com.t1.popcon.auction.service.AuctionPriceService;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.common.infrastructure.portone.PortOneClient;
+import com.t1.popcon.common.response.ApiResponse;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 @Slf4j
@@ -30,6 +34,7 @@ public class BidService {
 	private final AuctionOptionRepository auctionOptionRepository;
 	private final AuctionPriceService auctionPriceService;
 	private final PortOneClient portOneClient;
+	private final UserBillingClient userBillingClient;
 	private final BidTransactionManager txManager;
 
 	public BidResponse attemptBid(Long userId, BidRequest request) {
@@ -51,7 +56,10 @@ public class BidService {
 			throw new CustomException(ErrorCode.AUCTION_OPTION_SOLD_OUT);
 		}
 
-		String merchantUid = UUID.randomUUID().toString();
+		// 3. 주문 번호 생성 (yyyyMMdd_HHmmss_랜덤값)
+		String timestamp = now.format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+		String merchantUid = "order_no_" + timestamp + "_" + UUID.randomUUID().toString().substring(0, 8);
+
 		Bid bid = null;
 		boolean paymentAttempted = false;
 
@@ -59,8 +67,12 @@ public class BidService {
 			// [Step 1] PENDING 기록 생성
 			bid = txManager.preparePendingBid(userId, option, currentServerPrice, merchantUid);
 
-			// [Step 2] 외부 결제 실행
-			String billingKey = "DUMMY_KEY";
+			// [Step 2] 외부 결제 실행 (User-Service 연동하여 실제 빌링키 조회)
+			ApiResponse<BillingKeyInternalResponse> billingKeyResponse = userBillingClient.getDefaultBillingKey(userId);
+			if (billingKeyResponse == null || billingKeyResponse.getData() == null) {
+				throw new CustomException(ErrorCode.BILLING_KEY_NOT_FOUND);
+			}
+			String billingKey = billingKeyResponse.getData().customerUid();
 
 			// 결제 요청 직전에 시도 플래그를 세팅합니다.
 			paymentAttempted = true;
@@ -76,7 +88,7 @@ public class BidService {
 
 			if (paymentAttempted) {
 				try {
-					portOneClient.cancelPayment(merchantUid, "시스템 오류로 인한 자동 낙찰 취소");
+					portOneClient.cancelPayment(merchantUid, bid.getBidPrice());
 					log.info(">>>> [보상 완료] 결제 취소 요청 성공: {}", merchantUid);
 				} catch (Exception cancelEx) {
 					log.error("!!!! [긴급] 결제 취소 API 호출 실패 - 수동 확인 필요: {}", merchantUid, cancelEx);

@@ -12,6 +12,9 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class BillingKeyService {
@@ -21,9 +24,8 @@ public class BillingKeyService {
 
 	@Transactional
 	public BillingKeyInfoResponse registerBillingKey(Long userId, BillingKeyRegisterRequest request) {
-		// 1. 기존 카드 비활성화
-		billingKeyRepository.findByUserIdAndIsActiveTrue(userId)
-			.ifPresent(UserBillingKey::deactivate);
+		// 1. 현재 활성 카드가 있는지 확인
+		boolean hasActiveKey = billingKeyRepository.existsByUserIdAndIsActiveTrue(userId);
 
 		// 2. 포트원 상세 조회
 		String cleanedUid = request.customerUid().trim();
@@ -34,15 +36,62 @@ public class BillingKeyService {
 			throw new CustomException(ErrorCode.PAYMENT_FETCH_FAILED, "유효하지 않은 빌링키 상태입니다.");
 		}
 
-		// 4. DB 저장
+		// 4. DB 저장 (첫 등록이면 isDefault = true)
 		UserBillingKey newBillingKey = UserBillingKey.builder()
 			.userId(userId)
 			.customerUid(response.billingKey())
 			.pgProvider(response.getPgProvider())
 			.cardName(response.getCardName())
 			.cardNumber(response.getCardNumber())
+			.isDefault(!hasActiveKey)
 			.build();
 
 		return BillingKeyInfoResponse.from(billingKeyRepository.save(newBillingKey));
 	}
-}
+
+	public List<BillingKeyInfoResponse> getMyBillingKeys(Long userId) {
+		return billingKeyRepository.findAllByUserIdAndIsActiveTrue(userId).stream()
+			.sorted(Comparator.comparing(UserBillingKey::isDefault).reversed()
+				.thenComparing(UserBillingKey::getCreatedAt, Comparator.reverseOrder()))
+			.map(BillingKeyInfoResponse::from)
+			.toList();
+	}
+
+	@Transactional
+	public void changeDefaultBillingKey(Long userId, Long billingKeyId) {
+		// 1. 기존 대표 카드 해제
+		billingKeyRepository.findByUserIdAndIsDefaultTrueAndIsActiveTrue(userId)
+			.ifPresent(key -> key.updateDefault(false));
+
+		// 2. 새로운 대표 카드 설정
+		UserBillingKey newDefaultKey = billingKeyRepository.findById(billingKeyId)
+			.filter(key -> key.getUserId().equals(userId) && key.isActive())
+			.orElseThrow(() -> new CustomException(ErrorCode.BILLING_KEY_NOT_FOUND));
+
+		newDefaultKey.updateDefault(true);
+	}
+
+	@Transactional
+	public void deleteBillingKey(Long userId, Long billingKeyId) {
+		UserBillingKey targetKey = billingKeyRepository.findById(billingKeyId)
+			.filter(key -> key.getUserId().equals(userId) && key.isActive())
+			.orElseThrow(() -> new CustomException(ErrorCode.BILLING_KEY_NOT_FOUND));
+
+		boolean wasDefault = targetKey.isDefault();
+		targetKey.deactivate();
+		targetKey.updateDefault(false);
+
+		// 대표 카드 삭제 시 다른 카드를 승격
+		if (wasDefault) {
+			billingKeyRepository.findAllByUserIdAndIsActiveTrue(userId).stream()
+				.max(Comparator.comparing(UserBillingKey::getCreatedAt))
+				.ifPresent(key -> key.updateDefault(true));
+		}
+	}
+
+	public String getDefaultBillingKey(Long userId) {
+		return billingKeyRepository.findByUserIdAndIsDefaultTrueAndIsActiveTrue(userId)
+			.map(UserBillingKey::getCustomerUid)
+			.orElseThrow(() -> new CustomException(ErrorCode.BILLING_KEY_NOT_FOUND));
+	}
+	}

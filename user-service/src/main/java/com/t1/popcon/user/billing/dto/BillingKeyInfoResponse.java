@@ -7,6 +7,7 @@ public record BillingKeyInfoResponse(
 	Long id,
 	String cardName,
 	String cardNumber,
+	boolean isDefault,
 	LocalDateTime registeredAt
 ) {
 	public static BillingKeyInfoResponse from(UserBillingKey entity) {
@@ -14,6 +15,7 @@ public record BillingKeyInfoResponse(
 			entity.getId(),
 			entity.getCardName(),
 			entity.getCardNumber(),
+			entity.isDefault(),
 			entity.getCreatedAt()
 		);
 	}

@@ -25,6 +25,9 @@ public class PortOneHttpClient implements PortOneClient {
 	@Value("${portone.api.secret}")
 	private String apiSecret;
 
+	@Value("${portone.api.store-id}")
+	private String storeId;
+
 	public PortOneHttpClient(@Value("${portone.url}") String baseUrl) {
 		if (baseUrl == null || baseUrl.isBlank()) {
 			throw new IllegalStateException("portone.url must be configured");
@@ -88,7 +91,8 @@ public class PortOneHttpClient implements PortOneClient {
 						"total", amount
 					),
 					"orderName", orderName,
-					"currency", "KRW"
+					"currency", "KRW",
+					"storeId", storeId
 				))
 				.retrieve()
 				.onStatus(HttpStatusCode::isError, (req, res) -> {
@@ -106,8 +110,31 @@ public class PortOneHttpClient implements PortOneClient {
 		}
 	}
 
-	public void cancelPayment(String merchantUid, String reason) {
-		log.info("PortOne 결제 취소 요청: {}, 사유: {}", merchantUid, reason);
+	@Override
+	public void cancelPayment(String paymentId, int amount) {
+		try {
+			restClient.post()
+				.uri("/payments/{paymentId}/cancel", paymentId)
+				.header("Authorization", "PortOne " + apiSecret.trim())
+				.contentType(MediaType.APPLICATION_JSON)
+				.body(Map.of(
+					"reason", "티켓 예매 취소",
+					"amount", amount
+				))
+				.retrieve()
+				.onStatus(HttpStatusCode::isError, (req, res) -> {
+					log.error(">>>> [PortOne Cancel Error] Status: {}, PaymentId: {}", res.getStatusCode(), paymentId);
+					throw new CustomException(ErrorCode.PAYMENT_CANCEL_FAILED);
+				})
+				.toBodilessEntity();
+
+			log.info(">>>> [PortOne Cancel Success] PaymentId: {}", paymentId);
+		} catch (CustomException e) {
+			throw e;
+		} catch (Exception e) {
+			log.error(">>>> [PortOne Cancel Exception] PaymentId: {}, Message: {}", paymentId, e.getMessage());
+			throw new CustomException(ErrorCode.PAYMENT_CANCEL_FAILED);
+		}
 	}
 
     /**
