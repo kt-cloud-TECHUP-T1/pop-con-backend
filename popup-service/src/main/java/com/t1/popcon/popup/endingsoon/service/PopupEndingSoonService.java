@@ -13,19 +13,19 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class PopupEndingSoonService {
 
-    private static final ZoneOffset KST_OFFSET = ZoneOffset.ofHours(9);
+    private static final ZoneId KST_ZONE = ZoneId.of("Asia/Seoul");
 
     private final PopupEndingSoonRepository popupEndingSoonRepository;
 
     public PopupSectionResponse<PopupCardDto> getEndingSoonPopups(int limit) {
-        LocalDate now = LocalDate.now();
+        LocalDate now = LocalDate.now(KST_ZONE);
         LocalDate deadline = now.plusDays(3);
 
         List<PopupCardDto> items = popupEndingSoonRepository.findEndingSoonPopups(
@@ -59,15 +59,15 @@ public class PopupEndingSoonService {
                 new PopupCardDto.PhaseDto(
                         popup.getPhaseType(),
                         calculatePhaseStatus(phaseOpenAt, phaseCloseAt),
-                        phaseOpenAt.atOffset(KST_OFFSET),
-                        phaseCloseAt.atOffset(KST_OFFSET)
+                        phaseOpenAt.atZone(KST_ZONE).toOffsetDateTime(),
+                        phaseCloseAt.atZone(KST_ZONE).toOffsetDateTime()
                 )
         );
     }
 
 
     private PhaseStatus calculatePhaseStatus(LocalDateTime openAt, LocalDateTime closeAt) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(KST_ZONE);
         if (now.isBefore(openAt)) return PhaseStatus.UPCOMING;
         if (now.isAfter(closeAt)) return PhaseStatus.CLOSED;
         return PhaseStatus.OPEN;

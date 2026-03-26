@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -20,7 +20,7 @@ import java.util.List;
 public class PopupFeaturedService {
 
     private static final long LIKE_WEIGHT = 3L;
-    private static final ZoneOffset KST_OFFSET = ZoneOffset.ofHours(9);
+    private static final ZoneId KST_ZONE = ZoneId.of("Asia/Seoul");
 
     private final PopupFeaturedRepository popupFeaturedRepository;
 
@@ -55,14 +55,14 @@ public class PopupFeaturedService {
                 new PopupCardDto.PhaseDto(
                         popup.getPhaseType(),
                         calculatePhaseStatus(phaseOpenAt, phaseCloseAt),
-                        phaseOpenAt.atOffset(KST_OFFSET),
-                        phaseCloseAt.atOffset(KST_OFFSET)
+                        phaseOpenAt.atZone(KST_ZONE).toOffsetDateTime(),
+                        phaseCloseAt.atZone(KST_ZONE).toOffsetDateTime()
                 )
         );
     }
 
     private PhaseStatus calculatePhaseStatus(LocalDateTime openAt, LocalDateTime closeAt) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(KST_ZONE);
         if (now.isBefore(openAt)) return PhaseStatus.UPCOMING;
         if (now.isAfter(closeAt)) return PhaseStatus.CLOSED;
         return PhaseStatus.OPEN;

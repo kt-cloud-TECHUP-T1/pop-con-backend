@@ -1,6 +1,6 @@
 package com.t1.popcon.popup.detail.entity;
 
-import com.t1.popcon.common.entity.BaseSoftDeleteEntity;
+import com.t1.popcon.common.entity.BaseTimeEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -11,19 +11,17 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Getter
 @Table(
-    name = "popup_like",
-    uniqueConstraints = {
-        @UniqueConstraint(name = "UK_popup_like_user", columnNames = {"popup_id", "user_id", "deleted"})
-    }
+        name = "popup_like",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "UK_popup_like_user", columnNames = {"popup_id", "user_id"})
+        }
 )
-@SQLRestriction("deleted = false")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class PopupLike extends BaseSoftDeleteEntity {
+public class PopupLike extends BaseTimeEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "popup_id", nullable = false)
@@ -31,4 +29,13 @@ public class PopupLike extends BaseSoftDeleteEntity {
 
     @Column(name = "user_id", nullable = false)
     private Long userId;
+
+    private PopupLike(Popup popup, Long userId) {
+        this.popup = popup;
+        this.userId = userId;
+    }
+
+    public static PopupLike create(Popup popup, Long userId) {
+        return new PopupLike(popup, userId);
+    }
 }

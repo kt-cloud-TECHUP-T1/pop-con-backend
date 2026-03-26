@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 @Builder(access = AccessLevel.PRIVATE)
 @Entity
 @Table(
-    name = "user",
+    name = "users",
     uniqueConstraints = {
         @UniqueConstraint(name = "uk_users_ci_hash", columnNames = "ci_hash"),
         @UniqueConstraint(name = "uk_users_nickname", columnNames = "nickname"),
@@ -36,7 +36,7 @@ import java.time.LocalDateTime;
         @Index(name = "idx_users_role", columnList = "role")
     }
 )
-@SQLDelete(sql = "UPDATE user SET deleted = true, deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@SQLDelete(sql = "UPDATE users SET deleted = true, deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @SQLRestriction("deleted = false")
 public class User extends BaseSoftDeleteEntity {
 
@@ -91,6 +91,7 @@ public class User extends BaseSoftDeleteEntity {
             String encryptedBirthDate,
             String encryptedGender,
             String encryptedNationality,
+            String nickname,
             String email
     ) {
         return User.builder()
@@ -100,6 +101,7 @@ public class User extends BaseSoftDeleteEntity {
                 .encryptedBirthDate(encryptedBirthDate)
                 .encryptedGender(encryptedGender)
                 .encryptedNationality(encryptedNationality)
+                .nickname(nickname)
                 .email(email)
                 .role(Role.USER)
                 .status(UserStatus.ACTIVE);
@@ -112,6 +114,7 @@ public class User extends BaseSoftDeleteEntity {
             String encryptedBirthDate,
             String encryptedGender,
             String encryptedNationality,
+            String nickname,
             String email,
             String kakaoUserId
     ) {
@@ -122,6 +125,7 @@ public class User extends BaseSoftDeleteEntity {
                 encryptedBirthDate,
                 encryptedGender,
                 encryptedNationality,
+                nickname,
                 email
         ).build();
 
@@ -136,6 +140,7 @@ public class User extends BaseSoftDeleteEntity {
             String encryptedBirthDate,
             String encryptedGender,
             String encryptedNationality,
+            String nickname,
             String email,
             String naverUserId
     ) {
@@ -146,6 +151,7 @@ public class User extends BaseSoftDeleteEntity {
                 encryptedBirthDate,
                 encryptedGender,
                 encryptedNationality,
+                nickname,
                 email
         ).build();
 

@@ -25,6 +25,7 @@ public class PopupDetailService {
                 .auctionId(popup.getAuctionId())
                 .drawId(popup.getDrawId())
                 .popupId(popup.getId())
+                // TODO: popup_like 서비스/레포지토리 구현 후 현재 사용자 기준 좋아요 여부로 교체 필요
                 .liked(false)
                 .thumbnailUrl(popup.getThumbnailUrl())
                 .images(popup.getImages().stream()

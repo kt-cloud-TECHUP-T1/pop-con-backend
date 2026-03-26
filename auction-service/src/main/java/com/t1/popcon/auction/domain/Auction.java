@@ -105,11 +105,6 @@ public class Auction extends BaseSoftDeleteEntity {
         this.status = status;
     }
 
-    public void markSoldOut(Long winnerMemberId, LocalDateTime soldAt) {
-        this.status = AuctionStatus.SOLD_OUT;
-        this.soldAt = soldAt;
-    }
-
     private void validatePricePolicy(
             Long popupId,
             Integer startPrice,
@@ -121,7 +116,7 @@ public class Auction extends BaseSoftDeleteEntity {
             LocalDateTime closedAt
     ) {
         if (popupId == null || popupId <= 0) {
-            throw new IllegalArgumentException("팝업이 있어야 합니다.");
+            throw new IllegalArgumentException("팝업이 존재해야 합니다.");
         }
         if (startPrice == null || startPrice <= 0) {
             throw new IllegalArgumentException("시작가는 0보다 커야 합니다..");

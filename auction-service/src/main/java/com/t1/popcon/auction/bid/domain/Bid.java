@@ -49,7 +49,10 @@ public class Bid extends BaseSoftDeleteEntity {
 
     @Builder
     public Bid(Long userId, AuctionOption auctionOption, Integer bidPrice, String merchantUid) {
-        if (userId == null || auctionOption == null || bidPrice == null || merchantUid == null) {
+        if (userId == null || userId <= 0
+                || auctionOption == null
+                || bidPrice == null || bidPrice <= 0
+                || merchantUid == null || merchantUid.isBlank()) {
             throw new IllegalArgumentException("Bid 생성에 필요한 필수 값이 누락되었습니다.");
         }
         this.auctionId = auctionOption.getAuction().getId();
