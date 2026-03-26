@@ -9,7 +9,7 @@ export const pool = mysql.createPool({
   password: env.DB_PASSWORD,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0,
+  queueLimit: 20,
 });
 
 export async function testConnection(): Promise<void> {

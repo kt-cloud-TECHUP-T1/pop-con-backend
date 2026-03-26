@@ -6,6 +6,8 @@ export const redis = new Redis({
   port: env.REDIS_PORT,
   password: env.REDIS_PASSWORD,
   maxRetriesPerRequest: 3,
+  enableOfflineQueue: false,
+  connectTimeout: 5000,
   retryStrategy(times) {
     if (times > 5) return null; // 5회 초과 시 재시도 중단
     return Math.min(times * 200, 2000);
