@@ -2,21 +2,34 @@ package com.t1.popcon.popup.banners.service;
 
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
+import com.t1.popcon.popup.banners.entity.Banner;
+import com.t1.popcon.popup.banners.repository.BannerRepository;
+import com.t1.popcon.popup.detail.entity.Popup;
 import com.t1.popcon.popup.dto.card.PhaseStatus;
 import com.t1.popcon.popup.dto.card.PhaseType;
 import com.t1.popcon.popup.dto.card.PopupCardDto;
 import com.t1.popcon.popup.dto.section.PopupSectionResponse;
 import com.t1.popcon.popup.dto.section.SectionKey;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class PopupBannersService {
 
+    private static final ZoneOffset KST_OFFSET = ZoneOffset.ofHours(9);
+
+    private final BannerRepository bannerRepository;
+
+    @Transactional(readOnly = true)
     public PopupSectionResponse<PopupCardDto> getBanners(int limit) {
 
         if (limit < 1 || limit > 5) {
@@ -25,102 +38,43 @@ public class PopupBannersService {
             throw new CustomException(ErrorCode.INVALID_INPUT, errors);
         }
 
-        List<PopupCardDto> items = List.of(
-            new PopupCardDto(
-                102L,
-                "하이카와 베이비 팝업",
-                "Supporting Text 1",
-                null,
-                "캡션 문구 1",
-                null,
-                null,
-                null,
-                null,
-                new PopupCardDto.PhaseDto(
-                    PhaseType.DRAW,
-                    PhaseStatus.UPCOMING,
-                    OffsetDateTime.parse("2026-03-12T10:00:00+09:00"),
-                    OffsetDateTime.parse("2026-03-20T20:00:00+09:00")
-                )
-            ),
-            new PopupCardDto(
-                103L,
-                "성수 팝업",
-                "Supporting Text 2",
-                null,
-                "캡션 문구 2",
-                null,
-                null,
-                null,
-                null,
-                new PopupCardDto.PhaseDto(
-                    PhaseType.AUCTION,
-                    PhaseStatus.OPEN,
-                    OffsetDateTime.parse("2026-03-03T11:00:00+09:00"),
-                    OffsetDateTime.parse("2026-03-08T20:00:00+09:00")
-                )
-            ),
-            new PopupCardDto(
-                101L,
-                "T1 팝업 스토어",
-                "T1 × POPUP SEOUL",
-                null,
-                "캡션 문구 3",
-                null,
-                null,
-                null,
-                null,
-                new PopupCardDto.PhaseDto(
-                    PhaseType.DRAW,
-                    PhaseStatus.OPEN,
-                    OffsetDateTime.parse("2026-03-01T10:00:00+09:00"),
-                    OffsetDateTime.parse("2026-03-10T20:00:00+09:00")
-                )
-            ),
-            new PopupCardDto(
-                104L,
-                "스포츠 팝업",
-                "Supporting Text 4",
-                null,
-                "캡션 문구 4",
-                null,
-                null,
-                null,
-                null,
-                new PopupCardDto.PhaseDto(
-                    PhaseType.DRAW,
-                    PhaseStatus.OPEN,
-                    OffsetDateTime.parse("2026-03-05T10:00:00+09:00"),
-                    OffsetDateTime.parse("2026-03-15T20:00:00+09:00")
-                )
-            ),
-            new PopupCardDto(
-                105L,
-                "아트 스페셜 팝업",
-                "Supporting Text 5",
-                null,
-                "캡션 문구 5",
-                null,
-                null,
-                null,
-                null,
-                new PopupCardDto.PhaseDto(
-                    PhaseType.DRAW,
-                    PhaseStatus.UPCOMING,
-                    OffsetDateTime.parse("2026-03-18T10:00:00+09:00"),
-                    OffsetDateTime.parse("2026-03-25T20:00:00+09:00")
-                )
-            )
-        );
+        List<PopupCardDto> items = bannerRepository.findActiveBannersWithPopup(PageRequest.of(0, limit))
+                .stream()
+                .map(this::toPopupCardDto)
+                .toList();
 
-        List<PopupCardDto> result = items.stream()
-            .limit(limit)
-            .toList();
+        return new PopupSectionResponse<>(SectionKey.BANNERS, items.size(), items);
+    }
 
-        return new PopupSectionResponse<>(
-            SectionKey.BANNERS,
-            result.size(),
-            result
+    private PopupCardDto toPopupCardDto(Banner banner) {
+        Popup popup = banner.getPopup();
+        PhaseType phaseType = popup.getPhaseType();
+        LocalDateTime phaseOpenAt = phaseType == PhaseType.AUCTION ? popup.getAuctionOpenAt() : popup.getDrawOpenAt();
+        LocalDateTime phaseCloseAt = phaseType == PhaseType.AUCTION ? popup.getAuctionCloseAt() : popup.getDrawCloseAt();
+
+        return new PopupCardDto(
+                popup.getId(),
+                popup.getTitle(),
+                banner.getSupportingText(),
+                popup.getSubText(),
+                popup.getCaption(),
+                popup.getThumbnailUrl(),
+                false,
+                new PopupCardDto.StatsDto(popup.getLikeCount(), popup.getViewCount()),
+                null,
+                new PopupCardDto.PhaseDto(
+                        phaseType,
+                        calculatePhaseStatus(phaseOpenAt, phaseCloseAt),
+                        phaseOpenAt.atOffset(KST_OFFSET),
+                        phaseCloseAt.atOffset(KST_OFFSET)
+                )
         );
+    }
+
+    private PhaseStatus calculatePhaseStatus(LocalDateTime openAt, LocalDateTime closeAt) {
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(openAt)) return PhaseStatus.UPCOMING;
+        if (now.isAfter(closeAt)) return PhaseStatus.CLOSED;
+        return PhaseStatus.OPEN;
     }
 }
