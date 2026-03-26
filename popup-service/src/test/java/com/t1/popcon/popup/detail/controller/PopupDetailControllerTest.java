@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -48,8 +49,8 @@ class PopupDetailControllerTest extends AbstractRestDocsTest {
                 .description("테스트 설명")
                 .location("서울 성수동")
                 .reviewCount(3L)
-                .openAt("2026-03-26")
-                .closeAt("2026-03-30")
+                .openAt(LocalDate.of(2026, 3, 26))
+                .closeAt(LocalDate.of(2026, 3, 30))
                 .weekdayOpen(LocalTime.of(10, 0))
                 .weekdayClose(LocalTime.of(20, 0))
                 .weekendOpen(LocalTime.of(11, 0))
