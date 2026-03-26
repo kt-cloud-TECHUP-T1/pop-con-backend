@@ -3,6 +3,7 @@ package com.t1.popcon.popup.detail.dto;
 import com.t1.popcon.popup.dto.card.PhaseType;
 import lombok.Builder;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -22,8 +23,8 @@ public record PopupDetailResponse(
     String description,
     String location,
     Long reviewCount,
-    String openAt,
-    String closeAt,
+    LocalDate openAt,
+    LocalDate closeAt,
     LocalTime weekdayOpen,
     LocalTime weekdayClose,
     LocalTime weekendOpen,
