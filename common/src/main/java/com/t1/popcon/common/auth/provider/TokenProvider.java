@@ -60,7 +60,13 @@ public class TokenProvider {
 			throw new CustomException(ErrorCode.INVALID_TOKEN);
 		}
 		List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
-		AuthUser principal = new AuthUser(Long.parseLong(claims.getSubject()), authorities);
+		long userId;
+		try {
+			userId = Long.parseLong(claims.getSubject());
+		} catch (NumberFormatException e) {
+			throw new CustomException(ErrorCode.INVALID_TOKEN);
+		}
+		AuthUser principal = new AuthUser(userId, authorities);
 		return new UsernamePasswordAuthenticationToken(principal, token, authorities);
 	}
 
