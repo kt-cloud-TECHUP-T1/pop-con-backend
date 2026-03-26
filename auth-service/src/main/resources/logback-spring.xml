@@ -2,7 +2,12 @@
 
     <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdc>true</includeMdc>
+            <timeZone>Asia/Seoul</timeZone>
             <customFields>{"service":"auth-service"}</customFields>
+            <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                <maxDepthPerThrowable>30</maxDepthPerThrowable>
+            </throwableConverter>
         </encoder>
     </appender>
 

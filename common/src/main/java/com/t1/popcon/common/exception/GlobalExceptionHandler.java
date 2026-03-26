@@ -1,14 +1,17 @@
 package com.t1.popcon.common.exception;
 
 import com.t1.popcon.common.response.ApiResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.apache.commons.lang3.ArrayUtils;
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
 import java.util.LinkedHashMap;
@@ -22,12 +25,14 @@ public class GlobalExceptionHandler {
      * CustomException 처리
      */
     @ExceptionHandler(CustomException.class)
-    public ResponseEntity<ApiResponse<?>> handleCustom(CustomException e) {
+    public ResponseEntity<ApiResponse<?>> handleCustom(CustomException e, HttpServletRequest request) {
         ErrorCode ec = e.getErrorCode();
 
         log.error("Business exception",
-                kv("logType",ec.name()),
-                kv("errorCode", ec.getCode())
+                ArrayUtils.addAll(
+                        baseLog(ec),
+                        kv("query", sanitizeQuery(request.getQueryString()))
+                )
         );
 
         if (e.getData() != null) {
@@ -43,7 +48,7 @@ public class GlobalExceptionHandler {
      * DTO 검증 실패 처리
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<?>> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
+    public ResponseEntity<ApiResponse<?>> handleMethodArgumentNotValid(MethodArgumentNotValidException e, HttpServletRequest request) {
         Map<String, String> fieldErrors = new LinkedHashMap<>();
 
         for (FieldError fe : e.getBindingResult().getFieldErrors()) {
@@ -55,9 +60,10 @@ public class GlobalExceptionHandler {
         ErrorCode ec = ErrorCode.INVALID_INPUT;
 
         log.warn("Validation error",
-                kv("logType", ec.name()),
-                kv("errorCode", ec.getCode()),
-                kv("fieldErrors", fieldErrors)
+                ArrayUtils.addAll(
+                        baseLog(ec),
+                        kv("fieldErrors", fieldErrors)
+                )
         );
 
         return ResponseEntity.status(ec.getStatus())
@@ -68,12 +74,11 @@ public class GlobalExceptionHandler {
      * 파라미터 타입 불일치 오류 처리
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ApiResponse<?>> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+    public ResponseEntity<ApiResponse<?>> handleTypeMismatch(MethodArgumentTypeMismatchException e, HttpServletRequest request) {
         ErrorCode ec = ErrorCode.INVALID_INPUT;
 
         log.warn("Type mismatch",
-                kv("logType", ec.name()),
-                kv("errorCode", ec.getCode())
+                baseLog(ec)
         );
 
         return ResponseEntity.status(ec.getStatus())
@@ -84,32 +89,57 @@ public class GlobalExceptionHandler {
      * 파라미터 검증 실패 처리
      */
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<ApiResponse<?>> handleConstraintViolation(ConstraintViolationException e) {
+    public ResponseEntity<ApiResponse<?>> handleConstraintViolation(ConstraintViolationException e, HttpServletRequest request) {
         ErrorCode ec = ErrorCode.INVALID_INPUT;
 
         log.warn("Constraint violation",
-                kv("logType", ec.name()),
-                kv("errorCode", ec.getCode())
+                baseLog(ec)
+        );
+        return ResponseEntity.status(ec.getStatus())
+            .body(ApiResponse.fail(ec));
+    }
+
+    // Method 잘못 입력시 발생하는 실패 처리
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiResponse<?>> handleMethodNotSupported(HttpRequestMethodNotSupportedException e, HttpServletRequest request) {
+        ErrorCode ec = ErrorCode.INVALID_INPUT;
+
+        log.warn("Method not supported",
+                baseLog(ec)
         );
 
         return ResponseEntity.status(ec.getStatus())
-            .body(ApiResponse.fail(ec));
+                .body(ApiResponse.fail(ec));
     }
 
     /**
      * 기타 서버 오류 처리
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<?>> handleException(Exception e) {
+    public ResponseEntity<ApiResponse<?>> handleException(Exception e, HttpServletRequest request) {
         ErrorCode ec = ErrorCode.ERROR_SYSTEM;
 
         log.error("Unhandled exception",
-                kv("logType", ec.name()),
-                kv("errorCode", ec.getCode()),
+                baseLog(ec),
                 e
         );
 
         return ResponseEntity.status(ec.getStatus())
             .body(ApiResponse.fail(ec));
     }
+
+    // 공통 메서드
+    private Object[] baseLog(ErrorCode ec) {
+        return new Object[]{
+                kv("logType", ec.name()),
+                kv("errorCode", ec.getCode()),
+        };
+    }
+
+    private String sanitizeQuery(String query) {
+        if (query == null) return null;
+        return query.replaceAll("(code|access_token|password)=[^&]*", "$1=***");
+    }
+
+
 }
