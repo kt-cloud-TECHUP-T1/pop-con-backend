@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
 // 라우트
-app.use('/api', signalsRouter);
+app.use('/anti-macro', signalsRouter);
 
 // 헬스체크
 app.get('/health', (_req, res) => {
