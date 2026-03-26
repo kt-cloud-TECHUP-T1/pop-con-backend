@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Getter
-@Table(name = "bid")
+@Table(name = "bids")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLRestriction("deleted = false")
 public class Bid extends BaseSoftDeleteEntity {

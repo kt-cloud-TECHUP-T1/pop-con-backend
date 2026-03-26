@@ -1,11 +1,8 @@
 package com.t1.popcon.popup.detail.entity;
 
 import com.t1.popcon.common.entity.BaseSoftDeleteEntity;
-import com.t1.popcon.popup.dto.card.PhaseType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
@@ -16,13 +13,14 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Getter
-@Table(name = "popup")
+@Table(name = "popups")
 @SQLRestriction("deleted = false")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -34,6 +32,18 @@ public class Popup extends BaseSoftDeleteEntity {
 
     @Column(name = "draw_id", nullable = false)
     private Long drawId;
+
+    @Column(name = "auction_open_at", nullable = false)
+    private LocalDateTime auctionOpenAt;
+
+    @Column(name = "auction_close_at", nullable = false)
+    private LocalDateTime auctionCloseAt;
+
+    @Column(name = "draw_open_at", nullable = false)
+    private LocalDateTime drawOpenAt;
+
+    @Column(name = "draw_close_at", nullable = false)
+    private LocalDateTime drawCloseAt;
 
     @Column(name = "title", nullable = false, length = 255)
     private String title;
@@ -78,10 +88,6 @@ public class Popup extends BaseSoftDeleteEntity {
 
     @Column(name = "weekend_close_time", nullable = false)
     private LocalTime weekendClose;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private PhaseType phaseType;
 
     @Column(name = "like_count", nullable = false)
     private Long likeCount;

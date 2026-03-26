@@ -14,7 +14,7 @@ import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Getter
-@Table(name = "popup_image")
+@Table(name = "popup_images")
 @SQLRestriction("deleted = false")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PopupImage extends BaseSoftDeleteEntity {

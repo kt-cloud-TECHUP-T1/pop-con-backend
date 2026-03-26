@@ -5,9 +5,12 @@ import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.popup.detail.dto.PopupDetailResponse;
 import com.t1.popcon.popup.detail.entity.Popup;
 import com.t1.popcon.popup.detail.repository.PopupRepository;
+import com.t1.popcon.popup.dto.card.PhaseType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Service
 @Transactional(readOnly = true)
@@ -20,8 +23,10 @@ public class PopupDetailService {
         Popup popup = popupRepository.findWithImagesById(popupId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POPUP_NOT_FOUND));
 
+        PhaseType phaseType = resolvePhaseType(popup, LocalDateTime.now());
+
         return PopupDetailResponse.builder()
-                .phaseType(popup.getPhaseType())
+                .phaseType(phaseType)
                 .auctionId(popup.getAuctionId())
                 .drawId(popup.getDrawId())
                 .popupId(popup.getId())
@@ -49,5 +54,29 @@ public class PopupDetailService {
                 .weekendOpen(popup.getWeekendOpen())
                 .weekendClose(popup.getWeekendClose())
                 .build();
+    }
+
+    private PhaseType resolvePhaseType(Popup popup, LocalDateTime now) {
+        boolean auctionActive = popup.getAuctionId() != null
+                && popup.getAuctionOpenAt() != null
+                && popup.getAuctionCloseAt() != null
+                && !now.isBefore(popup.getAuctionOpenAt())
+                && now.isBefore(popup.getAuctionCloseAt());
+
+        boolean drawActive = popup.getDrawId() != null
+                && popup.getDrawOpenAt() != null
+                && popup.getDrawCloseAt() != null
+                && !now.isBefore(popup.getDrawOpenAt())
+                && now.isBefore(popup.getDrawCloseAt());
+
+        if (auctionActive) {
+            return PhaseType.AUCTION;
+        }
+
+        if (drawActive) {
+            return PhaseType.DRAW;
+        }
+
+        return null;
     }
 }

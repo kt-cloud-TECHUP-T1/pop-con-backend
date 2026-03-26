@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(
-        name = "auction",
+        name = "auctions",
         uniqueConstraints = {
                 @UniqueConstraint(
                         name = "uk_auction_popup_id_deleted",

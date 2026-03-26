@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @Table(
-        name = "popup_like",
+        name = "popup_likes",
         uniqueConstraints = {
                 @UniqueConstraint(name = "UK_popup_like_user", columnNames = {"popup_id", "user_id"})
         }

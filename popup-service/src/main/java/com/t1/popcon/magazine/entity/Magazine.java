@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "magazine")
+@Table(name = "magazines")
 @SQLRestriction("deleted = false")
 public class Magazine extends BaseSoftDeleteEntity {
 
