@@ -1,91 +1,100 @@
 package com.t1.popcon.popup.detail.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
-
-import java.time.LocalDateTime;
-import java.util.List;
-
 import com.t1.popcon.common.entity.BaseSoftDeleteEntity;
-import com.t1.popcon.popup.dto.card.PhaseType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLRestriction;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
+@Table(name = "popups")
+@SQLRestriction("deleted = false")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder(access = AccessLevel.PRIVATE)
 public class Popup extends BaseSoftDeleteEntity {
 
-	private Boolean liked;	// 좋아요 여부
+    @Column(name = "auction_id", nullable = false)
+    private Long auctionId;
 
-	@Column(nullable = false, length = 255)
-	private String location; // 주소 정보
+    @Column(name = "draw_id", nullable = false)
+    private Long drawId;
 
-	@Column(nullable = false, columnDefinition = "TEXT")
-	private String description; // 스토어 상세정보
+    @Column(name = "auction_open_at", nullable = false)
+    private LocalDateTime auctionOpenAt;
 
-	@Column(nullable = false)
-	private String title; // 스토어 이름
+    @Column(name = "auction_close_at", nullable = false)
+    private LocalDateTime auctionCloseAt;
 
-	private String subtitle; // 스토어 부제목
+    @Column(name = "draw_open_at", nullable = false)
+    private LocalDateTime drawOpenAt;
 
-	private String supportingText; // 배너용
+    @Column(name = "draw_close_at", nullable = false)
+    private LocalDateTime drawCloseAt;
 
-	private String caption; // 배너/카드용
+    @Column(name = "title", nullable = false, length = 255)
+    private String title;
 
-	private String subText; // 카드용
+    @Column(name = "sub_text", length = 255)
+    private String subText;
 
-	@Column(nullable = false)
-	private String thumbnailUrl; // 썸네일 URL
+    @Column(name = "caption", length = 255)
+    private String caption;
 
-	@ElementCollection
-	@CollectionTable(name = "popup_images", joinColumns = @JoinColumn(name = "popup_id"))
-	@Column(name = "image_url")
-	private List<String> images; // 상세페이지 이미지 링크 모음
+    @Column(name = "subtitle", length = 255)
+    private String subtitle;
 
-	@Column(nullable = false)
-	private LocalDateTime openAt; // 팝업 오픈일
+    @Column(name = "description", nullable = false, columnDefinition = "TEXT")
+    private String description;
 
-	@Column(nullable = false)
-	private LocalDateTime closeAt; // 팝업 종료일
+    @Column(name = "location", nullable = false, length = 255)
+    private String location;
 
-	@Column(nullable = false)
-	private LocalDateTime weekdayOpen;	// 평일 오픈 시간
+    @Column(name = "thumbnail_url", nullable = false, length = 500)
+    private String thumbnailUrl;
 
-	@Column(nullable = false)
-	private LocalDateTime weekdayClose;	// 평일 종료 시간
+    @OneToMany(mappedBy = "popup")
+    @jakarta.persistence.OrderBy("sortOrder ASC, id ASC")
+    @Builder.Default
+    private List<PopupImage> images = new ArrayList<>();
 
-	@Column(nullable = false)
-	private LocalDateTime weekendOpen;	// 주말 오픈 시간
+    @Column(name = "open_at", nullable = false)
+    private LocalDate openAt;
 
-	@Column(nullable = false)
-	private LocalDateTime weekendClose;	// 주말 종료 시간
+    @Column(name = "close_at", nullable = false)
+    private LocalDate closeAt;
 
-	@Column(nullable = false)
-	private LocalDateTime auctionOpenAt; // 경매 오픈일
+    @Column(name = "weekday_open_time", nullable = false)
+    private LocalTime weekdayOpen;
 
-	@Column(nullable = false)
-	private LocalDateTime auctionCloseAt; // 경매 종료일
+    @Column(name = "weekday_close_time", nullable = false)
+    private LocalTime weekdayClose;
 
-	@Column(nullable = false)
-	private LocalDateTime drawOpenAt; // 드로우 오픈일
+    @Column(name = "weekend_open_time", nullable = false)
+    private LocalTime weekendOpen;
 
-	@Column(nullable = false)
-	private LocalDateTime drawCloseAt; // 드로우 종료일
+    @Column(name = "weekend_close_time", nullable = false)
+    private LocalTime weekendClose;
 
-	@Column(nullable = false)
-	private Long startPrice; // 경매 시작가
+    @Column(name = "like_count", nullable = false)
+    private Long likeCount;
 
-	@Column(nullable = false)
-	private Long extraTicket; // 회차당 티켓 수량
+    @Column(name = "view_count", nullable = false)
+    private Long viewCount;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private PhaseType phaseType; // AUCTION / DRAW
-
-    @Column(nullable = false)
-    private Long likeCount; // 좋아요 수
-
-    @Column(nullable = false)
-    private Long viewCount; // 조회수
+    @Column(name = "review_count", nullable = false)
+    private Long reviewCount;
 }

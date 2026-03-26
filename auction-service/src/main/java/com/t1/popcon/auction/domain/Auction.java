@@ -2,7 +2,10 @@ package com.t1.popcon.auction.domain;
 
 import com.t1.popcon.common.entity.BaseSoftDeleteEntity;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
@@ -10,9 +13,20 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "auctions")
+@Table(
+        name = "auctions",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_auction_popup_id_deleted",
+                        columnNames = {"popup_id", "deleted"}
+                )
+        }
+)
 @SQLRestriction("deleted = false")
 public class Auction extends BaseSoftDeleteEntity {
+
+    @Column(name = "popup_id", nullable = false)
+    private Long popupId;
 
     @Column(name = "start_price", nullable = false)
     private Integer startPrice;
@@ -29,24 +43,23 @@ public class Auction extends BaseSoftDeleteEntity {
     @Column(name = "stock_per_option", nullable = false)
     private Integer stockPerOption;
 
-    @Column(name = "opened_at", nullable = false)
+    @Column(name = "open_at", nullable = false)
     private LocalDateTime openedAt;
 
-    @Column(name = "closed_at", nullable = false)
+    @Column(name = "close_at", nullable = false)
     private LocalDateTime closedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private AuctionStatus status;
 
-    @Column(name = "winner_member_id")
-    private Long winnerMemberId;
 
     @Column(name = "sold_at")
     private LocalDateTime soldAt;
 
     @Builder
     public Auction(
+            Long popupId,
             Integer startPrice,
             Integer minimumPrice,
             Integer priceDropUnit,
@@ -55,10 +68,10 @@ public class Auction extends BaseSoftDeleteEntity {
             LocalDateTime openedAt,
             LocalDateTime closedAt,
             AuctionStatus status,
-            Long winnerMemberId,
             LocalDateTime soldAt
     ) {
         validatePricePolicy(
+                popupId,
                 startPrice,
                 minimumPrice,
                 priceDropUnit,
@@ -68,6 +81,11 @@ public class Auction extends BaseSoftDeleteEntity {
                 closedAt
         );
 
+        if (status == null) {
+            throw new IllegalArgumentException("경매 상태는 필수입니다.");
+        }
+
+        this.popupId = popupId;
         this.startPrice = startPrice;
         this.minimumPrice = minimumPrice;
         this.priceDropUnit = priceDropUnit;
@@ -76,7 +94,6 @@ public class Auction extends BaseSoftDeleteEntity {
         this.openedAt = openedAt;
         this.closedAt = closedAt;
         this.status = status;
-        this.winnerMemberId = winnerMemberId;
         this.soldAt = soldAt;
     }
 
@@ -96,13 +113,8 @@ public class Auction extends BaseSoftDeleteEntity {
         this.status = status;
     }
 
-    public void markSoldOut(Long winnerMemberId, LocalDateTime soldAt) {
-        this.status = AuctionStatus.SOLD_OUT;
-        this.winnerMemberId = winnerMemberId;
-        this.soldAt = soldAt;
-    }
-
     private void validatePricePolicy(
+            Long popupId,
             Integer startPrice,
             Integer minimumPrice,
             Integer priceDropUnit,
@@ -111,6 +123,9 @@ public class Auction extends BaseSoftDeleteEntity {
             LocalDateTime openedAt,
             LocalDateTime closedAt
     ) {
+        if (popupId == null || popupId <= 0) {
+            throw new IllegalArgumentException("팝업이 존재해야 합니다.");
+        }
         if (startPrice == null || startPrice <= 0) {
             throw new IllegalArgumentException("시작가는 0보다 커야 합니다.");
         }
