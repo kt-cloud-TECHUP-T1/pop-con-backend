@@ -1,6 +1,7 @@
 package com.t1.popcon.common.auth.provider;
 
 import com.t1.popcon.common.auth.config.JwtProperties;
+import com.t1.popcon.common.auth.domain.AuthUser;
 import com.t1.popcon.common.auth.domain.TokenType;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
@@ -13,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Mac;
@@ -60,7 +60,7 @@ public class TokenProvider {
 			throw new CustomException(ErrorCode.INVALID_TOKEN);
 		}
 		List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
-		User principal = new User(claims.getSubject(), "", authorities);
+		AuthUser principal = new AuthUser(Long.parseLong(claims.getSubject()), authorities);
 		return new UsernamePasswordAuthenticationToken(principal, token, authorities);
 	}
 
