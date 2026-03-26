@@ -1,14 +1,19 @@
 package com.t1.popcon.auth.token.controller;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -38,6 +43,17 @@ class TokenControllerTest extends AbstractRestDocsTest {
 
 	@MockitoBean
 	private CookieProvider cookieProvider;
+
+	@BeforeEach
+	void setUpMocks() {
+		ResponseCookie emptyCookie = ResponseCookie.from(CookieProvider.REFRESH_TOKEN_COOKIE, "")
+			.httpOnly(true)
+			.secure(false) // 테스트 프로파일에서는 false일 수 있음
+			.path("/")
+			.maxAge(0)
+			.build();
+		given(cookieProvider.removeRefreshTokenCookie()).willReturn(emptyCookie);
+	}
 
 	@Nested
 	class 토큰_재발급_API {
@@ -105,6 +121,8 @@ class TokenControllerTest extends AbstractRestDocsTest {
 			// when & then
 			mockMvc.perform(post(DEFAULT_URL))
 				.andExpect(status().isBadRequest())
+				.andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("Max-Age=0")))
+				.andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("HttpOnly")))
 				.andDo(
 					restDocsFactory.failure(
 						"token-refresh-fail-missing-cookie",
@@ -115,6 +133,8 @@ class TokenControllerTest extends AbstractRestDocsTest {
 						ApiResponse.fail(ErrorCode.INVALID_INPUT)
 					)
 				);
+
+			verify(cookieProvider).removeRefreshTokenCookie();
 		}
 
 		@Test
@@ -130,6 +150,8 @@ class TokenControllerTest extends AbstractRestDocsTest {
 						.cookie(new Cookie(CookieProvider.REFRESH_TOKEN_COOKIE, forgedToken))
 				)
 				.andExpect(status().isUnauthorized())
+				.andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("Max-Age=0")))
+				.andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("HttpOnly")))
 				.andDo(
 					restDocsFactory.failure(
 						"token-refresh-fail-invalid-token",
@@ -140,6 +162,8 @@ class TokenControllerTest extends AbstractRestDocsTest {
 						ApiResponse.fail(ErrorCode.INVALID_TOKEN)
 					)
 				);
+
+			verify(cookieProvider).removeRefreshTokenCookie();
 		}
 
 		@Test
@@ -155,6 +179,8 @@ class TokenControllerTest extends AbstractRestDocsTest {
 						.cookie(new Cookie(CookieProvider.REFRESH_TOKEN_COOKIE, expiredToken))
 				)
 				.andExpect(status().isUnauthorized())
+				.andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("Max-Age=0")))
+				.andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("HttpOnly")))
 				.andDo(
 					restDocsFactory.failure(
 						"token-refresh-fail-token-expired",
@@ -165,6 +191,8 @@ class TokenControllerTest extends AbstractRestDocsTest {
 						ApiResponse.fail(ErrorCode.TOKEN_EXPIRED)
 					)
 				);
+
+			verify(cookieProvider).removeRefreshTokenCookie();
 		}
 
 		@Test

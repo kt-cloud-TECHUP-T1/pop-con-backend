@@ -3,8 +3,10 @@ package com.t1.popcon.support;
 import static com.epages.restdocs.apispec.ResourceDocumentation.*;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.lang.reflect.RecordComponent;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -36,6 +38,9 @@ import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.epages.restdocs.apispec.ResourceSnippetParametersBuilder;
 import com.epages.restdocs.apispec.Schema;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * RestDocs + restdocs-api-spec 연동을 위한 공통 팩토리 클래스
@@ -323,8 +328,11 @@ public class RestDocsFactory {
 				FieldDescriptor descriptor = PayloadDocumentation
 					.subsectionWithPath(fieldPath)
 					.type(JsonFieldType.OBJECT)
-					.description(field.getName())
-					.optional();
+					.description(field.getName());
+
+				if (isOptional(dto.getClass(), field)) {
+					descriptor.optional();
+				}
 				fields.add(descriptor);
 				continue;
 			}
@@ -332,8 +340,11 @@ public class RestDocsFactory {
 			JsonFieldType fieldType = determineFieldType(fieldTypeClass, fieldValue);
 			FieldDescriptor descriptor = PayloadDocumentation.fieldWithPath(fieldPath)
 				.type(fieldType)
-				.description(field.getName())
-				.optional();
+				.description(field.getName());
+
+			if (isOptional(dto.getClass(), field)) {
+				descriptor.optional();
+			}
 			fields.add(descriptor);
 
 			if (fieldType == JsonFieldType.ARRAY) {
@@ -408,5 +419,21 @@ public class RestDocsFactory {
 			return JsonFieldType.STRING;
 		}
 		return JsonFieldType.OBJECT;
+	}
+
+	private <T> boolean isOptional(Class<T> clazz, Field field) {
+		// Record의 경우 Component에서 어노테이션을 찾아야 함
+		if (clazz.isRecord()) {
+			for (RecordComponent component : clazz.getRecordComponents()) {
+				if (component.getName().equals(field.getName())) {
+					return !hasRequiredAnnotation(component);
+				}
+			}
+		}
+		return !hasRequiredAnnotation(field);
+	}
+
+	private boolean hasRequiredAnnotation(AnnotatedElement element) {
+		return element.isAnnotationPresent(NotNull.class) || element.isAnnotationPresent(AssertTrue.class);
 	}
 }

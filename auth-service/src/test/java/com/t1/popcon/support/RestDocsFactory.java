@@ -19,11 +19,18 @@ import java.util.Set;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.NotNull;
+import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.RecordComponent;
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.mockmvc.RestDocumentationResultHandler;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.restdocs.payload.PayloadDocumentation;
+import org.springframework.restdocs.cookies.CookieDescriptor;
+import org.springframework.restdocs.cookies.CookieDocumentation;
 import org.springframework.restdocs.request.ParameterDescriptor;
 import org.springframework.restdocs.request.RequestDocumentation;
 import org.springframework.stereotype.Component;
@@ -36,6 +43,7 @@ import com.epages.restdocs.apispec.ResourceSnippetParametersBuilder;
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.epages.restdocs.apispec.Schema;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.restdocs.snippet.Snippet;
 
 /**
  * RestDocs + restdocs-api-spec 연동을 위한 공통 팩토리 클래스
@@ -140,40 +148,51 @@ public class RestDocsFactory {
 		T requestDto,
 		R responseDto
 	) {
+		return success(identifier, summary, description, tag, requestDto, responseDto, new CookieDescriptor[] {});
+	}
+
+	/**
+	 * 성공 케이스용 공통 문서 생성 (쿠키 포함)
+	 */
+	public <T, R> RestDocumentationResultHandler success(
+		String identifier,
+		String summary,
+		String description,
+		String tag,
+		T requestDto,
+		R responseDto,
+		CookieDescriptor... cookies
+	) {
 		String requestSchemaName = requestDto != null ? requestDto.getClass().getSimpleName() : null;
 		String responseSchemaName = responseDto != null ? responseDto.getClass().getSimpleName() : null;
 
-		if (requestDto == null) {
-			return MockMvcRestDocumentationWrapper.document(
-				identifier,
-				preprocessResponse(prettyPrint()),
-				resource(
-					ResourceSnippetParameters.builder()
-						.tag(tag)
-						.summary(summary)
-						.description(description)
-						.responseSchema(responseSchemaName != null ? Schema.schema(responseSchemaName) : null)
-						.responseFields(responseDto != null ? getFields(responseDto) : new FieldDescriptor[] {})
-						.build()
-				)
-			);
+		ResourceSnippetParametersBuilder builder = ResourceSnippetParameters.builder()
+			.tag(tag)
+			.summary(summary)
+			.description(description);
+
+		if (requestDto != null) {
+			builder.requestSchema(Schema.schema(requestSchemaName))
+				.requestFields(getFields(requestDto));
+		}
+
+		if (responseSchemaName != null) {
+			builder.responseSchema(Schema.schema(responseSchemaName));
+		}
+
+		builder.responseFields(responseDto != null ? getFields(responseDto) : new FieldDescriptor[] {});
+
+		List<Snippet> snippets = new ArrayList<>();
+		snippets.add(resource(builder.build()));
+		if (cookies != null && cookies.length > 0) {
+			snippets.add(CookieDocumentation.requestCookies(cookies));
 		}
 
 		return MockMvcRestDocumentationWrapper.document(
 			identifier,
 			preprocessRequest(prettyPrint()),
 			preprocessResponse(prettyPrint()),
-			resource(
-				ResourceSnippetParameters.builder()
-					.tag(tag)
-					.summary(summary)
-					.description(description)
-					.requestSchema(Schema.schema(requestSchemaName))
-					.responseSchema(responseSchemaName != null ? Schema.schema(responseSchemaName) : null)
-					.requestFields(getFields(requestDto))
-					.responseFields(responseDto != null ? getFields(responseDto) : new FieldDescriptor[] {})
-					.build()
-			)
+			snippets.toArray(new Snippet[0])
 		);
 	}
 
@@ -191,6 +210,21 @@ public class RestDocsFactory {
 		String tag,
 		T requestDto,
 		R errorResponseDto
+	) {
+		return failure(identifier, summary, description, tag, requestDto, errorResponseDto, new CookieDescriptor[] {});
+	}
+
+	/**
+	 * 실패 케이스용 공통 문서 생성 (쿠키 포함)
+	 */
+	public <T, R> RestDocumentationResultHandler failure(
+		String identifier,
+		String summary,
+		String description,
+		String tag,
+		T requestDto,
+		R errorResponseDto,
+		CookieDescriptor... cookies
 	) {
 		String requestSchemaName = requestDto != null ? requestDto.getClass().getSimpleName() : null;
 		String responseSchemaName = errorResponseDto != null ? errorResponseDto.getClass().getSimpleName() : "ErrorResponse";
@@ -210,11 +244,17 @@ public class RestDocsFactory {
 				.responseFields(getFields(errorResponseDto));
 		}
 
+		List<Snippet> snippets = new ArrayList<>();
+		snippets.add(resource(builder.build()));
+		if (cookies != null && cookies.length > 0) {
+			snippets.add(CookieDocumentation.requestCookies(cookies));
+		}
+
 		return MockMvcRestDocumentationWrapper.document(
 			identifier,
 			preprocessRequest(prettyPrint()),
 			preprocessResponse(prettyPrint()),
-			resource(builder.build())
+			snippets.toArray(new Snippet[0])
 		);
 	}
 
@@ -323,8 +363,11 @@ public class RestDocsFactory {
 				FieldDescriptor descriptor = PayloadDocumentation
 					.subsectionWithPath(fieldPath)
 					.type(JsonFieldType.OBJECT)
-					.description(field.getName())
-					.optional();
+					.description(field.getName());
+
+				if (isOptional(dto.getClass(), field)) {
+					descriptor.optional();
+				}
 				fields.add(descriptor);
 				continue;
 			}
@@ -332,8 +375,11 @@ public class RestDocsFactory {
 			JsonFieldType fieldType = determineFieldType(fieldTypeClass, fieldValue);
 			FieldDescriptor descriptor = PayloadDocumentation.fieldWithPath(fieldPath)
 				.type(fieldType)
-				.description(field.getName())
-				.optional();
+				.description(field.getName());
+
+			if (isOptional(dto.getClass(), field)) {
+				descriptor.optional();
+			}
 			fields.add(descriptor);
 
 			if (fieldType == JsonFieldType.ARRAY) {
@@ -408,5 +454,21 @@ public class RestDocsFactory {
 			return JsonFieldType.STRING;
 		}
 		return JsonFieldType.OBJECT;
+	}
+
+	private <T> boolean isOptional(Class<T> clazz, Field field) {
+		// Record의 경우 Component에서 어노테이션을 찾아야 함
+		if (clazz.isRecord()) {
+			for (RecordComponent component : clazz.getRecordComponents()) {
+				if (component.getName().equals(field.getName())) {
+					return !hasRequiredAnnotation(component);
+				}
+			}
+		}
+		return !hasRequiredAnnotation(field);
+	}
+
+	private boolean hasRequiredAnnotation(AnnotatedElement element) {
+		return element.isAnnotationPresent(NotNull.class) || element.isAnnotationPresent(AssertTrue.class);
 	}
 }
