@@ -20,7 +20,7 @@ jobs:
       popup: ${{ steps.filter.outputs.popup }}
       common: ${{ steps.filter.outputs.common }}
       draw: ${{ steps.filter.outputs.draw }}
-      anti-macro: ${{ steps.filter.outputs.anti-macro }}
+      anti_macro: ${{ steps.filter.outputs.anti_macro }}
 
     steps:
       - name: Checkout
@@ -43,7 +43,7 @@ jobs:
               - 'common/**'
             draw:
               - 'draw-service/**'
-            anti-macro:
+            anti_macro:
               - 'anti-macro-service/**'
 
   build-and-push:
@@ -136,7 +136,7 @@ jobs:
 
   build-and-push-anti-macro:
     needs: detect-changes
-    if: needs.detect-changes.outputs.anti-macro == 'true'
+    if: needs.detect-changes.outputs.anti_macro == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -186,7 +186,7 @@ jobs:
 
       - name: Update GitOps deployment
         run: |
-          curl -X POST \
+          curl --fail --show-error -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.GITOPS_TOKEN }}" \
             https://api.github.com/repos/kt-cloud-TECHUP-T1/gitops/dispatches \
