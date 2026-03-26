@@ -48,7 +48,7 @@ public class PopupBannersService {
 
     private PopupCardDto toPopupCardDto(Banner banner) {
         Popup popup = banner.getPopup();
-        PhaseType phaseType = popup.getPhaseType();
+        PhaseType phaseType = determinePhaseType(popup);
         LocalDateTime phaseOpenAt = phaseType == PhaseType.AUCTION ? popup.getAuctionOpenAt() : popup.getDrawOpenAt();
         LocalDateTime phaseCloseAt = phaseType == PhaseType.AUCTION ? popup.getAuctionCloseAt() : popup.getDrawCloseAt();
 
@@ -69,6 +69,22 @@ public class PopupBannersService {
                         phaseCloseAt.atOffset(KST_OFFSET)
                 )
         );
+    }
+
+    private PhaseType determinePhaseType(Popup popup) {
+        PhaseStatus auctionStatus = calculatePhaseStatus(popup.getAuctionOpenAt(), popup.getAuctionCloseAt());
+        PhaseStatus drawStatus = calculatePhaseStatus(popup.getDrawOpenAt(), popup.getDrawCloseAt());
+
+        if (auctionStatus == PhaseStatus.OPEN) return PhaseType.AUCTION;
+        if (drawStatus == PhaseStatus.OPEN) return PhaseType.DRAW;
+        if (auctionStatus == PhaseStatus.UPCOMING && drawStatus != PhaseStatus.UPCOMING)
+            return PhaseType.AUCTION;
+        if (drawStatus == PhaseStatus.UPCOMING && auctionStatus != PhaseStatus.UPCOMING)
+            return PhaseType.DRAW;
+        if (auctionStatus == PhaseStatus.UPCOMING) // both upcoming
+            return popup.getAuctionOpenAt().isBefore(popup.getDrawOpenAt()) ? PhaseType.AUCTION : PhaseType.DRAW;
+        // both closed: return whichever closed more recently
+        return popup.getAuctionCloseAt().isAfter(popup.getDrawCloseAt()) ? PhaseType.AUCTION : PhaseType.DRAW;
     }
 
     private PhaseStatus calculatePhaseStatus(LocalDateTime openAt, LocalDateTime closeAt) {

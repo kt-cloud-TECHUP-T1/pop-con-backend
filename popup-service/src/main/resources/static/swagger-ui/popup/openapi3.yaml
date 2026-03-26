@@ -209,34 +209,18 @@ paths:
               examples:
                 popup-detail-get-success:
                   value: "{\r\n  \"code\" : \"SUCCESS\",\r\n  \"message\" : \"팝업스토\
-                    어 조회를 성공했습니다.\",\r\n  \"data\" : {\r\n    \"phaseType\" : \"AUCTION\"\
-                    ,\r\n    \"phaseStatus\" : \"UPCOMING\",\r\n    \"popupId\" :\
-                    \ 1,\r\n    \"liked\" : true,\r\n    \"thumbnailUrl\" : \"https://imagelink.com/thumbnail.jpg\"\
-                    ,\r\n    \"images\" : [ \"https://imagelink.com/image1.jpg\",\
-                    \ \"https://imagelink.com/image2.jpg\", \"https://imagelink.com/image3.jpg\"\
-                    \ ],\r\n    \"subtitle\" : \"Oneira X POPUP SEOUL\",\r\n    \"\
-                    title\" : \"오네이라 팝업 스토어\",\r\n    \"viewCount\" : 200,\r\n   \
-                    \ \"likeCount\" : 200,\r\n    \"description\" : \"Lee가 101 라인\
-                    \ 101주년을 기념해 더현대 서울에서 팝업을 진행합니다.\\uD83D\\uDC56\\n오랜 시간 쌓아온 데님\
-                    \ 헤리티지와 101 라인의 상징성을 공간 안에 풀어냈습니다.\\n다양한 리워드와 팝업 기간동안의 특별한 혜택을\
-                    \ 받아보세요!\\uD83E\\uDE75\\n\\n[EVENT]\\n① 02.18 PM 1:01 선착순 이벤트\\\
-                    n팝업 스토어 촬영 후 인스타그램 스토리 업로드 시, 선착순 101명 볼캡 증정\\n② 구매 금액대별 혜택\\\
-                    n40만원 이상 → 반다나 반팔 티셔츠(20명)\\n20만원 이상 → 빅 트위치 로고 투웨이 에코백(30명)\\\
-                    n10만원 이상 → 오버롤 미니 파우치(30명)\\n제품 구매 고객 → 금속 뱃지 세트(200명) *ACC 제외\
-                    \\n③ 럭키드로우 이벤트\\nLee 공식 인스타그램 팔로우하고 스토리 업로드 시 : 럭키드로우 참여 기회 제공\
-                    \\n1등 셀비지 셋업(3명)\\n2등 Lee 빈티지 라벨 티셔츠(5명)\\n3등 스몰 트위치 로고 데님 볼캡\
-                    (10명)\\n4등 오버롤 키링(20명)\\n5등 101 원형 뱃지 *컬러 랜덤(1000명)\\n\\n[INFO]\\\
-                    n\\uD83D\\uDCCD장소 : 서울 영등포구 여의대로 108, 더현대 서울\\n\\uD83D\\uDCC5일\
-                    정 : 2/18(수) ~ 2/25(수)\\n⏰시간 : 월-목 10:30 ~ 20:00 / 금-일 10:30 ~\
-                    \ 20:30\\n\",\r\n    \"location\" : \"서울 영등포구 여의대로 108, 더현대 서울\
-                    \",\r\n    \"reviewCount\" : 0,\r\n    \"openAt\" : \"2026-02-15\"\
-                    ,\r\n    \"closeAt\" : \"2026-03-15\",\r\n    \"weekdayOpen\"\
-                    \ : \"11:00:00\",\r\n    \"weekdayClose\" : \"21:00:00\",\r\n\
-                    \    \"weekendOpen\" : \"10:00:00\",\r\n    \"weekendClose\" :\
-                    \ \"22:00:00\",\r\n    \"auctionUpcoming\" : {\r\n      \"auctionOpenAt\"\
-                    \ : \"2026-02-09T10:00:00\",\r\n      \"startPrice\" : 132000\r\
-                    \n    },\r\n    \"auctionOpen\" : null,\r\n    \"drawUpcoming\"\
-                    \ : null,\r\n    \"drawOpen\" : null\r\n  }\r\n}"
+                    어 조회를 성공했습니다.\",\r\n  \"data\" : {\r\n    \"phaseType\" : null,\r\
+                    \n    \"auctionId\" : null,\r\n    \"drawId\" : null,\r\n    \"\
+                    popupId\" : 1,\r\n    \"liked\" : false,\r\n    \"thumbnailUrl\"\
+                    \ : \"https://example.com/thumb.jpg\",\r\n    \"images\" : [ ],\r\
+                    \n    \"title\" : \"테스트 팝업\",\r\n    \"subtitle\" : \"테스트 서브타이\
+                    틀\",\r\n    \"viewCount\" : 10,\r\n    \"likeCount\" : 5,\r\n\
+                    \    \"description\" : \"테스트 설명\",\r\n    \"location\" : \"서울\
+                    \ 성수동\",\r\n    \"reviewCount\" : 3,\r\n    \"openAt\" : \"2026-03-26\"\
+                    ,\r\n    \"closeAt\" : \"2026-03-30\",\r\n    \"weekdayOpen\"\
+                    \ : \"10:00:00\",\r\n    \"weekdayClose\" : \"20:00:00\",\r\n\
+                    \    \"weekendOpen\" : \"11:00:00\",\r\n    \"weekendClose\" :\
+                    \ \"21:00:00\"\r\n  }\r\n}"
 components:
   schemas:
     ApiResponse:
@@ -258,13 +242,13 @@ components:
         data:
           type: object
           properties:
-            sectionKey:
+            weekdayClose:
               type: string
-              description: sectionKey
+              description: weekdayClose
               nullable: true
-            items:
+            images:
               type: array
-              description: items
+              description: images
               nullable: true
               items:
                 oneOf:
@@ -272,9 +256,77 @@ components:
                 - type: boolean
                 - type: string
                 - type: number
-            itemCount:
+            popupId:
               type: number
-              description: itemCount
+              description: popupId
+              nullable: true
+            weekendOpen:
+              type: string
+              description: weekendOpen
+              nullable: true
+            drawId:
+              type: number
+              description: drawId
+              nullable: true
+            description:
+              type: string
+              description: description
+              nullable: true
+            likeCount:
+              type: number
+              description: likeCount
+              nullable: true
+            title:
+              type: string
+              description: title
+              nullable: true
+            closeAt:
+              type: string
+              description: closeAt
+              nullable: true
+            liked:
+              type: boolean
+              description: liked
+              nullable: true
+            phaseType:
+              type: string
+              description: phaseType
+              nullable: true
+            auctionId:
+              type: number
+              description: auctionId
+              nullable: true
+            reviewCount:
+              type: number
+              description: reviewCount
+              nullable: true
+            subtitle:
+              type: string
+              description: subtitle
+              nullable: true
+            weekdayOpen:
+              type: string
+              description: weekdayOpen
+              nullable: true
+            location:
+              type: string
+              description: location
+              nullable: true
+            viewCount:
+              type: number
+              description: viewCount
+              nullable: true
+            openAt:
+              type: string
+              description: openAt
+              nullable: true
+            weekendClose:
+              type: string
+              description: weekendClose
+              nullable: true
+            thumbnailUrl:
+              type: string
+              description: thumbnailUrl
               nullable: true
           description: data
         message:
