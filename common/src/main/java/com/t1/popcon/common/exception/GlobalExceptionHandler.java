@@ -9,6 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import static net.logstash.logback.argument.StructuredArguments.kv;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -23,6 +24,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<ApiResponse<?>> handleCustom(CustomException e) {
         ErrorCode ec = e.getErrorCode();
+
+        log.error("Business exception",
+                kv("logType",ec.name()),
+                kv("errorCode", ec.getCode())
+        );
 
         if (e.getData() != null) {
             return ResponseEntity.status(ec.getStatus())
@@ -47,6 +53,13 @@ public class GlobalExceptionHandler {
         }
 
         ErrorCode ec = ErrorCode.INVALID_INPUT;
+
+        log.warn("Validation error",
+                kv("logType", ec.name()),
+                kv("errorCode", ec.getCode()),
+                kv("fieldErrors", fieldErrors)
+        );
+
         return ResponseEntity.status(ec.getStatus())
             .body(ApiResponse.fail(ec, fieldErrors));
     }
@@ -57,6 +70,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<?>> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
         ErrorCode ec = ErrorCode.INVALID_INPUT;
+
+        log.warn("Type mismatch",
+                kv("logType", ec.name()),
+                kv("errorCode", ec.getCode())
+        );
+
         return ResponseEntity.status(ec.getStatus())
             .body(ApiResponse.fail(ec));
     }
@@ -67,6 +86,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiResponse<?>> handleConstraintViolation(ConstraintViolationException e) {
         ErrorCode ec = ErrorCode.INVALID_INPUT;
+
+        log.warn("Constraint violation",
+                kv("logType", ec.name()),
+                kv("errorCode", ec.getCode())
+        );
+
         return ResponseEntity.status(ec.getStatus())
             .body(ApiResponse.fail(ec));
     }
@@ -76,9 +101,14 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleException(Exception e) {
-        log.error("Unhandled exception", e);
-
         ErrorCode ec = ErrorCode.ERROR_SYSTEM;
+
+        log.error("Unhandled exception",
+                kv("logType", ec.name()),
+                kv("errorCode", ec.getCode()),
+                e
+        );
+
         return ResponseEntity.status(ec.getStatus())
             .body(ApiResponse.fail(ec));
     }
