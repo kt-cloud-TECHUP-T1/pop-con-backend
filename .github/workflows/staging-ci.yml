@@ -20,6 +20,7 @@ jobs:
       popup: ${{ steps.filter.outputs.popup }}
       common: ${{ steps.filter.outputs.common }}
       draw: ${{ steps.filter.outputs.draw }}
+      anti_macro: ${{ steps.filter.outputs.anti_macro }}
 
     steps:
       - name: Checkout
@@ -42,6 +43,8 @@ jobs:
               - 'common/**'
             draw:
               - 'draw-service/**'
+            anti_macro:
+              - 'anti-macro-service/**'
 
   build-and-push:
     needs: detect-changes
@@ -127,6 +130,71 @@ jobs:
               "client_payload": {
                 "service": "${{ matrix.service }}",
                 "image": "${{ steps.login-ecr.outputs.registry }}/${{ matrix.service }}",
+                "tag": "${{ env.SHORT_SHA }}"
+              }
+            }'
+
+  build-and-push-anti-macro:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.anti_macro == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: anti-macro-service/package-lock.json
+
+      - name: Install dependencies
+        run: cd anti-macro-service && npm ci
+
+      - name: Build
+        run: cd anti-macro-service && npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }}
+          aws-region: ap-northeast-2
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set short SHA
+        run: echo "SHORT_SHA=${GITHUB_SHA::10}" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push anti-macro-service
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./anti-macro-service/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/anti-macro-service:${{ env.SHORT_SHA }}
+            ${{ steps.login-ecr.outputs.registry }}/anti-macro-service:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Update GitOps deployment
+        run: |
+          curl --fail --show-error -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITOPS_TOKEN }}" \
+            https://api.github.com/repos/kt-cloud-TECHUP-T1/gitops/dispatches \
+            -d '{
+              "event_type": "deploy-staging",
+              "client_payload": {
+                "service": "anti-macro-service",
+                "image": "${{ steps.login-ecr.outputs.registry }}/anti-macro-service",
                 "tag": "${{ env.SHORT_SHA }}"
               }
             }'
