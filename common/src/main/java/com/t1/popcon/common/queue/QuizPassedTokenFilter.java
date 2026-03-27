@@ -27,7 +27,7 @@ import java.util.Optional;
 public class QuizPassedTokenFilter extends OncePerRequestFilter {
 
 	public static final String QUIZ_PASSED_TOKEN_HEADER = "X-Quiz-Passed-Token";
-	public static final String QUIZ_PASS_TOKEN_INFO_ATTRIBUTE = "quizPassedTokenInfo";
+	public static final String QUIZ_PASSED_TOKEN_INFO_ATTRIBUTE = "quizPassedTokenInfo";
 
 	private final QuizPassedTokenValidator quizPassedTokenValidator;
 	private final ObjectMapper objectMapper;
@@ -69,7 +69,7 @@ public class QuizPassedTokenFilter extends OncePerRequestFilter {
 		// 검증 통과 — 컨트롤러에서 사용할 수 있도록 저장
 		log.debug("[QuizPassedTokenFilter] 검증 통과 - userId={}, phaseType={}, phaseId={}",
 			tokenInfo.get().userId(), tokenInfo.get().phaseType(), tokenInfo.get().phaseId());
-		request.setAttribute(QUIZ_PASS_TOKEN_INFO_ATTRIBUTE, tokenInfo.get());
+		request.setAttribute(QUIZ_PASSED_TOKEN_INFO_ATTRIBUTE, tokenInfo.get());
 		filterChain.doFilter(request, response);
 	}
 
