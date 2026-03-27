@@ -45,6 +45,8 @@ public enum ErrorCode {
     PAYMENT_EXECUTION_FAILED("P003", HttpStatus.PAYMENT_REQUIRED, "결제 승인에 실패했습니다."),
     ALREADY_PAID("P004", HttpStatus.CONFLICT, "이미 결제가 완료된 주문입니다."),
     PAYMENT_CANCEL_FAILED("P005", HttpStatus.BAD_GATEWAY, "결제 취소 요청에 실패했습니다."),
+
+    // Popup
     POPUP_NOT_FOUND("PO001", HttpStatus.NOT_FOUND, "존재하지 않는 팝업스토어입니다."),
 
     // Auction
