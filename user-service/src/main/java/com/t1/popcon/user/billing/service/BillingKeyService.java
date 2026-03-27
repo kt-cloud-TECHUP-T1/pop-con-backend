@@ -8,7 +8,10 @@ import com.t1.popcon.common.infrastructure.dto.PortOneBillingKeyResponse;
 import com.t1.popcon.user.billing.entity.UserBillingKey;
 import com.t1.popcon.common.infrastructure.portone.PortOneClient;
 import com.t1.popcon.user.billing.repository.UserBillingKeyRepository;
-import jakarta.transaction.Transactional;
+import com.t1.popcon.user.domain.User;
+import com.t1.popcon.user.repository.UserRepository;
+
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -21,11 +24,15 @@ public class BillingKeyService {
 
 	private final UserBillingKeyRepository billingKeyRepository;
 	private final PortOneClient portOneClient;
+	private final UserRepository userRepository;
 
 	@Transactional
 	public BillingKeyInfoResponse registerBillingKey(Long userId, BillingKeyRegisterRequest request) {
+		User user = userRepository.findById(userId)
+			.orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
 		// 1. 현재 활성 카드가 있는지 확인
-		boolean hasActiveKey = billingKeyRepository.existsByUserIdAndIsActiveTrue(userId);
+		boolean hasActiveKey = billingKeyRepository.existsByUserAndIsActiveTrue(user);
 
 		// 2. 포트원 상세 조회
 		String cleanedUid = request.customerUid().trim();
@@ -38,7 +45,7 @@ public class BillingKeyService {
 
 		// 4. DB 저장 (첫 등록이면 isDefault = true)
 		UserBillingKey newBillingKey = UserBillingKey.builder()
-			.userId(userId)
+			.user(user)
 			.customerUid(response.billingKey())
 			.pgProvider(response.getPgProvider())
 			.cardName(response.getCardName())
@@ -49,8 +56,12 @@ public class BillingKeyService {
 		return BillingKeyInfoResponse.from(billingKeyRepository.save(newBillingKey));
 	}
 
+	@Transactional(readOnly = true)
 	public List<BillingKeyInfoResponse> getMyBillingKeys(Long userId) {
-		return billingKeyRepository.findAllByUserIdAndIsActiveTrue(userId).stream()
+		User user = userRepository.findById(userId)
+			.orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+		return billingKeyRepository.findAllByUserAndIsActiveTrue(user).stream()
 			.sorted(Comparator.comparing(UserBillingKey::isDefault).reversed()
 				.thenComparing(UserBillingKey::getCreatedAt, Comparator.reverseOrder()))
 			.map(BillingKeyInfoResponse::from)
@@ -59,13 +70,16 @@ public class BillingKeyService {
 
 	@Transactional
 	public void changeDefaultBillingKey(Long userId, Long billingKeyId) {
+		User user = userRepository.findById(userId)
+			.orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
 		// 1. 기존 대표 카드 해제
-		billingKeyRepository.findByUserIdAndIsDefaultTrueAndIsActiveTrue(userId)
+		billingKeyRepository.findByUserAndIsDefaultTrueAndIsActiveTrue(user)
 			.ifPresent(key -> key.updateDefault(false));
 
 		// 2. 새로운 대표 카드 설정
 		UserBillingKey newDefaultKey = billingKeyRepository.findById(billingKeyId)
-			.filter(key -> key.getUserId().equals(userId) && key.isActive())
+			.filter(key -> key.getUser().getId().equals(userId) && key.isActive())
 			.orElseThrow(() -> new CustomException(ErrorCode.BILLING_KEY_NOT_FOUND));
 
 		newDefaultKey.updateDefault(true);
@@ -73,8 +87,11 @@ public class BillingKeyService {
 
 	@Transactional
 	public void deleteBillingKey(Long userId, Long billingKeyId) {
+		User user = userRepository.findById(userId)
+			.orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
 		UserBillingKey targetKey = billingKeyRepository.findById(billingKeyId)
-			.filter(key -> key.getUserId().equals(userId) && key.isActive())
+			.filter(key -> key.getUser().getId().equals(userId) && key.isActive())
 			.orElseThrow(() -> new CustomException(ErrorCode.BILLING_KEY_NOT_FOUND));
 
 		boolean wasDefault = targetKey.isDefault();
@@ -83,15 +100,18 @@ public class BillingKeyService {
 
 		// 대표 카드 삭제 시 다른 카드를 승격
 		if (wasDefault) {
-			billingKeyRepository.findAllByUserIdAndIsActiveTrue(userId).stream()
+			billingKeyRepository.findAllByUserAndIsActiveTrue(user).stream()
 				.max(Comparator.comparing(UserBillingKey::getCreatedAt))
 				.ifPresent(key -> key.updateDefault(true));
 		}
 	}
 
 	public String getDefaultBillingKey(Long userId) {
-		return billingKeyRepository.findByUserIdAndIsDefaultTrueAndIsActiveTrue(userId)
+		User user = userRepository.findById(userId)
+			.orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+		return billingKeyRepository.findByUserAndIsDefaultTrueAndIsActiveTrue(user)
 			.map(UserBillingKey::getCustomerUid)
 			.orElseThrow(() -> new CustomException(ErrorCode.BILLING_KEY_NOT_FOUND));
 	}
-	}
+}

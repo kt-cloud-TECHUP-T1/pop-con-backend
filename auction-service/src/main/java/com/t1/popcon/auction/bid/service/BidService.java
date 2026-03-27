@@ -14,6 +14,8 @@ import com.t1.popcon.auction.repository.AuctionOptionRepository;
 import com.t1.popcon.auction.service.AuctionPriceService;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
+import com.t1.popcon.common.infrastructure.dto.PortOneCancelResponse;
+import com.t1.popcon.common.infrastructure.dto.PortOnePaymentResponse;
 import com.t1.popcon.common.infrastructure.portone.PortOneClient;
 import com.t1.popcon.common.response.ApiResponse;
 
@@ -76,7 +78,13 @@ public class BidService {
 
 			// 결제 요청 직전에 시도 플래그를 세팅합니다.
 			paymentAttempted = true;
-			portOneClient.executePayment(billingKey, bid.getMerchantUid(), bid.getBidPrice(), "입장권 낙찰");
+			PortOnePaymentResponse paymentResponse = portOneClient.executePayment(billingKey, bid.getMerchantUid(), bid.getBidPrice(), "입장권 낙찰");
+
+			// 결제 상태 검증 (paidAt 존재 여부로 판단)
+			if (!paymentResponse.isPaid()) {
+				log.error(">>>> [결제 실패] 결제 완료 일시(paidAt)가 응답에 포함되지 않았습니다. MerchantUid: {}", bid.getMerchantUid());
+				throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제가 완료되지 않았습니다.");
+			}
 
 			// [Step 3] 최종 확정 (DB 트랜잭션)
 			txManager.completeBidSuccess(bid.getId(), option.getId());
@@ -88,8 +96,14 @@ public class BidService {
 
 			if (paymentAttempted) {
 				try {
-					portOneClient.cancelPayment(merchantUid, bid.getBidPrice());
-					log.info(">>>> [보상 완료] 결제 취소 요청 성공: {}", merchantUid);
+					PortOneCancelResponse cancelResponse = portOneClient.cancelPayment(merchantUid, bid.getBidPrice());
+					if (cancelResponse.isSucceeded()) {
+						log.info(">>>> [보상 완료] 결제 취소 완료: {}", merchantUid);
+					} else if (cancelResponse.isRequested()) {
+						log.warn(">>>> [보상 진행중] 결제 취소가 접수되었습니다(REQUESTED). 최종 확인 필요: {}", merchantUid);
+					} else {
+						log.error("!!!! [보상 실패] 결제 취소 실패(FAILED): {}. 상세 사유: {}", merchantUid, cancelResponse.reason());
+					}
 				} catch (Exception cancelEx) {
 					log.error("!!!! [긴급] 결제 취소 API 호출 실패 - 수동 확인 필요: {}", merchantUid, cancelEx);
 				}
