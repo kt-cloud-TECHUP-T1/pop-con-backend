@@ -8,12 +8,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.common.response.ApiResponse;
+import com.t1.popcon.popup.dto.card.OverlayType;
+import com.t1.popcon.popup.dto.card.PhaseStatus;
+import com.t1.popcon.popup.dto.card.PhaseType;
 import com.t1.popcon.popup.dto.card.PopupCardDto;
 import com.t1.popcon.popup.dto.section.PopupSectionResponse;
 import com.t1.popcon.popup.dto.section.SectionKey;
 import com.t1.popcon.popup.listings.service.PopupListingsService;
 import com.t1.popcon.support.AbstractRestDocsTest;
 import com.t1.popcon.support.RestDocsFactory;
+
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Nested;
@@ -44,20 +49,20 @@ class PopupListingsControllerTest extends AbstractRestDocsTest {
         private static final String SUMMARY = "팝업 목록 조회";
         private static final String DESCRIPTION = """
             팝업 목록을 조회합니다.
-            phaseType, phaseStatus 등의 쿼리 파라미터 조합으로 원하는 팝업 목록을 조회할 수 있습니다.
+            phaseType(경매/드로우)과 phaseStatus(진행중/예정/종료)의 조합으로 원하는 팝업 목록을 조회할 수 있습니다.
             
             [현재 제공되는 섹션]
             - 경매: phaseType=AUCTION, phaseStatus=OPEN,UPCOMING
             - 드로우(진행중): phaseType=DRAW, phaseStatus=OPEN
             - 드로우(오픈예정): phaseType=DRAW, phaseStatus=UPCOMING, sort=SOONEST_OPEN
             
-            ※ 향후 다양한 필터 조합 조회를 지원할 예정입니다.
+            ※ phaseStatus는 콤마(,)를 통해 다중 선택이 가능하여 다양한 필터 조합 조회를 지원합니다.
             
             [쿼리 파라미터]
             - phaseType: AUCTION, DRAW
-            - phaseStatus: OPEN, UPCOMING
-            - sort: SOONEST_OPEN
-            - limit: 조회 개수
+            - phaseStatus: OPEN, UPCOMING, CLOSED (다중 입력 가능)
+            - sort: SOONEST_OPEN (현재는 기본적으로 오픈 일시 빠른 순 정렬)
+            - limit: 조회 개수 (기본 10, 1 이상)
             
             [에러 케이스]
             - 400 (C001): 잘못된 요청값
@@ -66,6 +71,12 @@ class PopupListingsControllerTest extends AbstractRestDocsTest {
 
         @Test
         void 성공_경매() throws Exception {
+            PopupCardDto mockCard = createMockPopupCard(
+                    PhaseType.AUCTION,
+                    PhaseStatus.OPEN,
+                    new PopupCardDto.OverlayDto(OverlayType.AUCTION_IN_PROGRESS, null)
+            );
+
             PopupSectionResponse<PopupCardDto> responseDto =
                 new PopupSectionResponse<>(SectionKey.AUCTIONS, 0, List.of());
 
@@ -96,6 +107,12 @@ class PopupListingsControllerTest extends AbstractRestDocsTest {
 
         @Test
         void 성공_드로우_진행중() throws Exception {
+            PopupCardDto mockCard = createMockPopupCard(
+                    PhaseType.DRAW,
+                    PhaseStatus.OPEN,
+                    null
+            );
+
             PopupSectionResponse<PopupCardDto> responseDto =
                 new PopupSectionResponse<>(SectionKey.DRAWS_OPEN, 0, List.of());
 
@@ -126,6 +143,12 @@ class PopupListingsControllerTest extends AbstractRestDocsTest {
 
         @Test
         void 성공_드로우_오픈예정() throws Exception {
+            PopupCardDto mockCard = createMockPopupCard(
+                    PhaseType.DRAW,
+                    PhaseStatus.UPCOMING,
+                    new PopupCardDto.OverlayDto(OverlayType.DRAW_OPEN_AT, null)
+            );
+
             PopupSectionResponse<PopupCardDto> responseDto =
                 new PopupSectionResponse<>(SectionKey.DRAWS_UPCOMING, 0, List.of());
 
@@ -296,6 +319,26 @@ class PopupListingsControllerTest extends AbstractRestDocsTest {
                 HttpMethod.GET,
                 objectMapper
             )
+        );
+    }
+
+    private PopupCardDto createMockPopupCard(PhaseType phaseType, PhaseStatus phaseStatus, PopupCardDto.OverlayDto overlay) {
+        return new PopupCardDto(
+                1L,
+                "테스트 팝업",
+                null,
+                "테스트 서브 텍스트",
+                "테스트 캡션",
+                "thumbnail_url",
+                false,
+                new PopupCardDto.StatsDto(20, 300),
+                overlay,
+                new PopupCardDto.PhaseDto(
+                        phaseType,
+                        phaseStatus,
+                        OffsetDateTime.parse("2026-02-10T10:00:00+09:00"),
+                        OffsetDateTime.parse("2026-02-11T10:00:00+09:00")
+                )
         );
     }
 
