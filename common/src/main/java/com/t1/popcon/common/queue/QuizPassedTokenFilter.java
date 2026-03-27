@@ -67,8 +67,8 @@ public class QuizPassedTokenFilter extends OncePerRequestFilter {
 		}
 
 		// 검증 통과 — 컨트롤러에서 사용할 수 있도록 저장
-		log.debug("[QuizPassedTokenFilter] 검증 통과 - userId={}, phaseType={}, phaseId={}",
-			tokenInfo.get().userId(), tokenInfo.get().phaseType(), tokenInfo.get().phaseId());
+		log.debug("[QuizPassedTokenFilter] 검증 통과 - userId=***{}, phaseType={}, phaseId={}",
+			tokenInfo.get().userId() % 1000, tokenInfo.get().phaseType(), tokenInfo.get().phaseId());
 		request.setAttribute(QUIZ_PASSED_TOKEN_INFO_ATTRIBUTE, tokenInfo.get());
 		filterChain.doFilter(request, response);
 	}
