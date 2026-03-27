@@ -10,6 +10,7 @@ public enum ErrorCode {
 
     // System
     ERROR_SYSTEM("S001", HttpStatus.INTERNAL_SERVER_ERROR, "시스템 오류가 발생했습니다."),
+    METHOD_NOT_ALLOWED("S002", HttpStatus.METHOD_NOT_ALLOWED, "지원하지 않는 HTTP 메서드입니다."),
 
     // Client
     INVALID_INPUT("C001", HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다."),
@@ -67,6 +68,7 @@ public enum ErrorCode {
     // Encryption
     ENCRYPTION_FAILED("E001", HttpStatus.INTERNAL_SERVER_ERROR, "데이터 암호화에 실패했습니다."),
     DECRYPTION_FAILED("E002", HttpStatus.INTERNAL_SERVER_ERROR, "데이터 복호화에 실패했습니다.");
+
 
     private final String code;
     private final HttpStatus status;

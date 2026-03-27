@@ -55,7 +55,7 @@ export type RawData = {
   components?: Record<string, unknown>;
   // 클릭/마우스
   clicks?: ClickEvent[];
-  movements?: PointEvent[];
+  mouseMovements?: PointEvent[];
   hasUntrustedEvent?: boolean;
   // 허니팟 (flat)
   triggered?: boolean;

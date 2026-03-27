@@ -7,7 +7,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     open-in-view: false
     properties:
       hibernate:
@@ -31,8 +31,9 @@ server:
 logging:
   level:
     root: info
-    org.hibernate.SQL: warn
-    org.hibernate.orm.jdbc.bind: warn
+    org.hibernate: warn
+    org.hibernate.SQL: off
+    org.hibernate.orm.jdbc.bind: off
 
 jwt:
   secret: ${JWT_SECRET}
