@@ -30,7 +30,7 @@ app:
     home-path: /
     verify-path: /verify
     login-path: /login
-    callback-path: /auth/callback
+    callback-path: /callback
     cookie-secure: true
     cookie-same-site: None
     cookie-domain: .popcon.store

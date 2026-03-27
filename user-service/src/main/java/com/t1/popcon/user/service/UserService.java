@@ -29,6 +29,8 @@ public class UserService {
             throw new CustomException(ErrorCode.INVALID_PROVIDER);
         }
 
+        String nickname = normalizeNickname(request.nickname());
+
         User user = switch (request.provider().toUpperCase()) {
             case "KAKAO" -> User.createUserWithKakao(
                     request.ciHash(),
@@ -37,6 +39,7 @@ public class UserService {
                     request.encryptedBirthDate(),
                     request.encryptedGender(),
                     request.encryptedNationality(),
+                    nickname,
                     request.email(),
                     request.providerUserId()
             );
@@ -47,6 +50,7 @@ public class UserService {
                     request.encryptedBirthDate(),
                     request.encryptedGender(),
                     request.encryptedNationality(),
+                    nickname,
                     request.email(),
                     request.providerUserId()
             );
@@ -153,6 +157,18 @@ public class UserService {
         if (socialId == null || socialId.isBlank()) {
             throw new CustomException(ErrorCode.SOCIAL_INFO_MISSING);
         }
+    }
+
+    private String normalizeNickname(String nickname) {
+        if (nickname == null || nickname.isBlank()) {
+            return null;
+        }
+
+        String normalized = nickname.trim();
+        if (normalized.length() > 50) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+        return normalized;
     }
 
     private User getUserOrThrow(Long userId) {

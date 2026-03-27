@@ -30,7 +30,7 @@ app:
     home-path: /
     verify-path: /verify
     login-path: /login
-    callback-path: /auth/callback
+    callback-path: /callback
     cookie-secure: false
     cookie-same-site: Lax
     cookie-domain:
