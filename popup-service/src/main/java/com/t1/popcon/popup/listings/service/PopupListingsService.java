@@ -45,6 +45,8 @@ public class PopupListingsService {
             throw new CustomException(ErrorCode.INVALID_INPUT, errors);
         }
 
+        SectionKey sectionKey = resolveSectionKey(phaseType, statuses);
+
         // 현재 시각 기준으로 status 비교 (요청 단위로 1회 고정)
         LocalDateTime now = LocalDateTime.now(KST_ZONE);
 
@@ -72,7 +74,7 @@ public class PopupListingsService {
             .toList();
 
         return new PopupSectionResponse<>(
-            resolveSectionKey(phaseType, statuses),
+            sectionKey,
             items.size(),
             items
         );

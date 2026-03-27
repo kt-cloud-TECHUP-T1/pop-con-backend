@@ -76,7 +76,7 @@ paths:
                   value: "{\r\n  \"code\" : \"SUCCESS\",\r\n  \"message\" : \"약관 동\
                     의 및 회원가입이 완료되었습니다.\",\r\n  \"data\" : {\r\n    \"userId\" : 1,\r\
                     \n    \"name\" : \"홍길동\",\r\n    \"accessToken\" : \"access_token\"\
-                    ,\r\n    \"createdAt\" : \"2026-03-27T09:29:49.8188221\"\r\n \
+                    ,\r\n    \"createdAt\" : \"2026-03-27T13:53:32.9351242\"\r\n \
                     \ }\r\n}"
         '409':
           description: '409'
@@ -97,10 +97,10 @@ paths:
               examples:
                 auth-signup-fail-invalid-input:
                   value: "{\r\n  \"code\" : \"C001\",\r\n  \"message\" : \"입력값이 올바\
-                    르지 않습니다.\",\r\n  \"data\" : {\r\n    \"agreements.isMarketingAgreed\"\
-                    \ : \"선택 약관 항목이 누락되었습니다.\",\r\n    \"agreements.isPrivacyPolicyAgreed\"\
-                    \ : \"필수 동의 항목입니다.\",\r\n    \"agreements.isServicePolicyAgreed\"\
-                    \ : \"필수 동의 항목입니다.\",\r\n    \"agreements.isIdentifierPolicyAgreed\"\
+                    르지 않습니다.\",\r\n  \"data\" : {\r\n    \"agreements.isIdentifierPolicyAgreed\"\
+                    \ : \"필수 동의 항목입니다.\",\r\n    \"agreements.isPrivacyPolicyAgreed\"\
+                    \ : \"필수 동의 항목입니다.\",\r\n    \"agreements.isMarketingAgreed\"\
+                    \ : \"선택 약관 항목이 누락되었습니다.\",\r\n    \"agreements.isServicePolicyAgreed\"\
                     \ : \"필수 동의 항목입니다.\"\r\n  }\r\n}"
                 auth-signup-fail-social-info-missing:
                   value: "{\r\n  \"code\" : \"U002\",\r\n  \"message\" : \"가입 세션의\

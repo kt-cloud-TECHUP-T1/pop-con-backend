@@ -78,7 +78,7 @@ class PopupListingsControllerTest extends AbstractRestDocsTest {
             );
 
             PopupSectionResponse<PopupCardDto> responseDto =
-                new PopupSectionResponse<>(SectionKey.AUCTIONS, 0, List.of());
+                new PopupSectionResponse<>(SectionKey.AUCTIONS, 0, List.of(mockCard));
 
             ApiResponse<PopupSectionResponse<PopupCardDto>> expectedResponse =
                 ApiResponse.ok("더치 경매 섹션 조회를 성공했습니다.", responseDto);
@@ -114,7 +114,7 @@ class PopupListingsControllerTest extends AbstractRestDocsTest {
             );
 
             PopupSectionResponse<PopupCardDto> responseDto =
-                new PopupSectionResponse<>(SectionKey.DRAWS_OPEN, 0, List.of());
+                new PopupSectionResponse<>(SectionKey.DRAWS_OPEN, 0, List.of(mockCard));
 
             ApiResponse<PopupSectionResponse<PopupCardDto>> expectedResponse =
                 ApiResponse.ok("진행 중 드로우 섹션 조회를 성공했습니다.", responseDto);
@@ -150,7 +150,7 @@ class PopupListingsControllerTest extends AbstractRestDocsTest {
             );
 
             PopupSectionResponse<PopupCardDto> responseDto =
-                new PopupSectionResponse<>(SectionKey.DRAWS_UPCOMING, 0, List.of());
+                new PopupSectionResponse<>(SectionKey.DRAWS_UPCOMING, 0, List.of(mockCard));
 
             ApiResponse<PopupSectionResponse<PopupCardDto>> expectedResponse =
                 ApiResponse.ok("오픈 예정 드로우 섹션 조회를 성공했습니다.", responseDto);
