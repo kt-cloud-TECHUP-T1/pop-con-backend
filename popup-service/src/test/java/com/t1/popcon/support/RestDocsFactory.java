@@ -7,9 +7,7 @@ import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.RecordComponent;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -415,7 +413,8 @@ public class RestDocsFactory {
 		if (Collection.class.isAssignableFrom(fieldType) || fieldType.isArray()) {
 			return JsonFieldType.ARRAY;
 		}
-		if (fieldType == LocalDate.class || fieldType == LocalDateTime.class || fieldType == LocalTime.class) {
+		if (fieldType == LocalDate.class || fieldType == LocalDateTime.class || fieldType == LocalTime.class ||
+				fieldType == OffsetDateTime.class || fieldType == ZonedDateTime.class ) {
 			return JsonFieldType.STRING;
 		}
 		return JsonFieldType.OBJECT;
