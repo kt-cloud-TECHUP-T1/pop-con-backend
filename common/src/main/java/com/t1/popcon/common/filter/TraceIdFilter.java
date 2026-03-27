@@ -13,24 +13,38 @@ import java.util.UUID;
 
 @Component
 public class TraceIdFilter extends OncePerRequestFilter {
+
     private static final String TRACE_ID = "traceId";
+    private static final String TRACE_ID_HEADER = "X-Trace-Id";
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
+
         try {
-            String traceId = UUID.randomUUID().toString();
+            String traceId = getOrCreateTraceId(request);
+
             MDC.put(TRACE_ID, traceId);
             MDC.put("method", request.getMethod());
             MDC.put("uri", request.getRequestURI());
 
-            filterChain.doFilter(request,response);
+            response.setHeader(TRACE_ID_HEADER, traceId);
+
+            filterChain.doFilter(request, response);
 
         } finally {
-            MDC.remove(TRACE_ID);
-            MDC.remove("method");
-            MDC.remove("uri");
+            MDC.clear();
+        }
+    }
 
+    private String getOrCreateTraceId(HttpServletRequest request) {
+        String traceId = request.getHeader(TRACE_ID_HEADER);
+
+        if (traceId == null || traceId.isBlank()) {
+            return UUID.randomUUID().toString();
         }
 
+        return traceId;
     }
 }

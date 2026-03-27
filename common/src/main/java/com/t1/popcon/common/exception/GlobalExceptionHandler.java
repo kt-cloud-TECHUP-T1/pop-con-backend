@@ -101,14 +101,25 @@ public class GlobalExceptionHandler {
 
     // Method 잘못 입력시 발생하는 실패 처리
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ApiResponse<?>> handleMethodNotSupported(HttpRequestMethodNotSupportedException e, HttpServletRequest request) {
-        ErrorCode ec = ErrorCode.INVALID_INPUT;
+    public ResponseEntity<ApiResponse<?>> handleMethodNotSupported(
+            HttpRequestMethodNotSupportedException e,
+            HttpServletRequest request) {
+
+        ErrorCode ec = ErrorCode.METHOD_NOT_ALLOWED;
 
         log.warn("Method not supported",
-                baseLog(ec)
+                ArrayUtils.addAll(
+                        baseLog(ec),
+                        kv("allowedMethods", e.getSupportedMethods())
+                )
         );
 
+        String allowMethods = e.getSupportedMethods() != null
+                ? String.join(", ", e.getSupportedMethods())
+                : "";
+
         return ResponseEntity.status(ec.getStatus())
+                .header("Allow", allowMethods)
                 .body(ApiResponse.fail(ec));
     }
 
@@ -120,8 +131,7 @@ public class GlobalExceptionHandler {
         ErrorCode ec = ErrorCode.ERROR_SYSTEM;
 
         log.error("Unhandled exception",
-                baseLog(ec),
-                e
+                ArrayUtils.addAll(baseLog(ec),e)
         );
 
         return ResponseEntity.status(ec.getStatus())
@@ -137,8 +147,7 @@ public class GlobalExceptionHandler {
     }
 
     private String sanitizeQuery(String query) {
-        if (query == null) return null;
-        return query.replaceAll("(code|access_token|password)=[^&]*", "$1=***");
+        return query == null ? null : "[REDACTED]";
     }
 
 
