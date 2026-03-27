@@ -108,6 +108,7 @@ public class BillingKeyService {
 		}
 	}
 
+	@Transactional(readOnly = true)
 	public String getDefaultBillingKey(Long userId) {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
