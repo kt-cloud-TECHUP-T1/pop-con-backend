@@ -37,7 +37,7 @@ app:
 
 services:
   user-service:
-    url: ${USER_SERVICE_URL} local
+    url: ${USER_SERVICE_URL}
     internal-secret: ${INTERNAL_API_SECRET:changeme-local-secret}
 
 spring:
