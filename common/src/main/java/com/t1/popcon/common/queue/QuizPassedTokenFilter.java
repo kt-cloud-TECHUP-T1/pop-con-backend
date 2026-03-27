@@ -20,16 +20,16 @@ import java.util.Optional;
 /**
  * X-Quiz-Passed-Token 헤더 검증 필터
  * - 퀴즈 통과 사용자만 보호 대상 API(드로우 응모, 경매 입찰 등) 접근 허용
- * - 검증 성공 시 request attribute에 QuizPassTokenInfo 저장
+ * - 검증 성공 시 request attribute에 QuizPassedTokenInfo 저장
  */
 @Slf4j
 @RequiredArgsConstructor
 public class QuizPassedTokenFilter extends OncePerRequestFilter {
 
 	public static final String QUIZ_PASSED_TOKEN_HEADER = "X-Quiz-Passed-Token";
-	public static final String QUIZ_PASS_TOKEN_INFO_ATTRIBUTE = "quizPassTokenInfo";
+	public static final String QUIZ_PASS_TOKEN_INFO_ATTRIBUTE = "quizPassedTokenInfo";
 
-	private final QuizPassTokenValidator quizPassTokenValidator;
+	private final QuizPassedTokenValidator quizPassedTokenValidator;
 	private final ObjectMapper objectMapper;
 
 	@Override
@@ -51,9 +51,9 @@ public class QuizPassedTokenFilter extends OncePerRequestFilter {
 		}
 
 		// Redis 기반 토큰 검증
-		Optional<QuizPassTokenInfo> tokenInfo;
+		Optional<QuizPassedTokenInfo> tokenInfo;
 		try {
-			tokenInfo = quizPassTokenValidator.validate(token);
+			tokenInfo = quizPassedTokenValidator.validate(token);
 		} catch (Exception e) {
 			log.error("[QuizPassedTokenFilter] 토큰 검증 중 오류 - uri={}", request.getRequestURI(), e);
 			sendErrorResponse(response, ErrorCode.ERROR_SYSTEM);
