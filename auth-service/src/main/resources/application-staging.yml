@@ -65,8 +65,10 @@ spring:
 
 logging:
   level:
-    org.hibernate.SQL: info
-    org.hibernate.orm.jdbc.bind: warn
+    root: info
+    org.hibernate: warn
+    org.hibernate.SQL: off
+    org.hibernate.orm.jdbc.bind: off
 
 jwt:
   secret: ${JWT_SECRET}

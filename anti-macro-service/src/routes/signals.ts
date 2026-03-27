@@ -63,7 +63,7 @@ router.post('/signals', async (req: Request, res: Response) => {
         userAgent: req.headers['user-agent'],
         rawSummary: {
           clicks: payload.rawData.clicks?.length ?? 0,
-          movements: payload.rawData.movements?.length ?? 0,
+          movements: payload.rawData.mouseMovements?.length ?? 0,
           hasUntrustedEvent: payload.rawData.hasUntrustedEvent ?? false,
           loadToFirstClickMs: payload.rawData.loadToFirstClickMs ?? null,
         },
