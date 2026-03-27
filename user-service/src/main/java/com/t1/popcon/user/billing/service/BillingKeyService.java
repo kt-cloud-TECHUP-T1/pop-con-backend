@@ -103,6 +103,7 @@ public class BillingKeyService {
 		// 대표 카드 삭제 시 다른 카드를 승격
 		if (wasDefault) {
 			billingKeyRepository.findAllByUserAndIsActiveTrue(user).stream()
+				.filter(key -> !key.getId().equals(billingKeyId))
 				.max(Comparator.comparing(UserBillingKey::getCreatedAt))
 				.ifPresent(key -> key.updateDefault(true));
 		}
