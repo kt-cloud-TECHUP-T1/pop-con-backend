@@ -46,15 +46,15 @@ paths:
         required: false
         schema:
           type: string
-      - name: sort
-        in: query
-        description: sort
-        required: false
-        schema:
-          type: string
       - name: limit
         in: query
         description: limit
+        required: false
+        schema:
+          type: string
+      - name: sort
+        in: query
+        description: sort
         required: false
         schema:
           type: string
@@ -66,79 +66,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
               examples:
-                popup-listings-get-fail-phaseType-null:
-                  value: |-
-                    {
-                      "code" : "C001",
-                      "message" : "입력값이 올바르지 않습니다."
-                    }
                 popup-listings-get-fail-invalid-limit:
-                  value: |-
-                    {
-                      "code" : "C001",
-                      "message" : "입력값이 올바르지 않습니다.",
-                      "data" : {
-                        "limit" : "limit는 1 이상이어야 합니다."
-                      }
-                    }
-                popup-listings-get-fail-invalid-phase-type:
-                  value: |-
-                    {
-                      "code" : "C001",
-                      "message" : "입력값이 올바르지 않습니다."
-                    }
-                popup-listings-get-fail-invalid-sort:
-                  value: |-
-                    {
-                      "code" : "C001",
-                      "message" : "입력값이 올바르지 않습니다."
-                    }
+                  value: "{\r\n  \"code\" : \"C001\",\r\n  \"message\" : \"입력값이 올바\
+                    르지 않습니다.\",\r\n  \"data\" : {\r\n    \"limit\" : \"limit는 1 이상\
+                    이어야 합니다.\"\r\n  }\r\n}"
                 popup-listings-get-fail-invalid-phase-status:
-                  value: |-
-                    {
-                      "code" : "C001",
-                      "message" : "입력값이 올바르지 않습니다."
-                    }
-        '200':
-          description: '200'
-          content:
-            application/json;charset=UTF-8:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-              examples:
-                popup-listings-get-success-draw-upcoming:
-                  value: |-
-                    {
-                      "code" : "SUCCESS",
-                      "message" : "오픈 예정 드로우 섹션 조회를 성공했습니다.",
-                      "data" : {
-                        "sectionKey" : "DRAWS_UPCOMING",
-                        "itemCount" : 0,
-                        "items" : [ ]
-                      }
-                    }
-                popup-listings-get-success-draw-open:
-                  value: |-
-                    {
-                      "code" : "SUCCESS",
-                      "message" : "진행 중 드로우 섹션 조회를 성공했습니다.",
-                      "data" : {
-                        "sectionKey" : "DRAWS_OPEN",
-                        "itemCount" : 0,
-                        "items" : [ ]
-                      }
-                    }
-                popup-listings-get-success-auction:
-                  value: |-
-                    {
-                      "code" : "SUCCESS",
-                      "message" : "더치 경매 섹션 조회를 성공했습니다.",
-                      "data" : {
-                        "sectionKey" : "AUCTIONS",
-                        "itemCount" : 0,
-                        "items" : [ ]
-                      }
-                    }
+                  value: "{\r\n  \"code\" : \"C001\",\r\n  \"message\" : \"입력값이 올바\
+                    르지 않습니다.\"\r\n}"
+                popup-listings-get-fail-invalid-phase-type:
+                  value: "{\r\n  \"code\" : \"C001\",\r\n  \"message\" : \"입력값이 올바\
+                    르지 않습니다.\"\r\n}"
+                popup-listings-get-fail-invalid-sort:
+                  value: "{\r\n  \"code\" : \"C001\",\r\n  \"message\" : \"입력값이 올바\
+                    르지 않습니다.\"\r\n}"
+                popup-listings-get-fail-phaseType-null:
+                  value: "{\r\n  \"code\" : \"C001\",\r\n  \"message\" : \"입력값이 올바\
+                    르지 않습니다.\"\r\n}"
         '500':
           description: '500'
           content:
@@ -147,11 +90,30 @@ paths:
                 $ref: '#/components/schemas/ApiResponse'
               examples:
                 popup-listings-get-fail-server-error:
-                  value: |-
-                    {
-                      "code" : "S001",
-                      "message" : "시스템 오류가 발생했습니다."
-                    }
+                  value: "{\r\n  \"code\" : \"S001\",\r\n  \"message\" : \"시스템 오류가\
+                    \ 발생했습니다.\"\r\n}"
+        '200':
+          description: '200'
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                popup-listings-get-success-auction:
+                  value: "{\r\n  \"code\" : \"SUCCESS\",\r\n  \"message\" : \"더치 경\
+                    매 섹션 조회를 성공했습니다.\",\r\n  \"data\" : {\r\n    \"sectionKey\" :\
+                    \ \"AUCTIONS\",\r\n    \"itemCount\" : 0,\r\n    \"items\" : [\
+                    \ ]\r\n  }\r\n}"
+                popup-listings-get-success-draw-open:
+                  value: "{\r\n  \"code\" : \"SUCCESS\",\r\n  \"message\" : \"진행 중\
+                    \ 드로우 섹션 조회를 성공했습니다.\",\r\n  \"data\" : {\r\n    \"sectionKey\"\
+                    \ : \"DRAWS_OPEN\",\r\n    \"itemCount\" : 0,\r\n    \"items\"\
+                    \ : [ ]\r\n  }\r\n}"
+                popup-listings-get-success-draw-upcoming:
+                  value: "{\r\n  \"code\" : \"SUCCESS\",\r\n  \"message\" : \"오픈 예\
+                    정 드로우 섹션 조회를 성공했습니다.\",\r\n  \"data\" : {\r\n    \"sectionKey\"\
+                    \ : \"DRAWS_UPCOMING\",\r\n    \"itemCount\" : 0,\r\n    \"items\"\
+                    \ : [ ]\r\n  }\r\n}"
   /popups/banners:
     get:
       tags:
@@ -175,37 +137,6 @@ paths:
         schema:
           type: string
       responses:
-        '500':
-          description: '500'
-          content:
-            application/json;charset=UTF-8:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-              examples:
-                popup-banners-get-fail-server-error:
-                  value: |-
-                    {
-                      "code" : "S001",
-                      "message" : "시스템 오류가 발생했습니다."
-                    }
-        '200':
-          description: '200'
-          content:
-            application/json;charset=UTF-8:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-              examples:
-                popup-banners-get-success:
-                  value: |-
-                    {
-                      "code" : "SUCCESS",
-                      "message" : "배너 섹션 조회를 성공했습니다.",
-                      "data" : {
-                        "sectionKey" : "BANNERS",
-                        "itemCount" : 0,
-                        "items" : [ ]
-                      }
-                    }
         '400':
           description: '400'
           content:
@@ -214,14 +145,31 @@ paths:
                 $ref: '#/components/schemas/ApiResponse'
               examples:
                 popup-banners-get-fail-invalid-limit:
-                  value: |-
-                    {
-                      "code" : "C001",
-                      "message" : "입력값이 올바르지 않습니다.",
-                      "data" : {
-                        "limit" : "limit는 1 이상 5 이하여야 합니다."
-                      }
-                    }
+                  value: "{\r\n  \"code\" : \"C001\",\r\n  \"message\" : \"입력값이 올바\
+                    르지 않습니다.\",\r\n  \"data\" : {\r\n    \"limit\" : \"limit는 1 이상\
+                    \ 5 이하여야 합니다.\"\r\n  }\r\n}"
+        '500':
+          description: '500'
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                popup-banners-get-fail-server-error:
+                  value: "{\r\n  \"code\" : \"S001\",\r\n  \"message\" : \"시스템 오류가\
+                    \ 발생했습니다.\"\r\n}"
+        '200':
+          description: '200'
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                popup-banners-get-success:
+                  value: "{\r\n  \"code\" : \"SUCCESS\",\r\n  \"message\" : \"배너 섹\
+                    션 조회를 성공했습니다.\",\r\n  \"data\" : {\r\n    \"sectionKey\" : \"\
+                    BANNERS\",\r\n    \"itemCount\" : 0,\r\n    \"items\" : [ ]\r\n\
+                    \  }\r\n}"
   /popups/{popupId}:
     get:
       tags:
@@ -242,47 +190,6 @@ paths:
         schema:
           type: string
       responses:
-        '200':
-          description: '200'
-          content:
-            application/json;charset=UTF-8:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-              examples:
-                popup-detail-get-success:
-                  value: |-
-                    {
-                      "code" : "SUCCESS",
-                      "message" : "팝업스토어 조회를 성공했습니다.",
-                      "data" : {
-                        "phaseType" : "AUCTION",
-                        "phaseStatus" : "UPCOMING",
-                        "popupId" : 1,
-                        "liked" : true,
-                        "thumbnailUrl" : "https://imagelink.com/thumbnail.jpg",
-                        "images" : [ "https://imagelink.com/image1.jpg", "https://imagelink.com/image2.jpg", "https://imagelink.com/image3.jpg" ],
-                        "subtitle" : "Oneira X POPUP SEOUL",
-                        "title" : "오네이라 팝업 스토어",
-                        "viewCount" : 200,
-                        "likeCount" : 200,
-                        "description" : "Lee가 101 라인 101주년을 기념해 더현대 서울에서 팝업을 진행합니다.\uD83D\uDC56\n오랜 시간 쌓아온 데님 헤리티지와 101 라인의 상징성을 공간 안에 풀어냈습니다.\n다양한 리워드와 팝업 기간동안의 특별한 혜택을 받아보세요!\uD83E\uDE75\n\n[EVENT]\n① 02.18 PM 1:01 선착순 이벤트\n팝업 스토어 촬영 후 인스타그램 스토리 업로드 시, 선착순 101명 볼캡 증정\n② 구매 금액대별 혜택\n40만원 이상 → 반다나 반팔 티셔츠(20명)\n20만원 이상 → 빅 트위치 로고 투웨이 에코백(30명)\n10만원 이상 → 오버롤 미니 파우치(30명)\n제품 구매 고객 → 금속 뱃지 세트(200명) *ACC 제외\n③ 럭키드로우 이벤트\nLee 공식 인스타그램 팔로우하고 스토리 업로드 시 : 럭키드로우 참여 기회 제공\n1등 셀비지 셋업(3명)\n2등 Lee 빈티지 라벨 티셔츠(5명)\n3등 스몰 트위치 로고 데님 볼캡(10명)\n4등 오버롤 키링(20명)\n5등 101 원형 뱃지 *컬러 랜덤(1000명)\n\n[INFO]\n\uD83D\uDCCD장소 : 서울 영등포구 여의대로 108, 더현대 서울\n\uD83D\uDCC5일정 : 2/18(수) ~ 2/25(수)\n⏰시간 : 월-목 10:30 ~ 20:00 / 금-일 10:30 ~ 20:30\n",
-                        "location" : "서울 영등포구 여의대로 108, 더현대 서울",
-                        "reviewCount" : 0,
-                        "openAt" : "2026-02-15",
-                        "closeAt" : "2026-03-15",
-                        "weekdayOpen" : "11:00:00",
-                        "weekdayClose" : "21:00:00",
-                        "weekendOpen" : "10:00:00",
-                        "weekendClose" : "22:00:00",
-                        "auctionUpcoming" : {
-                          "auctionOpenAt" : "2026-02-09T10:00:00",
-                          "startPrice" : 132000
-                        },
-                        "auctionOpen" : null,
-                        "drawUpcoming" : null,
-                        "drawOpen" : null
-                      }
-                    }
         '500':
           description: '500'
           content:
@@ -291,11 +198,29 @@ paths:
                 $ref: '#/components/schemas/ApiResponse'
               examples:
                 popup-detail-get-fail-server-error:
-                  value: |-
-                    {
-                      "code" : "S001",
-                      "message" : "시스템 오류가 발생했습니다."
-                    }
+                  value: "{\r\n  \"code\" : \"S001\",\r\n  \"message\" : \"시스템 오류가\
+                    \ 발생했습니다.\"\r\n}"
+        '200':
+          description: '200'
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                popup-detail-get-success:
+                  value: "{\r\n  \"code\" : \"SUCCESS\",\r\n  \"message\" : \"팝업스토\
+                    어 조회를 성공했습니다.\",\r\n  \"data\" : {\r\n    \"phaseType\" : null,\r\
+                    \n    \"auctionId\" : null,\r\n    \"drawId\" : null,\r\n    \"\
+                    popupId\" : 1,\r\n    \"liked\" : false,\r\n    \"thumbnailUrl\"\
+                    \ : \"https://example.com/thumb.jpg\",\r\n    \"images\" : [ ],\r\
+                    \n    \"title\" : \"테스트 팝업\",\r\n    \"subtitle\" : \"테스트 서브타이\
+                    틀\",\r\n    \"viewCount\" : 10,\r\n    \"likeCount\" : 5,\r\n\
+                    \    \"description\" : \"테스트 설명\",\r\n    \"location\" : \"서울\
+                    \ 성수동\",\r\n    \"reviewCount\" : 3,\r\n    \"openAt\" : \"2026-03-26\"\
+                    ,\r\n    \"closeAt\" : \"2026-03-30\",\r\n    \"weekdayOpen\"\
+                    \ : \"10:00:00\",\r\n    \"weekdayClose\" : \"20:00:00\",\r\n\
+                    \    \"weekendOpen\" : \"11:00:00\",\r\n    \"weekendClose\" :\
+                    \ \"21:00:00\"\r\n  }\r\n}"
 components:
   schemas:
     ApiResponse:
@@ -317,13 +242,13 @@ components:
         data:
           type: object
           properties:
-            sectionKey:
+            weekdayClose:
               type: string
-              description: sectionKey
+              description: weekdayClose
               nullable: true
-            items:
+            images:
               type: array
-              description: items
+              description: images
               nullable: true
               items:
                 oneOf:
@@ -331,9 +256,77 @@ components:
                 - type: boolean
                 - type: string
                 - type: number
-            itemCount:
+            popupId:
               type: number
-              description: itemCount
+              description: popupId
+              nullable: true
+            weekendOpen:
+              type: string
+              description: weekendOpen
+              nullable: true
+            drawId:
+              type: number
+              description: drawId
+              nullable: true
+            description:
+              type: string
+              description: description
+              nullable: true
+            likeCount:
+              type: number
+              description: likeCount
+              nullable: true
+            title:
+              type: string
+              description: title
+              nullable: true
+            closeAt:
+              type: string
+              description: closeAt
+              nullable: true
+            liked:
+              type: boolean
+              description: liked
+              nullable: true
+            phaseType:
+              type: string
+              description: phaseType
+              nullable: true
+            auctionId:
+              type: number
+              description: auctionId
+              nullable: true
+            reviewCount:
+              type: number
+              description: reviewCount
+              nullable: true
+            subtitle:
+              type: string
+              description: subtitle
+              nullable: true
+            weekdayOpen:
+              type: string
+              description: weekdayOpen
+              nullable: true
+            location:
+              type: string
+              description: location
+              nullable: true
+            viewCount:
+              type: number
+              description: viewCount
+              nullable: true
+            openAt:
+              type: string
+              description: openAt
+              nullable: true
+            weekendClose:
+              type: string
+              description: weekendClose
+              nullable: true
+            thumbnailUrl:
+              type: string
+              description: thumbnailUrl
               nullable: true
           description: data
         message:
