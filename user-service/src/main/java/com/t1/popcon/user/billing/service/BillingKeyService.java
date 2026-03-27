@@ -82,6 +82,8 @@ public class BillingKeyService {
 			.filter(key -> key.getUser().getId().equals(userId) && key.isActive())
 			.orElseThrow(() -> new CustomException(ErrorCode.BILLING_KEY_NOT_FOUND));
 
+		if (newDefaultKey.isDefault()) return;
+
 		newDefaultKey.updateDefault(true);
 	}
 
