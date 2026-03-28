@@ -1,8 +1,13 @@
 package com.t1.popcon.draw.controller;
 
+import com.t1.popcon.common.auth.domain.AuthUser;
 import com.t1.popcon.common.response.ApiResponse;
+import com.t1.popcon.draw.dto.request.DrawEntryRequest;
 import com.t1.popcon.draw.service.DrawEntryService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -15,13 +20,12 @@ public class DrawEntryController {
 	@PostMapping("/{drawId}/options/{optionId}/entries")
 	public ApiResponse<Void> applyForDraw(
 		@PathVariable Long drawId,
-		@PathVariable Long optionId
-		// TODO: 추후 소셜 로그인 연동 시, 토큰에서 유저 정보를 가져오는 어노테이션 추가 필요
-		// 예: @AuthenticationPrincipal Long userId
+		@PathVariable Long optionId,
+		@Valid @RequestBody DrawEntryRequest request,
+		@AuthenticationPrincipal AuthUser authUser
 	) {
-		Long currentUserId = 1L;
 
-		drawEntryService.applyForDraw(currentUserId, optionId);
+		drawEntryService.applyForDraw(authUser.id(), drawId, optionId, request);
 
 		return ApiResponse.ok("드로우 응모가 완료되었습니다.");
 	}
