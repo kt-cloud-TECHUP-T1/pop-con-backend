@@ -27,3 +27,7 @@ portone:
 
 encryption:
   secret: ${ENCRYPTION_SECRET}
+
+user:
+  nickname:
+    prefix: ${NICKNAME_PREFIX}

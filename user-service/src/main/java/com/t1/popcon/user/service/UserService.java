@@ -5,14 +5,17 @@ import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.user.domain.User;
 import com.t1.popcon.user.dto.UserLookupResponse;
 import com.t1.popcon.user.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import com.t1.popcon.user.dto.UserCreateRequest;
 import com.t1.popcon.user.dto.UserCreateResponse;
+import org.springframework.beans.factory.annotation.Value;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +23,9 @@ import com.t1.popcon.user.dto.UserCreateResponse;
 public class UserService {
 
     private final UserRepository userRepository;
+
+    @Value("${user.nickname.prefix:User}")
+    private String nicknamePrefix;
 
     /**
      * 통합 회원 생성 (소셜 제공자 분기 처리)
@@ -29,7 +35,7 @@ public class UserService {
             throw new CustomException(ErrorCode.INVALID_PROVIDER);
         }
 
-        String nickname = normalizeNickname(request.nickname());
+        String nickname = generateUniqueNickname();
 
         User user = switch (request.provider().toUpperCase()) {
             case "KAKAO" -> User.createUserWithKakao(
@@ -157,6 +163,15 @@ public class UserService {
         if (socialId == null || socialId.isBlank()) {
             throw new CustomException(ErrorCode.SOCIAL_INFO_MISSING);
         }
+    }
+
+    private String generateUniqueNickname() {
+        String nickname;
+        do {
+            String shortUuid = UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+            nickname = nicknamePrefix + "_" + shortUuid;
+        } while (userRepository.existsByNickname(nickname));
+        return nickname;
     }
 
     private String normalizeNickname(String nickname) {
