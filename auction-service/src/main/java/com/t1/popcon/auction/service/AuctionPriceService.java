@@ -62,6 +62,14 @@ public class AuctionPriceService {
         return remainder == 0 ? interval : interval - remainder;
     }
 
+    public Long calculateDisplaySecondsUntilNextDrop(Auction auction, AuctionStatus auctionStatus, LocalDateTime now) {
+        if (auctionStatus == AuctionStatus.SOLD_OUT) {
+            return auction.getPriceDropIntervalSeconds().longValue();
+        }
+
+        return calculateSecondsUntilNextDrop(auction, now);
+    }
+
     public Long calculateRemainingUntilOpenSeconds(Auction auction, LocalDateTime now) {
         if (!now.isBefore(auction.getOpenedAt())) {
             return 0L;

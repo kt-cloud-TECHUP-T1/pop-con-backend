@@ -24,6 +24,7 @@ public record AuctionPriceStreamResponse(
         Integer priceDropUnit,
         Integer priceDropIntervalSeconds,
         Long secondsUntilNextDrop,
+        Long displaySecondsUntilNextDrop,
         Integer maxPurchaseQuantityPerRound,
         Boolean canParticipate,
         String buttonStatus
@@ -38,6 +39,7 @@ public record AuctionPriceStreamResponse(
             Integer nextPrice,
             Integer discountAmount,
             Long secondsUntilNextDrop,
+            Long displaySecondsUntilNextDrop,
             Boolean canParticipate,
             AuctionButtonStatus buttonStatus
     ) {
@@ -57,6 +59,7 @@ public record AuctionPriceStreamResponse(
                 .priceDropUnit(auction.getPriceDropUnit())
                 .priceDropIntervalSeconds(auction.getPriceDropIntervalSeconds())
                 .secondsUntilNextDrop(secondsUntilNextDrop)
+                .displaySecondsUntilNextDrop(displaySecondsUntilNextDrop)
                 .maxPurchaseQuantityPerRound(auction.getStockPerOption())
                 .canParticipate(canParticipate)
                 .buttonStatus(buttonStatus.name())

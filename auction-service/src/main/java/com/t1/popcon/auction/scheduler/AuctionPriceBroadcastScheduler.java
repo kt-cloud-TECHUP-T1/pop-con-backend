@@ -52,6 +52,7 @@ public class AuctionPriceBroadcastScheduler {
             Integer nextPrice = auctionPriceService.calculateNextPrice(auction, currentPrice);
             Integer discountAmount = auctionPriceService.calculateDiscountAmount(auction, currentPrice);
             Long secondsUntilNextDrop = auctionPriceService.calculateSecondsUntilNextDrop(auction, now);
+            Long displaySecondsUntilNextDrop = auctionPriceService.calculateDisplaySecondsUntilNextDrop(auction, calculatedStatus, now);
 
             Boolean canParticipate = auctionPriceService.canParticipate(calculatedStatus);
             AuctionButtonStatus buttonStatus = auctionPriceService.calculateButtonStatus(calculatedStatus);
@@ -66,6 +67,7 @@ public class AuctionPriceBroadcastScheduler {
                     nextPrice,
                     discountAmount,
                     secondsUntilNextDrop,
+                    displaySecondsUntilNextDrop,
                     canParticipate,
                     buttonStatus
             );

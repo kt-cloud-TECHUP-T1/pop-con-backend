@@ -42,6 +42,7 @@ public class AuctionSseController {
         Integer nextPrice = auctionPriceService.calculateNextPrice(auction, currentPrice);
         Integer discountAmount = auctionPriceService.calculateDiscountAmount(auction, currentPrice);
         Long secondsUntilNextDrop = auctionPriceService.calculateSecondsUntilNextDrop(auction, now);
+        Long displaySecondsUntilNextDrop = auctionPriceService.calculateDisplaySecondsUntilNextDrop(auction, auctionStatus, now);
 
         Boolean canParticipate = auctionPriceService.canParticipate(auctionStatus);
         AuctionButtonStatus buttonStatus = auctionPriceService.calculateButtonStatus(auctionStatus);
@@ -56,6 +57,7 @@ public class AuctionSseController {
                 nextPrice,
                 discountAmount,
                 secondsUntilNextDrop,
+                displaySecondsUntilNextDrop,
                 canParticipate,
                 buttonStatus
         );
