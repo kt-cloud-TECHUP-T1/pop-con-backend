@@ -36,24 +36,27 @@ public class QueueBlockRepository {
 
     /**
      * 차단 만료 시각 조회 (epoch seconds, empty면 차단 아님)
-     * - Redis 데이터 오염 방어: 파싱 실패 시 WARN 로그 후 차단 없음으로 처리
+     * - Redis 데이터 오염 방어: 파싱 실패 시 오염 키 삭제 후 차단 없음으로 처리
      */
     public Optional<Long> getBlockedUntilEpoch(String phaseType, long phaseId, long userId) {
-        String value = redisTemplate.opsForValue().get(QueueRedisKeys.block(phaseType, phaseId, userId));
+        String key = QueueRedisKeys.block(phaseType, phaseId, userId);
+        String value = redisTemplate.opsForValue().get(key);
         if (value == null) return Optional.empty();
         try {
             return Optional.of(Long.parseLong(value));
         } catch (NumberFormatException e) {
-            log.warn("[Queue] 차단 만료 시각 파싱 실패 (데이터 오염) - phaseType={}, phaseId={}, userId={}",
+            log.warn("[Queue] 차단 만료 시각 파싱 실패 (데이터 오염) - 키 삭제 처리 - phaseType={}, phaseId={}, userId={}",
                 phaseType, phaseId, userId % 1000, e);
+            redisTemplate.delete(key);
             return Optional.empty();
         }
     }
 
-    /** 차단 여부 조회 */
+    /**
+     * 차단 여부 조회
+     * - getBlockedUntilEpoch에 위임하여 데이터 오염 시 동작을 일관되게 처리
+     */
     public boolean isBlocked(String phaseType, long phaseId, long userId) {
-        return Boolean.TRUE.equals(
-            redisTemplate.hasKey(QueueRedisKeys.block(phaseType, phaseId, userId))
-        );
+        return getBlockedUntilEpoch(phaseType, phaseId, userId).isPresent();
     }
 }
