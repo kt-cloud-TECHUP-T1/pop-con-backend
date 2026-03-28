@@ -45,14 +45,14 @@ public class QueueCleanupRepository {
         } catch (Exception e) {
             // 토큰 삭제 실패 시 TTL 만료 후 자동 정리되므로 경고 후 계속 진행
             log.warn("[Queue] 토큰 삭제 실패 - phaseType={}, phaseId={}, userId={}",
-                phaseType, phaseId, userId, e);
+                phaseType, phaseId, userId % 1000, e);
         }
 
         // 토큰 삭제 후 ZSET/HASH 정리 (역순으로 삭제해야 데이터 정합성 보장)
         activeRepository.removeFromActive(phaseType, phaseId, userId);
         activeRepository.deleteUserHash(phaseType, phaseId, userId);
         log.info("[Queue] 슬롯 회수 완료 - phaseType={}, phaseId={}, userId={}",
-            phaseType, phaseId, userId);
+            phaseType, phaseId, userId % 1000);
     }
 
     /**
@@ -76,11 +76,11 @@ public class QueueCleanupRepository {
             }
         } catch (Exception e) {
             log.warn("[Queue] WAITING 토큰 삭제 실패 - phaseType={}, phaseId={}, userId={}",
-                phaseType, phaseId, userId, e);
+                phaseType, phaseId, userId % 1000, e);
         }
 
         activeRepository.deleteUserHash(phaseType, phaseId, userId);
         log.info("[Queue] WAITING 정리 완료 - phaseType={}, phaseId={}, userId={}",
-            phaseType, phaseId, userId);
+            phaseType, phaseId, userId % 1000);
     }
 }
