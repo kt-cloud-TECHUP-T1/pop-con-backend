@@ -56,3 +56,10 @@ management:
 
 internal:
   api-secret: ${INTERNAL_API_SECRET:changeme-local-secret}
+
+
+services:
+  draw-service:
+    url: ${DRAW_SERVICE_URL:http://localhost:8083}
+  auction-service:
+    url: ${AUCTION_SERVICE_URL:http://localhost:8084}

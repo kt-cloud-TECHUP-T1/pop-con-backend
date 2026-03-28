@@ -18,4 +18,11 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
 		@Param("fromStatus") BidStatus fromStatus,
 		@Param("toStatus") BidStatus toStatus,
 		@Param("paidAt") LocalDateTime paidAt);
+
+	@org.springframework.data.jpa.repository.Query("SELECT b FROM Bid b " +
+		"JOIN FETCH b.auctionOption ao " +
+		"JOIN FETCH ao.auction a " +
+		"WHERE b.userId = :userId AND b.status = :status " +
+		"ORDER BY b.createdAt DESC")
+	java.util.List<Bid> findAllByUserIdAndStatusOrderByCreatedAtDesc(@Param("userId") Long userId, @Param("status") BidStatus status);
 }

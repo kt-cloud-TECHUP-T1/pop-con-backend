@@ -9,6 +9,8 @@ import java.time.LocalDateTime;
 @Getter
 @Builder
 public class DrawEntryResponse {
+	private Long id;                     // 응모 내역(Entry) ID
+	private Long drawId;                 // 드로우(Draw) ID
 	private String thumbnailUrl;
 	private String title;
 	private Long price;

@@ -102,6 +102,8 @@ public class DrawEntryService {
 		}
 
 		return DrawEntryResponse.builder()
+			.id(entry.getId())
+			.drawId(entry.getDrawOption().getDraw().getId())
 			.thumbnailUrl(popupInfo != null ? popupInfo.thumbnailUrl() : null)
 			.title(popupInfo != null ? popupInfo.title() : "알 수 없는 팝업")
 			.price(0L) // TODO: 팝업 서비스에서 가격 정보를 주면 연결 필요, 또는 드로우 엔티티에 가격 추가

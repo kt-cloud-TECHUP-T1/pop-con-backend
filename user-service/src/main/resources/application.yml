@@ -27,3 +27,9 @@ portone:
 
 encryption:
   secret: ${ENCRYPTION_SECRET}
+
+services:
+  draw-service:
+    url: ${DRAW_SERVICE_URL:http://localhost:8083}
+  auction-service:
+    url: ${AUCTION_SERVICE_URL:http://localhost:8084}
