@@ -45,6 +45,9 @@ public class Bid extends BaseSoftDeleteEntity {
     @Column(nullable = false, unique = true)
     private String merchantUid;
 
+    @Column(name = "pg_tx_id", length = 100)
+    private String pgTxId;
+
     private LocalDateTime paidAt;
 
     @Builder
@@ -63,14 +66,18 @@ public class Bid extends BaseSoftDeleteEntity {
         this.status = BidStatus.PENDING;
     }
 
-    public void completePayment(LocalDateTime paidAt) {
+    public void completePayment(String pgTxId, LocalDateTime paidAt) {
         if (this.status != BidStatus.PENDING) {
             throw new IllegalStateException("PENDING 상태에서만 결제를 완료할 수 있습니다.");
+        }
+        if (pgTxId == null || pgTxId.isBlank()) {
+            throw new IllegalArgumentException("pgTxId는 null일 수 없습니다.");
         }
         if (paidAt == null) {
             throw new IllegalArgumentException("paidAt은 null일 수 없습니다.");
         }
         this.status = BidStatus.SUCCESS;
+        this.pgTxId = pgTxId;
         this.paidAt = paidAt;
     }
 

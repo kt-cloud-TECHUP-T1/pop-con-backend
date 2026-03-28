@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
@@ -87,7 +88,8 @@ public class BidService {
 			}
 
 			// [Step 3] 최종 확정 (DB 트랜잭션)
-			txManager.completeBidSuccess(bid.getId(), option.getId());
+			LocalDateTime paidAt = parsePaidAt(paymentResponse.payment().paidAt());
+			txManager.completeBidSuccess(bid.getId(), option.getId(), paymentResponse.getPgTxId(), paidAt);
 
 			return new BidResponse(bid.getId(), BidStatus.SUCCESS, "낙찰이 완료되었습니다.");
 
@@ -124,6 +126,18 @@ public class BidService {
 	private void validateAuctionOpen(Auction auction, LocalDateTime now) {
 		if (auctionPriceService.calculateStatus(auction, now) != AuctionStatus.OPEN) {
 			throw new CustomException(ErrorCode.AUCTION_NOT_OPEN);
+		}
+	}
+
+	private LocalDateTime parsePaidAt(String paidAtStr) {
+		try {
+			if (paidAtStr == null || paidAtStr.isBlank()) {
+				return LocalDateTime.now();
+			}
+			return OffsetDateTime.parse(paidAtStr).toLocalDateTime();
+		} catch (Exception e) {
+			log.warn(">>>> [paidAt 파싱 실패] {}, 현재 시간을 사용합니다.", paidAtStr);
+			return LocalDateTime.now();
 		}
 	}
 }
