@@ -1,6 +1,7 @@
 package com.t1.popcon.queue.common.redis;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Repository;
@@ -13,6 +14,7 @@ import java.util.HashSet;
  * 대기열 WAITING 관련 Redis 연산
  * - 순번 채번 (Sequence), 대기 목록 (Waiting ZSET), heartbeat (Heartbeat ZSET)
  */
+@Slf4j
 @Repository
 @RequiredArgsConstructor
 public class QueueWaitingRepository {
@@ -23,7 +25,8 @@ public class QueueWaitingRepository {
      * ZPOPMIN Lua 스크립트
      * - ZPOPMIN은 [member1, score1, member2, score2, ...] 평탄화 배열 반환
      * - Lua 1-based 홀수 인덱스(1, 3, 5...) 위치가 member — 짝수 인덱스(2, 4, 6...)는 score
-     * - Redisson 연동 시 popMin() API 불일치를 우회하기 위해 Lua 직접 호출
+     * - Spring Data Redis opsForZSet().popMin()은 Set<TypedTuple>를 반환해 member만 추출이 번거로움
+     *   → Lua 직접 호출로 member 목록만 반환받아 타입 변환 없이 처리
      */
     @SuppressWarnings("unchecked")
     private static final DefaultRedisScript<List> ZPOPMIN_SCRIPT = new DefaultRedisScript<>(
@@ -66,13 +69,23 @@ public class QueueWaitingRepository {
 
     // ── Waiting ZSET ──────────────────────────────────────────────
 
-    /** 대기 목록에 추가 (score = 채번된 순번) */
+    /**
+     * 대기 목록에 추가 (score = 채번된 순번)
+     * - 진입 전 호출부에서 기존 항목을 제거하므로 정상 흐름에서 중복 삽입은 발생하지 않아야 함
+     * - 기존 항목이 잔존한 채 호출되면 score(순번)를 덮어써 맨 뒤로 재배치 (패널티 정책 유지)
+     * - addIfAbsent(NX) 미사용: 기존 순번 유지는 설계 의도(무조건 신규 순번 발급)에 위배됨
+     */
     public void addToWaiting(String phaseType, long phaseId, long userId, long score) {
-        redisTemplate.opsForZSet().add(
+        Boolean added = redisTemplate.opsForZSet().add(
             QueueRedisKeys.waiting(phaseType, phaseId),
             String.valueOf(userId),
             score
         );
+        if (!Boolean.TRUE.equals(added)) {
+            // false = 기존 항목 score 덮어씀 (cleanup 미완료 상태로 재진입) — 정상 패널티 동작
+            log.warn("[Queue] 대기 목록 중복 삽입 감지 (기존 순번 덮어씀) - phaseType={}, phaseId={}, userId={}",
+                phaseType, phaseId, userId % 1000);
+        }
     }
 
     /** 대기 목록에서 제거 */

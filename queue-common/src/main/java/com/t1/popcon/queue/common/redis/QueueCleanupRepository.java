@@ -21,24 +21,26 @@ public class QueueCleanupRepository {
 
     /**
      * ACTIVE 사용자 관련 모든 Redis 데이터 정리
-     * - active ZSET 제거 → token/quizPassedToken 삭제 → user HASH 삭제 순으로 처리
+     * - token/quizPassedToken 삭제 → active ZSET 제거 → user HASH 삭제 순으로 처리
      * - token 삭제 실패 시 경고 후 계속 진행 (TTL 만료로 자동 정리됨)
      */
     public void cleanupUserData(String phaseType, long phaseId, long userId, String queueToken) {
         try {
             Map<Object, Object> userHash = activeRepository.getUserHash(phaseType, phaseId, userId);
 
-            // quizPassedToken 역참조 삭제 (발급된 경우에만)
-            Object quizPassedToken = userHash.get(QueueRedisKeys.FIELD_QUIZ_PASSED_TOKEN);
-            if (quizPassedToken != null) {
-                activeRepository.deleteQuizPassedToken(quizPassedToken.toString());
+            // quizPassedToken 역참조 삭제 — user HASH에 hash값으로 저장되어 있으므로 ByHash 호출
+            Object quizPassedTokenHash = userHash.get(QueueRedisKeys.FIELD_QUIZ_PASSED_TOKEN);
+            if (quizPassedTokenHash != null) {
+                activeRepository.deleteQuizPassedTokenByHash(quizPassedTokenHash.toString());
             }
 
-            // queueToken: user HASH 역참조 우선, 없으면 파라미터 폴백
-            Object tokenFromHash = userHash.get(QueueRedisKeys.FIELD_QUEUE_TOKEN);
-            String resolvedToken = tokenFromHash != null ? tokenFromHash.toString() : queueToken;
-            if (resolvedToken != null) {
-                activeRepository.deleteQueueToken(resolvedToken);
+            // queueToken: user HASH에 hash값으로 저장 → ByHash 호출 (이중 해시 방지)
+            // user HASH 없으면 파라미터(raw token)로 폴백 → deleteQueueToken(raw) 호출
+            Object tokenHashFromHash = userHash.get(QueueRedisKeys.FIELD_QUEUE_TOKEN);
+            if (tokenHashFromHash != null) {
+                activeRepository.deleteQueueTokenByHash(tokenHashFromHash.toString());
+            } else if (queueToken != null) {
+                activeRepository.deleteQueueToken(queueToken);
             }
         } catch (Exception e) {
             // 토큰 삭제 실패 시 TTL 만료 후 자동 정리되므로 경고 후 계속 진행
@@ -65,10 +67,12 @@ public class QueueCleanupRepository {
         // queueToken: user HASH 역참조 우선, 없으면 파라미터 폴백 (heartbeat 만료 정리 시 파라미터가 null일 수 있음)
         try {
             Map<Object, Object> userHash = activeRepository.getUserHash(phaseType, phaseId, userId);
-            Object tokenFromHash = userHash.get(QueueRedisKeys.FIELD_QUEUE_TOKEN);
-            String resolvedToken = tokenFromHash != null ? tokenFromHash.toString() : queueToken;
-            if (resolvedToken != null) {
-                activeRepository.deleteQueueToken(resolvedToken);
+            // user HASH에 hash값으로 저장 → ByHash 호출, 없으면 파라미터 raw token으로 폴백
+            Object tokenHashFromHash = userHash.get(QueueRedisKeys.FIELD_QUEUE_TOKEN);
+            if (tokenHashFromHash != null) {
+                activeRepository.deleteQueueTokenByHash(tokenHashFromHash.toString());
+            } else if (queueToken != null) {
+                activeRepository.deleteQueueToken(queueToken);
             }
         } catch (Exception e) {
             log.warn("[Queue] WAITING 토큰 삭제 실패 - phaseType={}, phaseId={}, userId={}",

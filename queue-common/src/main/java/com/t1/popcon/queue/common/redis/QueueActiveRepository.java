@@ -2,6 +2,7 @@ package com.t1.popcon.queue.common.redis;
 
 import com.t1.popcon.common.encryption.EncryptionService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.SessionCallback;
@@ -18,6 +19,7 @@ import java.util.Optional;
  * - 활성 목록 (Active ZSET), 유저 상태 (User HASH), 큐 토큰 (Token HASH), 퀴즈 통과 토큰 (QuizPassedToken HASH)
  * - token 관련 Redis 키는 raw token 노출 방지를 위해 EncryptionService.generateHash()로 SHA-256 변환 후 사용
  */
+@Slf4j
 @Repository
 @RequiredArgsConstructor
 public class QueueActiveRepository {
@@ -84,7 +86,8 @@ public class QueueActiveRepository {
         String key = QueueRedisKeys.user(phaseType, phaseId, userId);
         Map<String, String> fields = Map.of(
             QueueRedisKeys.FIELD_STATUS, status,
-            QueueRedisKeys.FIELD_QUEUE_TOKEN, queueToken
+            // user HASH에는 hash값만 저장 (raw token 노출 방지 — Redis MONITOR/HGETALL 대비)
+            QueueRedisKeys.FIELD_QUEUE_TOKEN, hashToken(queueToken)
         );
         redisTemplate.execute(new SessionCallback<>() {
             @Override
@@ -106,9 +109,9 @@ public class QueueActiveRepository {
     public void refreshWaitingTtl(String phaseType, long phaseId, long userId,
                                    String queueToken, long ttlSeconds) {
         Duration ttl = Duration.ofSeconds(ttlSeconds);
-        redisTemplate.expire(QueueRedisKeys.user(phaseType, phaseId, userId), ttl);
+        expireWithWarn(QueueRedisKeys.user(phaseType, phaseId, userId), ttl, "user HASH (WAITING)");
         if (queueToken != null) {
-            redisTemplate.expire(QueueRedisKeys.token(hashToken(queueToken)), ttl);
+            expireWithWarn(QueueRedisKeys.token(hashToken(queueToken)), ttl, "queueToken (WAITING)");
         }
     }
 
@@ -120,9 +123,9 @@ public class QueueActiveRepository {
     public void refreshActiveTtl(String phaseType, long phaseId, long userId,
                                   String queueToken, long ttlSeconds) {
         Duration ttl = Duration.ofSeconds(ttlSeconds);
-        redisTemplate.expire(QueueRedisKeys.user(phaseType, phaseId, userId), ttl);
+        expireWithWarn(QueueRedisKeys.user(phaseType, phaseId, userId), ttl, "user HASH (ACTIVE)");
         if (queueToken != null) {
-            redisTemplate.expire(QueueRedisKeys.token(hashToken(queueToken)), ttl);
+            expireWithWarn(QueueRedisKeys.token(hashToken(queueToken)), ttl, "queueToken (ACTIVE)");
         }
     }
 
@@ -186,9 +189,17 @@ public class QueueActiveRepository {
         return redisTemplate.opsForHash().entries(QueueRedisKeys.token(hashToken(queueToken)));
     }
 
-    /** queueToken 삭제 */
+    /** queueToken 삭제 (raw token 입력 → 내부에서 해시 후 삭제) */
     public void deleteQueueToken(String queueToken) {
         redisTemplate.delete(QueueRedisKeys.token(hashToken(queueToken)));
+    }
+
+    /**
+     * queueToken 삭제 (user HASH에서 읽은 해시값 직접 입력)
+     * - user HASH의 FIELD_QUEUE_TOKEN은 이미 hashToken() 처리된 값 → 이중 해시 방지
+     */
+    public void deleteQueueTokenByHash(String hashedToken) {
+        redisTemplate.delete(QueueRedisKeys.token(hashedToken));
     }
 
     // ── Quiz Passed Token HASH ────────────────────────────────────
@@ -200,10 +211,11 @@ public class QueueActiveRepository {
      */
     public void saveQuizPassedTokenToUserHash(String phaseType, long phaseId,
                                               long userId, String quizPassedToken) {
+        // user HASH에는 hash값만 저장 (raw token 노출 방지)
         redisTemplate.opsForHash().put(
             QueueRedisKeys.user(phaseType, phaseId, userId),
             QueueRedisKeys.FIELD_QUIZ_PASSED_TOKEN,
-            quizPassedToken
+            hashToken(quizPassedToken)
         );
     }
 
@@ -237,9 +249,17 @@ public class QueueActiveRepository {
         return redisTemplate.opsForHash().entries(QueueRedisKeys.quizPassedToken(hashToken(token)));
     }
 
-    /** 퀴즈 통과 토큰 삭제 */
+    /** 퀴즈 통과 토큰 삭제 (raw token 입력 → 내부에서 해시 후 삭제) */
     public void deleteQuizPassedToken(String token) {
         redisTemplate.delete(QueueRedisKeys.quizPassedToken(hashToken(token)));
+    }
+
+    /**
+     * 퀴즈 통과 토큰 삭제 (user HASH에서 읽은 해시값 직접 입력)
+     * - user HASH의 FIELD_QUIZ_PASSED_TOKEN은 이미 hashToken() 처리된 값 → 이중 해시 방지
+     */
+    public void deleteQuizPassedTokenByHash(String hashedToken) {
+        redisTemplate.delete(QueueRedisKeys.quizPassedToken(hashedToken));
     }
 
     // ── 내부 유틸 ─────────────────────────────────────────────────
@@ -247,9 +267,20 @@ public class QueueActiveRepository {
     /**
      * raw token → SHA-256 해시 (Redis 키 이름 보호)
      * - EncryptionService.generateHash() 위임 — 공통 해시 로직 재사용
-     * - 결과값만 Redis 키 세그먼트로 사용, raw token은 HASH value에만 저장
+     * - 결과값만 Redis 키 세그먼트로 사용, raw token은 HASH value에 저장하지 않음
      */
     private String hashToken(String rawToken) {
         return encryptionService.generateHash(rawToken);
+    }
+
+    /**
+     * TTL 갱신 후 결과 검증
+     * - false/null: 키 미존재 또는 연결 장애 → WARN 로그 (TTL 만료 시 자동 정리되므로 예외 미발생)
+     */
+    private void expireWithWarn(String key, Duration ttl, String context) {
+        Boolean result = redisTemplate.expire(key, ttl);
+        if (!Boolean.TRUE.equals(result)) {
+            log.warn("[Queue] TTL 갱신 실패 — 키 없음 또는 장애 - key={}, context={}", key, context);
+        }
     }
 }
