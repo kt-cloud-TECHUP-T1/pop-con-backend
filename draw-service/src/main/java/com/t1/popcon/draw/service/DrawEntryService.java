@@ -77,8 +77,16 @@ public class DrawEntryService {
 		try {
 			drawEntryRepository.save(entry);
 		} catch (DataIntegrityViolationException e) {
-			throw new CustomException(ErrorCode.DRAW_ALREADY_APPLIED);
+			if (isDuplicateEntryViolation(e)) {
+				throw new CustomException(ErrorCode.DRAW_ALREADY_APPLIED);
+			}
+			throw e;
 		}
+	}
+	private boolean isDuplicateEntryViolation(DataIntegrityViolationException e) {
+		Throwable root = e.getMostSpecificCause();
+		String message = (root != null ? root.getMessage() : e.getMessage());
+		return message != null && message.contains("uk_user_draw_option");
 	}
 
 	@Transactional(readOnly = true)
