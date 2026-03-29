@@ -18,7 +18,7 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
 	int updateStatusWithCAS(@Param("id") Long id,
 		@Param("fromStatus") BidStatus fromStatus,
 		@Param("toStatus") BidStatus toStatus,
-		@Param("paidAt") LocalDateTime paidAt),
+		@Param("paidAt") LocalDateTime paidAt,
     @Param("pgTxId") String pgTxId);
 
 	@Query("SELECT b FROM Bid b " +
