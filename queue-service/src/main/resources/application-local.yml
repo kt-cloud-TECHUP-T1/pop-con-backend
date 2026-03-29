@@ -1,0 +1,25 @@
+spring:
+  config:
+    import: optional:file:.env[.properties]
+
+  data:
+    redis:
+      host: localhost
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+
+encryption:
+  secret: ${ENCRYPTION_SECRET}
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: 1800000
+  refresh-token-expiration: 604800000
+
+server:
+  port: 8085
+  shutdown: graceful
+
+logging:
+  level:
+    com.t1.popcon.queue: debug

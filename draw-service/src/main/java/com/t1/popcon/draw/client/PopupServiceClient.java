@@ -6,6 +6,7 @@ import com.t1.popcon.draw.client.dto.PopupInternalResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(
 	name = "popup-service",
@@ -16,4 +17,7 @@ public interface PopupServiceClient {
 
 	@GetMapping("/popups/{popupId}")
 	ApiResponse<PopupInternalResponse> getPopupDetail(@PathVariable("popupId") Long popupId);
+
+	@GetMapping("/popups/bulk")
+	ApiResponse<List<PopupInternalResponse>> getPopupsByBulkIds(@RequestParam("popupIds") List<Long> popupIds);
 }

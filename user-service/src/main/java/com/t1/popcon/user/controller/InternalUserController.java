@@ -1,6 +1,7 @@
 package com.t1.popcon.user.controller;
 
 import com.t1.popcon.common.response.ApiResponse;
+import com.t1.popcon.user.dto.UserInternalResponse;
 import com.t1.popcon.user.dto.UserLookupResponse;
 import com.t1.popcon.user.service.UserService;
 import com.t1.popcon.user.dto.UserCreateRequest;
@@ -18,6 +19,14 @@ import org.springframework.web.bind.annotation.*;
 public class InternalUserController {
 
     private final UserService userService;
+
+    /**
+     * 사용자 ID로 상세 정보 조회 (내부 서비스용)
+     */
+    @GetMapping("/internal/users/{userId}")
+    public ApiResponse<UserInternalResponse> getUserInternal(@PathVariable Long userId) {
+        return ApiResponse.ok(userService.getUserInternal(userId));
+    }
 
     /**
      * 신규 회원 생성 (본인인증 완료 후 회원가입 절차)

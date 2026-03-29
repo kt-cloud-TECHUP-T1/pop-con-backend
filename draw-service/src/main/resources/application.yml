@@ -27,3 +27,6 @@ portone:
 
 encryption:
   secret: ${ENCRYPTION_SECRET}
+
+internal:
+  api-secret: ${INTERNAL_API_SECRET:changeme-local-secret}

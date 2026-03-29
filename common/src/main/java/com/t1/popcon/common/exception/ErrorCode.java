@@ -85,6 +85,7 @@ public enum ErrorCode {
     QUIZ_PASSED_TOKEN_INVALID("QZ002", HttpStatus.UNAUTHORIZED, "유효하지 않은 퀴즈 통과 토큰입니다.");
 
 
+
     private final String code;
     private final HttpStatus status;
     private final String message;
