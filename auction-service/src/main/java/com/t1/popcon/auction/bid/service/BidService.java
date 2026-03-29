@@ -136,14 +136,14 @@ public class BidService {
 	}
 
 	private LocalDateTime parsePaidAt(String paidAtStr) {
+		if (paidAtStr == null || paidAtStr.isBlank()) {
+			throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 완료 시각이 누락되었습니다.");
+		}
 		try {
-			if (paidAtStr == null || paidAtStr.isBlank()) {
-				return LocalDateTime.now();
-			}
 			return OffsetDateTime.parse(paidAtStr).toLocalDateTime();
 		} catch (Exception e) {
-			log.warn(">>>> [paidAt 파싱 실패] {}, 현재 시간을 사용합니다.", paidAtStr);
-			return LocalDateTime.now();
+			log.warn(">>>> [paidAt 파싱 실패] {}", paidAtStr, e);
+			throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 완료 시각 파싱에 실패했습니다.");
 		}
 	}
 }
