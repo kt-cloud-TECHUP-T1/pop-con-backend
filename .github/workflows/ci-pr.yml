@@ -28,7 +28,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Test + Docs (OpenAPI copy)
-        run: ./gradlew --no-daemon clean test :auth-service:bootJar :user-service:bootJar :popup-service:bootJar :auction-service:bootJar copyOasToSwagger
+        run: ./gradlew --no-daemon clean test :auth-service:bootJar :user-service:bootJar :popup-service:bootJar :auction-service:bootJar :queue-service:bootJar copyOasToSwagger
 
       - name: Upload test report
         if: failure()
@@ -41,6 +41,7 @@ jobs:
             popup-service/build/reports/tests/test
             auction-service/build/reports/tests/test
             draw-service/build/reports/tests/test
+            queue-service/build/reports/tests/test
             
 
           if-no-files-found: warn
@@ -55,6 +56,7 @@ jobs:
             user-service/src/main/resources/static/swagger-ui
             auction-service/src/main/resources/static/swagger-ui
             draw-service/src/main/resources/static/swagger-ui
+            queue-service/src/main/resources/static/swagger-ui
           if-no-files-found: warn
 
       - name: Notify Discord (Test & Docs)
@@ -81,6 +83,7 @@ jobs:
           - popup-service
           - auction-service
           - draw-service
+          - queue-service
 
     steps:
       - uses: actions/checkout@v4
