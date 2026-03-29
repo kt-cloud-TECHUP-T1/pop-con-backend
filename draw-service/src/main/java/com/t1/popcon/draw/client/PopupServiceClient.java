@@ -6,6 +6,10 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.List;
+
 @FeignClient(
 	name = "popup-service",
 	url = "${services.popup-service.url:http://localhost:8082}"
@@ -14,4 +18,7 @@ public interface PopupServiceClient {
 
 	@GetMapping("/popups/{popupId}")
 	ApiResponse<PopupInternalResponse> getPopupDetail(@PathVariable("popupId") Long popupId);
+
+	@GetMapping("/popups/bulk")
+	ApiResponse<List<PopupInternalResponse>> getPopupsByBulkIds(@RequestParam("popupIds") List<Long> popupIds);
 }

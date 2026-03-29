@@ -19,8 +19,12 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -64,6 +68,9 @@ public class DrawEntryService {
 			throw new CustomException(ErrorCode.USER_NOT_FOUND);
 		}
 
+		if (!request.isTermsAgreed() || !request.isPrivacyAgreed()) {
+			throw new CustomException(ErrorCode.INVALID_INPUT);
+		}
 		// 6. 응모 내역 생성 및 저장
 		DrawEntry entry = DrawEntry.builder()
 			.userId(userId)
@@ -83,6 +90,7 @@ public class DrawEntryService {
 			throw e;
 		}
 	}
+
 	private boolean isDuplicateEntryViolation(DataIntegrityViolationException e) {
 		Throwable root = e.getMostSpecificCause();
 		String message = (root != null ? root.getMessage() : e.getMessage());
@@ -90,23 +98,43 @@ public class DrawEntryService {
 	}
 
 	@Transactional(readOnly = true)
-	public List<DrawEntryResponse> getEntriesByUserId(Long userId) {
-		List<DrawEntry> entries = drawEntryRepository.findAllByUserIdOrderByCreatedAtDesc(userId);
+	public Slice<DrawEntryResponse> getEntriesByUserId(Long userId, Pageable pageable) {
+		Slice<DrawEntry> entries = drawEntryRepository.findAllByUserIdOrderByCreatedAtDesc(userId, pageable);
 
-		return entries.stream()
-			.map(this::convertToResponse)
+		// 1. 필요한 모든 popupId 추출
+		List<Long> popupIds = entries.getContent().stream()
+			.map(entry -> entry.getDrawOption().getDraw().getPopupId())
+			.distinct()
 			.collect(Collectors.toList());
+
+		// 2. 팝업 정보 배치 조회
+		Map<Long, PopupInternalResponse> popupMap = fetchPopupsInBatch(popupIds);
+
+		return entries.map(entry -> {
+			PopupInternalResponse popupInfo = popupMap.get(entry.getDrawOption().getDraw().getPopupId());
+			return convertToResponse(entry, popupInfo);
+		});
 	}
 
-	private DrawEntryResponse convertToResponse(DrawEntry entry) {
-		// 팝업 서비스로부터 제목, 썸네일 정보를 가져옴
-		PopupInternalResponse popupInfo = null;
-		try {
-			popupInfo = popupServiceClient.getPopupDetail(entry.getDrawOption().getDraw().getPopupId()).getData();
-		} catch (Exception e) {
-			log.warn("팝업 정보 조회 실패 - popupId: {}", entry.getDrawOption().getDraw().getPopupId(), e);
+	private Map<Long, PopupInternalResponse> fetchPopupsInBatch(List<Long> popupIds) {
+		if (popupIds.isEmpty()) {
+			return Collections.emptyMap();
 		}
 
+		try {
+			List<PopupInternalResponse> popupList = popupServiceClient.getPopupsByBulkIds(popupIds).getData();
+			if (popupList == null) {
+				return Collections.emptyMap();
+			}
+			return popupList.stream()
+				.collect(Collectors.toMap(PopupInternalResponse::popupId, response -> response));
+		} catch (Exception e) {
+			log.warn("팝업 정보 배치 조회 실패 - popupIds: {}", popupIds, e);
+			return Collections.emptyMap();
+		}
+	}
+
+	private DrawEntryResponse convertToResponse(DrawEntry entry, PopupInternalResponse popupInfo) {
 		LocalDateTime now = LocalDateTime.now();
 		LocalDateTime drawCloseAt = entry.getDrawOption().getDraw().getDrawCloseAt();
 		String displayStatus;
