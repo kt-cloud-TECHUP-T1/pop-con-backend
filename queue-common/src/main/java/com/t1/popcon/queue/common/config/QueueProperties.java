@@ -1,5 +1,6 @@
 package com.t1.popcon.queue.common.config;
 
+import com.t1.popcon.queue.common.domain.PhaseType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Positive;
@@ -67,6 +68,25 @@ public class QueueProperties {
         } catch (ArithmeticException e) {
             return false;
         }
+    }
+
+    // ── 유틸 메서드 ─────────────────────────────────────────────
+
+    /** PhaseType별 ACTIVE TTL 반환 (초) — 서비스에서 중복 switch 제거용 */
+    public long getActiveTtlSeconds(PhaseType phaseType) {
+        return switch (phaseType) {
+            case DRAW -> activeTtl.getDrawSeconds();
+            case AUCTION -> activeTtl.getAuctionSeconds();
+        };
+    }
+
+    /**
+     * 예상 대기 시간 계산 (초)
+     * - position / maxRelease * releaseInterval (올림)
+     */
+    public long estimateWaitSeconds(long position) {
+        long cycles = (position + maxReleasePerCycle - 1) / maxReleasePerCycle;
+        return (cycles * releaseIntervalMs) / 1000;
     }
 
     @Getter
