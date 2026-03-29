@@ -87,9 +87,15 @@ public class BidService {
 				throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제가 완료되지 않았습니다.");
 			}
 
+			String pgTxId = paymentResponse.getPgTxId();
+			if(pgTxId == null || pgTxId.isBlank()) {
+				log.error(">>>> [결제 응답 오류] pgTxId가 응답에 포함되지 않았습니다. MerchantUid: {}", bid.getMerchantUid());
+				throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 트랜잭션 ID가 누락되었습니다.");
+			}
+
 			// [Step 3] 최종 확정 (DB 트랜잭션)
 			LocalDateTime paidAt = parsePaidAt(paymentResponse.payment().paidAt());
-			txManager.completeBidSuccess(bid.getId(), option.getId(), paymentResponse.getPgTxId(), paidAt);
+			txManager.completeBidSuccess(bid.getId(), option.getId(), pgTxId, paidAt);
 
 			return new BidResponse(bid.getId(), BidStatus.SUCCESS, "낙찰이 완료되었습니다.");
 
