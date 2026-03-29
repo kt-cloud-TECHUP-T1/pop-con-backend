@@ -3,7 +3,9 @@ package com.t1.popcon.draw.service;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.draw.client.PopupServiceClient;
+import com.t1.popcon.draw.client.UserServiceClient;
 import com.t1.popcon.draw.client.dto.PopupInternalResponse;
+import com.t1.popcon.draw.client.dto.UserInternalResponse;
 import com.t1.popcon.draw.domain.DrawEntry;
 import com.t1.popcon.draw.domain.DrawOption;
 import com.t1.popcon.draw.dto.request.DrawEntryRequest;
@@ -29,6 +31,7 @@ public class DrawEntryService {
 	private final DrawEntryRepository drawEntryRepository;
 	private final DrawOptionRepository drawOptionRepository;
 	private final PopupServiceClient popupServiceClient;
+	private final UserServiceClient userServiceClient;
 
 	@Transactional
 	public void applyForDraw(Long userId, Long drawId, Long drawOptionId, DrawEntryRequest request) {
@@ -55,12 +58,18 @@ public class DrawEntryService {
 			throw new CustomException(ErrorCode.DRAW_ALREADY_APPLIED);
 		}
 
-		// 5. 응모 내역 생성 및 저장 (요청 정보 포함)
+		// 5. 사용자 정보 조회 (암호화된 이름, 전화번호)
+		UserInternalResponse userInfo = userServiceClient.getUserInternal(userId).getData();
+		if (userInfo == null) {
+			throw new CustomException(ErrorCode.USER_NOT_FOUND);
+		}
+
+		// 6. 응모 내역 생성 및 저장
 		DrawEntry entry = DrawEntry.builder()
 			.userId(userId)
 			.drawOption(drawOption)
-			.name(request.name())
-			.phoneNumber(request.phoneNumber())
+			.encryptedName(userInfo.encryptedName())
+			.encryptedPhoneNumber(userInfo.encryptedPhoneNumber())
 			.isTermsAgreed(request.isTermsAgreed())
 			.isPrivacyAgreed(request.isPrivacyAgreed())
 			.build();

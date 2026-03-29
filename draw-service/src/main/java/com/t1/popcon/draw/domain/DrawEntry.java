@@ -32,11 +32,11 @@ public class DrawEntry extends BaseSoftDeleteEntity {
 	@JoinColumn(name = "draw_option_id", nullable = false)
 	private DrawOption drawOption;
 
-	@Column(nullable = false)
-	private String name;
+	@Column(name = "encrypted_name", nullable = false)
+	private String encryptedName;
 
-	@Column(nullable = false)
-	private String phoneNumber;
+	@Column(name = "encrypted_phone_number", nullable = false)
+	private String encryptedPhoneNumber;
 
 	@Column(nullable = false)
 	private boolean isPrivacyAgreed;
@@ -54,15 +54,15 @@ public class DrawEntry extends BaseSoftDeleteEntity {
 	public DrawEntry(
 		Long userId,
 		DrawOption drawOption,
-		String name,
-		String phoneNumber,
+		String encryptedName,
+		String encryptedPhoneNumber,
 		boolean isPrivacyAgreed,
 		boolean isTermsAgreed
 	) {
 		this.userId = userId;
 		this.drawOption = drawOption;
-		this.name = name;
-		this.phoneNumber = phoneNumber;
+		this.encryptedName = encryptedName;
+		this.encryptedPhoneNumber = encryptedPhoneNumber;
 		this.isPrivacyAgreed = isPrivacyAgreed;
 		this.isTermsAgreed = isTermsAgreed;
 		this.status = DrawEntryStatus.APPLIED;
