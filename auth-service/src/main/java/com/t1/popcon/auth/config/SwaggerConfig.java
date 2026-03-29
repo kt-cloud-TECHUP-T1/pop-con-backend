@@ -6,15 +6,15 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
-@Profile({"default", "local", "prod"})
+@Profile({"default", "local", "staging", "prod"})
 public class SwaggerConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/swagger-ui/**")
+        registry.addResourceHandler("/auth/swagger-ui/**")
                 .addResourceLocations("classpath:/static/swagger-ui/");
 
-        registry.addResourceHandler("/favicon.ico")
+        registry.addResourceHandler("/auth/favicon.ico")
                 .addResourceLocations("classpath:/static/");
     }
 }

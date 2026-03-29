@@ -31,6 +31,7 @@ public class DrawService {
                         !serverTime.isAfter(draw.getDrawCloseAt());
 
         return DrawDetailResponse.of(
+                draw.getId(),
                 draw.getDrawOpenAt(),
                 draw.getDrawCloseAt(),
                 participatable,
