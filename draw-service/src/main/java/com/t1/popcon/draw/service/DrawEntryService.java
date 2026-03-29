@@ -33,7 +33,7 @@ public class DrawEntryService {
 	public void applyForDraw(Long userId, Long drawId, Long drawOptionId, DrawEntryRequest request) {
 		// 1. 회차(옵션) 정보 조회
 		DrawOption drawOption = drawOptionRepository.findById(drawOptionId)
-			.orElseThrow(() -> new CustomException(ErrorCode.INVALID_INPUT));
+			.orElseThrow(() -> new CustomException(ErrorCode.DRAW_OPTION_NOT_FOUND));
 
 		// 2. 경로상의 drawId와 옵션의 drawId가 일치하는지 검증
 		if (!drawOption.getDraw().getId().equals(drawId)) {
