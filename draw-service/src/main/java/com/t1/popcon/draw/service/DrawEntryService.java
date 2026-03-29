@@ -11,6 +11,8 @@ import com.t1.popcon.draw.dto.response.DrawEntryResponse;
 import com.t1.popcon.draw.repository.DrawEntryRepository;
 import com.t1.popcon.draw.repository.DrawOptionRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DrawEntryService {
 
 	private final DrawEntryRepository drawEntryRepository;
@@ -47,12 +50,12 @@ public class DrawEntryService {
 			throw new CustomException(ErrorCode.DRAW_ALREADY_CLOSED);
 		}
 
-		// 3. 1차 중복 응모 검증
+		// 4. 1차 중복 응모 검증
 		if (drawEntryRepository.existsByUserIdAndDrawOption_Id(userId, drawOptionId)) {
 			throw new CustomException(ErrorCode.DRAW_ALREADY_APPLIED);
 		}
 
-		// 4. 응모 내역 생성 및 저장 (요청 정보 포함)
+		// 5. 응모 내역 생성 및 저장 (요청 정보 포함)
 		DrawEntry entry = DrawEntry.builder()
 			.userId(userId)
 			.drawOption(drawOption)
@@ -84,7 +87,7 @@ public class DrawEntryService {
 		try {
 			popupInfo = popupServiceClient.getPopupDetail(entry.getDrawOption().getDraw().getPopupId()).getData();
 		} catch (Exception e) {
-			// 팝업 서비스 호출 실패 시 기본값 처리 (또는 로그)
+			log.warn("팝업 정보 조회 실패 - popupId: {}", entry.getDrawOption().getDraw().getPopupId(), e);
 		}
 
 		LocalDateTime now = LocalDateTime.now();
