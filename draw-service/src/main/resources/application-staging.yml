@@ -57,10 +57,6 @@ management:
     tags:
       application: draw-service
 
-internal:
-  api-secret: ${INTERNAL_API_SECRET:changeme-local-secret}
-
-
 services:
   popup-service:
     url: ${POPUP_SERVICE_URL:http://localhost:8082}

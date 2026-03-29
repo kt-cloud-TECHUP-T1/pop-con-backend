@@ -28,6 +28,9 @@ portone:
 encryption:
   secret: ${ENCRYPTION_SECRET}
 
+internal:
+  api-secret: ${INTERNAL_API_SECRET:changeme-local-secret}
+
 services:
   user-service:
     url: ${USER_SERVICE_URL:http://localhost:8081}

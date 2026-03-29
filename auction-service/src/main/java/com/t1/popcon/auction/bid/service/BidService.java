@@ -56,25 +56,26 @@ public class BidService {
 	}
 
 	private BidHistoryResponse convertToHistoryResponse(Bid bid) {
-		PopupInternalResponse popupInfo = null;
 		Long popupId = bid.getAuctionOption().getAuction().getPopupId();
 		try {
 			ApiResponse<PopupInternalResponse> response = popupServiceClient.getPopupDetail(popupId);
-			if (response != null) {
-				popupInfo = response.getData();
+			if (response == null || response.getData() == null) {
+				throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
 			}
+			PopupInternalResponse popupInfo = response.getData();
+
+			return BidHistoryResponse.builder()
+				.id(bid.getId())
+				.thumbnailUrl(popupInfo.thumbnailUrl())
+				.popupTitle(popupInfo.title())
+				.bidPrice(bid.getBidPrice())
+				.paidAt(bid.getPaidAt())
+				.displayStatus(bid.getStatus().getDescription())
+				.build();
 		} catch (Exception e) {
 			log.error(">>>> [Popup-Service 연동 실패] Popup ID: {}, Error: {}", popupId, e.getMessage());
+			throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
 		}
-
-		return BidHistoryResponse.builder()
-			.id(bid.getId())
-			.thumbnailUrl(popupInfo != null ? popupInfo.thumbnailUrl() : null)
-			.popupTitle(popupInfo != null ? popupInfo.title() : "알 수 없는 팝업")
-			.bidPrice(bid.getBidPrice())
-			.paidAt(bid.getPaidAt())
-			.displayStatus(bid.getStatus().getDescription())
-			.build();
 	}
 
 	public BidResponse attemptBid(Long userId, BidRequest request) {
