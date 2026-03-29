@@ -38,6 +38,11 @@ jwt:
   access-token-expiration: 1800000
   refresh-token-expiration: 604800000
 
+services:
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8081}
+    internal-secret: ${INTERNAL_API_SECRET}
+
 
 management:
   endpoints:
