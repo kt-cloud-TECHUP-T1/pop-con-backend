@@ -11,8 +11,8 @@ import java.time.LocalDateTime;
 @Service
 public class AuctionPriceService {
 
-    public Integer calculateCurrentPrice(Auction auction, LocalDateTime now) {
-        if (auction.isSold()) {
+    public Integer calculateCurrentPrice(Auction auction, AuctionStatus auctionStatus, LocalDateTime now) {
+        if (auctionStatus == AuctionStatus.SOLD_OUT) {
             return auction.getMinimumPrice();
         }
 
@@ -42,8 +42,8 @@ public class AuctionPriceService {
         return Math.max(nextPrice, auction.getMinimumPrice());
     }
 
-    public Long calculateSecondsUntilNextDrop(Auction auction, LocalDateTime now) {
-        if (auction.isSold()) {
+    public Long calculateSecondsUntilNextDrop(Auction auction, AuctionStatus auctionStatus, LocalDateTime now) {
+        if (auctionStatus == AuctionStatus.SOLD_OUT) {
             return 0L;
         }
 
@@ -67,7 +67,7 @@ public class AuctionPriceService {
             return auction.getPriceDropIntervalSeconds().longValue();
         }
 
-        return calculateSecondsUntilNextDrop(auction, now);
+        return calculateSecondsUntilNextDrop(auction, auctionStatus, now);
     }
 
     public Long calculateRemainingUntilOpenSeconds(Auction auction, LocalDateTime now) {
@@ -78,8 +78,8 @@ public class AuctionPriceService {
         return Duration.between(now, auction.getOpenedAt()).getSeconds();
     }
 
-    public Long calculateRemainingUntilCloseSeconds(Auction auction, LocalDateTime now) {
-        if (auction.isSold()) {
+    public Long calculateRemainingUntilCloseSeconds(Auction auction, AuctionStatus auctionStatus, LocalDateTime now) {
+        if (auctionStatus == AuctionStatus.SOLD_OUT) {
             return 0L;
         }
 
@@ -102,11 +102,7 @@ public class AuctionPriceService {
         return auction.getStartPrice() - currentPrice;
     }
 
-    public AuctionStatus calculateStatus(Auction auction, LocalDateTime now) {
-        if (auction.isSold()) {
-            return AuctionStatus.SOLD_OUT;
-        }
-
+    public AuctionStatus calculateStatus(Auction auction, LocalDateTime now, boolean hasAvailableStock) {
         if (now.isBefore(auction.getOpenedAt())) {
             return AuctionStatus.SCHEDULED;
         }
@@ -115,7 +111,20 @@ public class AuctionPriceService {
             return AuctionStatus.CLOSED;
         }
 
+        if (!hasAvailableStock) {
+            return AuctionStatus.SOLD_OUT;
+        }
+
         return AuctionStatus.OPEN;
+    }
+
+    public boolean isPriceDropBoundary(Auction auction, LocalDateTime now) {
+        if (now.isBefore(auction.getOpenedAt()) || now.isAfter(auction.getClosedAt())) {
+            return false;
+        }
+
+        long elapsedSeconds = Duration.between(auction.getOpenedAt(), now).getSeconds();
+        return elapsedSeconds >= 0 && elapsedSeconds % auction.getPriceDropIntervalSeconds() == 0;
     }
 
     public boolean canParticipate(AuctionStatus auctionStatus) {

@@ -7,35 +7,41 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Repository;
 
-import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
 
 @Slf4j
 @Repository
 @RequiredArgsConstructor
 public class BidRedisRepository {
 
-	private final RedisTemplate<String, String> redisTemplate;
-	private static final String STOCK_KEY_PREFIX = "auction:option:%d:stock";
+	private static final String AVAILABLE_STOCK_KEY_PREFIX = "auction:option:%d:stock";
+	private static final String PENDING_RESTOCK_KEY_PREFIX = "auction:option:%d:pending-restock";
 
-	public Integer getStock(Long optionId) {
-		String key = String.format(STOCK_KEY_PREFIX, optionId);
-		String stock = redisTemplate.opsForValue().get(key);
+	private final RedisTemplate<String, String> redisTemplate;
+
+	public Integer getAvailableStock(Long optionId) {
+		String stock = redisTemplate.opsForValue().get(getAvailableStockKey(optionId));
+		return stock != null ? Integer.parseInt(stock) : null;
+	}
+
+	public int getPendingRestock(Long optionId) {
+		String stock = redisTemplate.opsForValue().get(getPendingRestockKey(optionId));
 		return stock != null ? Integer.parseInt(stock) : 0;
 	}
 
-	public void setStock(Long optionId, Integer stock) {
-		String key = String.format(STOCK_KEY_PREFIX, optionId);
-		redisTemplate.opsForValue().set(key, String.valueOf(stock));
+	public void setAvailableStock(Long optionId, Integer stock) {
+		redisTemplate.opsForValue().set(getAvailableStockKey(optionId), String.valueOf(stock));
 	}
 
-	// 결제 실패 시 재고 복구
-	public void incrementStock(Long optionId) {
-		String key = String.format(STOCK_KEY_PREFIX, optionId);
-		redisTemplate.opsForValue().increment(key);
+	public void resetPendingRestock(Long optionId) {
+		redisTemplate.delete(getPendingRestockKey(optionId));
 	}
 
-	// Lua Script를 이용한 원자적 재고 차감
+	public void addPendingRestock(Long optionId, long quantity) {
+		redisTemplate.opsForValue().increment(getPendingRestockKey(optionId), quantity);
+	}
+
 	private static final DefaultRedisScript<Long> DECREMENT_SCRIPT;
 	static {
 		DECREMENT_SCRIPT = new DefaultRedisScript<>();
@@ -44,7 +50,39 @@ public class BidRedisRepository {
 	}
 
 	public Long decrementStock(Long optionId) {
-		String key = String.format(STOCK_KEY_PREFIX, optionId);
-		return redisTemplate.execute(DECREMENT_SCRIPT, Collections.singletonList(key), "1");
+		return redisTemplate.execute(DECREMENT_SCRIPT, Collections.singletonList(getAvailableStockKey(optionId)), "1");
+	}
+
+	private static final DefaultRedisScript<Long> RELEASE_PENDING_RESTOCK_SCRIPT;
+	static {
+		RELEASE_PENDING_RESTOCK_SCRIPT = new DefaultRedisScript<>();
+		RELEASE_PENDING_RESTOCK_SCRIPT.setScriptText("""
+			local pending = redis.call('GET', KEYS[2])
+			if not pending or tonumber(pending) <= 0 then
+			    return 0
+			end
+
+			local released = tonumber(pending)
+			redis.call('INCRBY', KEYS[1], released)
+			redis.call('DEL', KEYS[2])
+			return released
+			""");
+		RELEASE_PENDING_RESTOCK_SCRIPT.setResultType(Long.class);
+	}
+
+	public long releasePendingRestock(Long optionId) {
+		Long released = redisTemplate.execute(
+			RELEASE_PENDING_RESTOCK_SCRIPT,
+			List.of(getAvailableStockKey(optionId), getPendingRestockKey(optionId))
+		);
+		return released != null ? released : 0L;
+	}
+
+	private String getAvailableStockKey(Long optionId) {
+		return String.format(AVAILABLE_STOCK_KEY_PREFIX, optionId);
+	}
+
+	private String getPendingRestockKey(Long optionId) {
+		return String.format(PENDING_RESTOCK_KEY_PREFIX, optionId);
 	}
 }

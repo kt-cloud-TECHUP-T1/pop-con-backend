@@ -1,8 +1,8 @@
 package com.t1.popcon.auction.bid.service;
 
+import com.t1.popcon.auction.bid.infrastructure.BidRedisRepository;
 import com.t1.popcon.auction.domain.AuctionOption;
 import com.t1.popcon.auction.repository.AuctionOptionRepository;
-import com.t1.popcon.auction.bid.infrastructure.BidRedisRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,21 +20,22 @@ public class BidRedisInitService {
 
 	@Transactional(readOnly = true)
 	public void initializeStockToRedis(Long auctionId) {
-		log.info(">>>> [Redis Init] 경매 ID {} 재고 초기화 시작", auctionId);
+		log.info(">>>> [Redis Init] auctionId={} 재고 초기화 시작", auctionId);
 
 		List<AuctionOption> options = auctionOptionRepository
-			.findByAuction_IdAndRemainingStockGreaterThanOrderByEntryDateAscEntryTimeAsc(auctionId, 0);
+			.findByAuction_IdOrderByEntryDateAscEntryTimeAsc(auctionId);
 
 		if (options.isEmpty()) {
-			log.warn(">>>> [Redis Init] 초기화할 재고 정보가 없습니다. auctionId: {}", auctionId);
+			log.warn(">>>> [Redis Init] 초기화할 재고 정보가 없습니다. auctionId={}", auctionId);
 			return;
 		}
 
 		for (AuctionOption option : options) {
-			bidRedisRepository.setStock(option.getId(), option.getRemainingStock());
-			log.info(">>>> [Redis Init] Option ID {}: 재고 {}개 로드 완료", option.getId(), option.getRemainingStock());
+			bidRedisRepository.setAvailableStock(option.getId(), option.getRemainingStock());
+			bidRedisRepository.resetPendingRestock(option.getId());
+			log.info(">>>> [Redis Init] optionId={} availableStock={} pendingRestock=0", option.getId(), option.getRemainingStock());
 		}
 
-		log.info(">>>> [Redis Init] 경매 ID {} 재고 초기화 완료 (총 {}개 회차)", auctionId, options.size());
+		log.info(">>>> [Redis Init] auctionId={} 재고 초기화 완료 (총 {}개 회차)", auctionId, options.size());
 	}
 }

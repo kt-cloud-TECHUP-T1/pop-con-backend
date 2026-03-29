@@ -18,6 +18,7 @@ public class AuctionQueryService {
 
     private final AuctionRepository auctionRepository;
     private final AuctionPriceService auctionPriceService;
+    private final AuctionStockService auctionStockService;
 
     public AuctionDetailResponse getAuctionDetail(Long auctionId) {
         Auction auction = auctionRepository.findById(auctionId)
@@ -25,14 +26,18 @@ public class AuctionQueryService {
 
         LocalDateTime now = LocalDateTime.now();
 
-        AuctionStatus auctionStatus = auctionPriceService.calculateStatus(auction, now);
+        AuctionStatus auctionStatus = auctionPriceService.calculateStatus(
+                auction,
+                now,
+                auctionStockService.hasAvailableStock(auction.getId())
+        );
         Long remainingUntilOpenSeconds = auctionPriceService.calculateRemainingUntilOpenSeconds(auction, now);
-        Long remainingUntilCloseSeconds = auctionPriceService.calculateRemainingUntilCloseSeconds(auction, now);
+        Long remainingUntilCloseSeconds = auctionPriceService.calculateRemainingUntilCloseSeconds(auction, auctionStatus, now);
 
-        Integer currentPrice = auctionPriceService.calculateCurrentPrice(auction, now);
+        Integer currentPrice = auctionPriceService.calculateCurrentPrice(auction, auctionStatus, now);
         Integer nextPrice = auctionPriceService.calculateNextPrice(auction, currentPrice);
         Integer discountAmount = auctionPriceService.calculateDiscountAmount(auction, currentPrice);
-        Long secondsUntilNextDrop = auctionPriceService.calculateSecondsUntilNextDrop(auction, now);
+        Long secondsUntilNextDrop = auctionPriceService.calculateSecondsUntilNextDrop(auction, auctionStatus, now);
 
         Boolean canParticipate = auctionPriceService.canParticipate(auctionStatus);
         AuctionButtonStatus buttonStatus = auctionPriceService.calculateButtonStatus(auctionStatus);
