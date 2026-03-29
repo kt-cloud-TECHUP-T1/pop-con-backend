@@ -1,5 +1,6 @@
 package com.t1.popcon.draw.service;
 
+import com.t1.popcon.common.encryption.EncryptionService;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.draw.client.PopupServiceClient;
@@ -26,6 +27,7 @@ public class DrawEntryService {
 	private final DrawEntryRepository drawEntryRepository;
 	private final DrawOptionRepository drawOptionRepository;
 	private final PopupServiceClient popupServiceClient;
+	private final EncryptionService encryptionService;
 
 	@Transactional
 	public void applyForDraw(Long userId, Long drawId, Long drawOptionId, DrawEntryRequest request) {
@@ -52,12 +54,15 @@ public class DrawEntryService {
 			throw new CustomException(ErrorCode.DRAW_ALREADY_APPLIED);
 		}
 
-		// 4. 응모 내역 생성 및 저장 (요청 정보 포함)
+		// 4. 응모 내역 생성 및 저장 (요청 정보 포함 - 개인정보 암호화)
+		String encryptedName = encryptionService.encrypt(request.name());
+		String encryptedPhoneNumber = encryptionService.encrypt(request.phoneNumber());
+
 		DrawEntry entry = DrawEntry.builder()
 			.userId(userId)
 			.drawOption(drawOption)
-			.name(request.name())
-			.phoneNumber(request.phoneNumber())
+			.encryptedName(encryptedName)
+			.encryptedPhoneNumber(encryptedPhoneNumber)
 			.isTermsAgreed(request.isTermsAgreed())
 			.isPrivacyAgreed(request.isPrivacyAgreed())
 			.build();
@@ -109,7 +114,7 @@ public class DrawEntryService {
 			.price(0L) // TODO: 팝업 서비스에서 가격 정보를 주면 연결 필요, 또는 드로우 엔티티에 가격 추가
 			.paidAt(entry.getPaidAt())
 			.displayStatus(displayStatus)
-			.status(entry.getStatus())
+			.status(entry.getStatus().name())
 			.build();
 	}
 }

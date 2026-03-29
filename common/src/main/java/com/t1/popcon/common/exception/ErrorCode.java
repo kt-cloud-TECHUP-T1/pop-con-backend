@@ -69,7 +69,10 @@ public enum ErrorCode {
 
     // Encryption
     ENCRYPTION_FAILED("E001", HttpStatus.INTERNAL_SERVER_ERROR, "데이터 암호화에 실패했습니다."),
-    DECRYPTION_FAILED("E002", HttpStatus.INTERNAL_SERVER_ERROR, "데이터 복호화에 실패했습니다.");
+    DECRYPTION_FAILED("E002", HttpStatus.INTERNAL_SERVER_ERROR, "데이터 복호화에 실패했습니다."),
+
+    // External Service
+    EXTERNAL_SERVICE_ERROR("ES001", HttpStatus.BAD_GATEWAY, "외부 서비스 연동에 실패했습니다.");
 
 
 

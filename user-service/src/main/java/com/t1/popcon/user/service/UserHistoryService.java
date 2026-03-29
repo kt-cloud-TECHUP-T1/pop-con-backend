@@ -1,5 +1,7 @@
 package com.t1.popcon.user.service;
 
+import com.t1.popcon.common.exception.CustomException;
+import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.common.response.ApiResponse;
 import com.t1.popcon.user.client.AuctionServiceClient;
 import com.t1.popcon.user.client.DrawServiceClient;
@@ -9,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -23,24 +24,26 @@ public class UserHistoryService {
 	public List<DrawHistoryResponse> getDrawHistory(Long userId) {
 		try {
 			ApiResponse<List<DrawHistoryResponse>> response = drawServiceClient.getDrawEntries(userId);
-			if (response != null && response.getData() != null) {
-				return response.getData();
+			if (response == null || response.getData() == null) {
+				throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
 			}
+			return response.getData();
 		} catch (Exception e) {
 			log.error(">>>> [Draw-Service 연동 실패] User ID: {}, Error: {}", userId, e.getMessage());
+			throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
 		}
-		return Collections.emptyList();
 	}
 
 	public List<AuctionHistoryResponse> getAuctionHistory(Long userId) {
 		try {
 			ApiResponse<List<AuctionHistoryResponse>> response = auctionServiceClient.getAuctionBids(userId);
-			if (response != null && response.getData() != null) {
-				return response.getData();
+			if (response == null || response.getData() == null) {
+				throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
 			}
+			return response.getData();
 		} catch (Exception e) {
 			log.error(">>>> [Auction-Service 연동 실패] User ID: {}, Error: {}", userId, e.getMessage());
+			throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
 		}
-		return Collections.emptyList();
 	}
 }
