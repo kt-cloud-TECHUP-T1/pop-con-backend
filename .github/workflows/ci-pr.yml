@@ -28,7 +28,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Test + Docs (OpenAPI copy)
-        run: ./gradlew --no-daemon clean test :auth-service:bootJar :user-service:bootJar :popup-service:bootJar :auction-service:bootJar :draw-service:bootJar :queue-service:bootJar :queue-worker:boot Jar copyOasToSwagger
+        run: ./gradlew --no-daemon clean test :auth-service:bootJar :user-service:bootJar :popup-service:bootJar :auction-service:bootJar :draw-service:bootJar :queue-service:bootJar :queue-worker:bootJar copyOasToSwagger
 
       - name: Upload test report
         if: failure()
