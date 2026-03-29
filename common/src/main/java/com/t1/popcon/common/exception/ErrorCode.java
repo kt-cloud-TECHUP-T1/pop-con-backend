@@ -65,6 +65,7 @@ public enum ErrorCode {
     DRAW_NOT_OPEN("D002", HttpStatus.BAD_REQUEST, "현재 진행 중인 드로우가 아닙니다."),
     DRAW_ALREADY_CLOSED("D003", HttpStatus.BAD_REQUEST, "이미 종료된 드로우입니다."),
     DRAW_OPTION_NOT_FOUND("D004", HttpStatus.NOT_FOUND, "존재하지 않는 드로우 옵션입니다."),
+    DRAW_ALREADY_APPLIED("D005", HttpStatus.CONFLICT, "이미 해당 회차에 응모하셨습니다."),
 
     // Encryption
     ENCRYPTION_FAILED("E001", HttpStatus.INTERNAL_SERVER_ERROR, "데이터 암호화에 실패했습니다."),
@@ -79,6 +80,7 @@ public enum ErrorCode {
     // Quiz
     QUIZ_PASSED_TOKEN_MISSING("QZ001", HttpStatus.UNAUTHORIZED, "퀴즈 통과 토큰이 필요합니다."),
     QUIZ_PASSED_TOKEN_INVALID("QZ002", HttpStatus.UNAUTHORIZED, "유효하지 않은 퀴즈 통과 토큰입니다.");
+
 
 
     private final String code;
