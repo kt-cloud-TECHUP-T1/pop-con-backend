@@ -35,7 +35,7 @@ public class PopupSecurityConfig extends CommonSecurityConfig {
 			.requestMatchers(
 				"/health",
 				"/v3/api-docs/**",
-				"/swagger-ui/**",
+				"/popup/swagger-ui/**",
 				"/actuator/**",
 				"/popups/**",
 				"/internal/**",

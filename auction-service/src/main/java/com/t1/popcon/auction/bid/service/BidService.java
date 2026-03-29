@@ -28,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
@@ -123,8 +124,15 @@ public class BidService {
 				throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제가 완료되지 않았습니다.");
 			}
 
+			String pgTxId = paymentResponse.getPgTxId();
+			if(pgTxId == null || pgTxId.isBlank()) {
+				log.error(">>>> [결제 응답 오류] pgTxId가 응답에 포함되지 않았습니다. MerchantUid: {}", bid.getMerchantUid());
+				throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 트랜잭션 ID가 누락되었습니다.");
+			}
+
 			// [Step 3] 최종 확정 (DB 트랜잭션)
-			txManager.completeBidSuccess(bid.getId(), option.getId());
+			LocalDateTime paidAt = parsePaidAt(paymentResponse.payment().paidAt());
+			txManager.completeBidSuccess(bid.getId(), option.getId(), pgTxId, paidAt);
 
 			return new BidResponse(bid.getId(), BidStatus.SUCCESS, "낙찰이 완료되었습니다.");
 
@@ -161,6 +169,18 @@ public class BidService {
 	private void validateAuctionOpen(Auction auction, LocalDateTime now) {
 		if (auctionPriceService.calculateStatus(auction, now) != AuctionStatus.OPEN) {
 			throw new CustomException(ErrorCode.AUCTION_NOT_OPEN);
+		}
+	}
+
+	private LocalDateTime parsePaidAt(String paidAtStr) {
+		if (paidAtStr == null || paidAtStr.isBlank()) {
+			throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 완료 시각이 누락되었습니다.");
+		}
+		try {
+			return OffsetDateTime.parse(paidAtStr).toLocalDateTime();
+		} catch (Exception e) {
+			log.warn(">>>> [paidAt 파싱 실패] {}", paidAtStr, e);
+			throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 완료 시각 파싱에 실패했습니다.");
 		}
 	}
 }
