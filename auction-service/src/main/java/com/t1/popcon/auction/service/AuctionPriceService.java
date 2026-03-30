@@ -129,7 +129,8 @@ public class AuctionPriceService {
             return false;
         }
 
-        return now.equals(getCurrentPriceDropBoundaryTime(auction, now));
+        LocalDateTime normalizedNow = now.withNano(0);
+        return normalizedNow.equals(getCurrentPriceDropBoundaryTime(auction, normalizedNow));
     }
 
     public LocalDateTime getCurrentPriceDropBoundaryTime(Auction auction, LocalDateTime now) {

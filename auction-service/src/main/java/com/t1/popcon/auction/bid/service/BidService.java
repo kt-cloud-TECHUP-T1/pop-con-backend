@@ -120,6 +120,9 @@ public class BidService {
 					txManager.completeBidFailure(bid.getId());
 				}
 
+				if (e instanceof CustomException customException) {
+					throw customException;
+				}
 				throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, e);
 			}
 
@@ -148,6 +151,9 @@ public class BidService {
 				throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 취소가 확정되지 않아 재고 복구를 보류합니다.");
 			}
 
+			if (e instanceof CustomException customException) {
+				throw customException;
+			}
 			throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, e);
 		}
 	}
