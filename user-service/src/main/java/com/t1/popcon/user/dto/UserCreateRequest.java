@@ -7,7 +7,6 @@ public record UserCreateRequest(
     @NotBlank String provider,
     @NotBlank String providerUserId,
     String email,
-    String nickname,
     String profileImageUrl,
     
     @NotBlank String ciHash,

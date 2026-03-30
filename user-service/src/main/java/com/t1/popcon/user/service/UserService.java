@@ -4,11 +4,11 @@ import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.user.domain.User;
 import com.t1.popcon.user.dto.UserLookupResponse;
-import com.t1.popcon.user.dto.UserInternalResponse;
 import com.t1.popcon.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.hibernate.exception.ConstraintViolationException;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -24,6 +24,8 @@ import lombok.RequiredArgsConstructor;
 public class UserService {
 
     private static final int MAX_NICKNAME_RETRIES = 5;
+    private static final String NICKNAME_CONSTRAINT = "uk_users_nickname";
+    
     private final UserRepository userRepository;
 
     @Value("${user.nickname.prefix:User}")
@@ -38,7 +40,7 @@ public class UserService {
         }
 
         for (int i = 0; i < MAX_NICKNAME_RETRIES; i++) {
-            String nickname = generateUniqueNickname();
+            String currentNickname = generateUniqueNickname();
 
             User user = switch (request.provider().toUpperCase()) {
                 case "KAKAO" -> User.createUserWithKakao(
@@ -48,7 +50,7 @@ public class UserService {
                         request.encryptedBirthDate(),
                         request.encryptedGender(),
                         request.encryptedNationality(),
-                        nickname,
+                        currentNickname,
                         request.email(),
                         request.providerUserId()
                 );
@@ -59,7 +61,7 @@ public class UserService {
                         request.encryptedBirthDate(),
                         request.encryptedGender(),
                         request.encryptedNationality(),
-                        nickname,
+                        currentNickname,
                         request.email(),
                         request.providerUserId()
                 );
@@ -70,8 +72,7 @@ public class UserService {
                 User savedUser = userRepository.save(user);
                 return UserCreateResponse.from(savedUser);
             } catch (DataIntegrityViolationException e) {
-                // uk_users_nickname 제약 조건 위반 시 재시도
-                if (e.getMessage() != null && e.getMessage().contains("uk_users_nickname")) {
+                if (isNicknameConflict(e)) {
                     if (i == MAX_NICKNAME_RETRIES - 1) {
                         throw e;
                     }
@@ -83,15 +84,12 @@ public class UserService {
         throw new CustomException(ErrorCode.ERROR_SYSTEM);
     }
 
-    @Transactional(readOnly = true)
-    public UserInternalResponse getUserInternal(Long userId) {
-        User user = getUserOrThrow(userId);
-
-        return new UserInternalResponse(
-                user.getId(),
-                user.getEncryptedName(),
-                user.getEncryptedPhoneNumber()
-        );
+    private boolean isNicknameConflict(DataIntegrityViolationException e) {
+        Throwable cause = e.getRootCause();
+        if (cause instanceof ConstraintViolationException hibernateEx) {
+            return NICKNAME_CONSTRAINT.equals(hibernateEx.getConstraintName());
+        }
+        return e.getMessage() != null && e.getMessage().contains(NICKNAME_CONSTRAINT);
     }
 
     @Transactional(readOnly = true)
@@ -197,26 +195,8 @@ public class UserService {
     }
 
     private String generateUniqueNickname() {
-        for (int i = 0; i < UserService.MAX_NICKNAME_RETRIES; i++) {
-            String shortUuid = UUID.randomUUID().toString().replace("-", "").substring(0, 12);
-            String nickname = nicknamePrefix + "_" + shortUuid;
-            if (!userRepository.existsByNickname(nickname)) {
-                return nickname;
-            }
-        }
-        return nicknamePrefix + "_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
-    }
-
-    private String normalizeNickname(String nickname) {
-        if (nickname == null || nickname.isBlank()) {
-            return null;
-        }
-
-        String normalized = nickname.trim();
-        if (normalized.length() > 50) {
-            throw new CustomException(ErrorCode.INVALID_INPUT);
-        }
-        return normalized;
+        String shortUuid = UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+        return nicknamePrefix + "_" + shortUuid;
     }
 
     private User getUserOrThrow(Long userId) {
