@@ -71,6 +71,9 @@ public enum ErrorCode {
     ENCRYPTION_FAILED("E001", HttpStatus.INTERNAL_SERVER_ERROR, "데이터 암호화에 실패했습니다."),
     DECRYPTION_FAILED("E002", HttpStatus.INTERNAL_SERVER_ERROR, "데이터 복호화에 실패했습니다."),
 
+    // External Service
+    EXTERNAL_SERVICE_ERROR("ES001", HttpStatus.BAD_GATEWAY, "외부 서비스 연동에 실패했습니다."),
+
     // Queue
     QUEUE_BLOCKED("Q001", HttpStatus.FORBIDDEN, "정책 위반으로 접근이 제한되었습니다."),
     QUEUE_TOKEN_MISSING("Q002", HttpStatus.UNAUTHORIZED, "대기열 토큰이 필요합니다."),

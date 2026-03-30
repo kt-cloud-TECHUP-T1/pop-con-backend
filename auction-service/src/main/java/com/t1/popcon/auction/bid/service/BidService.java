@@ -1,12 +1,16 @@
 package com.t1.popcon.auction.bid.service;
 
+import com.t1.popcon.auction.bid.client.PopupServiceClient;
 import com.t1.popcon.auction.bid.client.UserBillingClient;
 import com.t1.popcon.auction.bid.client.dto.BillingKeyInternalResponse;
+import com.t1.popcon.auction.bid.client.dto.PopupInternalResponse;
 import com.t1.popcon.auction.bid.domain.Bid;
 import com.t1.popcon.auction.bid.domain.BidStatus;
 import com.t1.popcon.auction.bid.dto.BidRequest;
 import com.t1.popcon.auction.bid.dto.BidResponse;
+import com.t1.popcon.auction.bid.dto.response.BidHistoryResponse;
 import com.t1.popcon.auction.bid.infrastructure.BidRedisRepository;
+import com.t1.popcon.auction.bid.repository.BidRepository;
 import com.t1.popcon.auction.domain.Auction;
 import com.t1.popcon.auction.domain.AuctionOption;
 import com.t1.popcon.auction.domain.AuctionStatus;
@@ -26,6 +30,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -34,11 +39,44 @@ import java.util.UUID;
 public class BidService {
 
 	private final BidRedisRepository bidRedisRepository;
+	private final BidRepository bidRepository;
 	private final AuctionOptionRepository auctionOptionRepository;
 	private final AuctionPriceService auctionPriceService;
 	private final PortOneClient portOneClient;
 	private final UserBillingClient userBillingClient;
+	private final PopupServiceClient popupServiceClient;
 	private final BidTransactionManager txManager;
+
+	public List<BidHistoryResponse> getBidHistory(Long userId) {
+		List<Bid> bids = bidRepository.findAllByUserIdAndStatusOrderByCreatedAtDesc(userId, BidStatus.SUCCESS);
+
+		return bids.stream()
+			.map(this::convertToHistoryResponse)
+			.toList();
+	}
+
+	private BidHistoryResponse convertToHistoryResponse(Bid bid) {
+		Long popupId = bid.getAuctionOption().getAuction().getPopupId();
+		try {
+			ApiResponse<PopupInternalResponse> response = popupServiceClient.getPopupDetail(popupId);
+			if (response == null || response.getData() == null) {
+				throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+			}
+			PopupInternalResponse popupInfo = response.getData();
+
+			return BidHistoryResponse.builder()
+				.id(bid.getId())
+				.thumbnailUrl(popupInfo.thumbnailUrl())
+				.popupTitle(popupInfo.title())
+				.bidPrice(bid.getBidPrice())
+				.paidAt(bid.getPaidAt())
+				.displayStatus(bid.getStatus().getDescription())
+				.build();
+		} catch (Exception e) {
+			log.error(">>>> [Popup-Service 연동 실패] Popup ID: {}, Error: {}", popupId, e.getMessage());
+			throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+		}
+	}
 
 	public BidResponse attemptBid(Long userId, BidRequest request) {
 		// 1. 조회 및 검증

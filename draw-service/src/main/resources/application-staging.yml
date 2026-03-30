@@ -48,10 +48,6 @@ jwt:
   access-token-expiration: 1800000
   refresh-token-expiration: 604800000
 
-internal:
-  api-secret: ${INTERNAL_API_SECRET}
-
-
 management:
   endpoints:
     web:
@@ -66,7 +62,3 @@ management:
   metrics:
     tags:
       application: draw-service
-
-services:
-  popup-service:
-    url: ${POPUP_SERVICE_URL:http://localhost:8082}

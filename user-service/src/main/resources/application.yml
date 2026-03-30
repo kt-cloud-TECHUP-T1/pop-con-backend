@@ -27,3 +27,12 @@ portone:
 
 encryption:
   secret: ${ENCRYPTION_SECRET}
+
+internal:
+  api-secret: ${INTERNAL_API_SECRET}
+
+services:
+  draw-service:
+    url: ${DRAW_SERVICE_URL}
+  auction-service:
+    url: ${AUCTION_SERVICE_URL}

@@ -10,16 +10,21 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class PopupSecurityConfig extends CommonSecurityConfig {
 
+	private final InternalApiAuthFilter internalApiAuthFilter;
+
 	public PopupSecurityConfig(JwtFilter jwtFilter,
 		JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
-		JwtAccessDeniedHandler jwtAccessDeniedHandler) {
+		JwtAccessDeniedHandler jwtAccessDeniedHandler,
+		InternalApiAuthFilter internalApiAuthFilter) {
 		super(jwtFilter, jwtAuthenticationEntryPoint, jwtAccessDeniedHandler);
+		this.internalApiAuthFilter = internalApiAuthFilter;
 	}
 
 	@Bean
@@ -33,10 +38,12 @@ public class PopupSecurityConfig extends CommonSecurityConfig {
 				"/popup/swagger-ui/**",
 				"/actuator/**",
 				"/popups/**",
+				"/internal/**",
 				"/magazines"
 			).permitAll()
 			.anyRequest().authenticated()
-		);
+		)
+		.addFilterBefore(internalApiAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
 		return http.build();
 	}
