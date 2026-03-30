@@ -68,6 +68,7 @@ public class WorkerService {
         long expireAtMillis = Instant.now().plusSeconds(activeTtlSeconds).toEpochMilli();
         long now = Instant.now().toEpochMilli(); // heartbeat 만료 기준 시각 (루프 외부에서 1회 캡처)
 
+        int promotedSuccessCount = 0; // heartbeat 만료 스킵·예외 제외 실제 승격 인원
         for (String userIdStr : promotedUserIds) {
             try {
                 long userId = Long.parseLong(userIdStr);
@@ -83,6 +84,7 @@ public class WorkerService {
                 }
 
                 promoteUser(phaseType, phaseId, userId, expireAtMillis, activeTtlSeconds);
+                promotedSuccessCount++;
             } catch (NumberFormatException e) {
                 log.error("[Worker] userId 파싱 실패 - phaseType={}, phaseId={}, raw={}",
                     phaseType, phaseId, userIdStr, e);
@@ -93,7 +95,7 @@ public class WorkerService {
         }
 
         log.info("[Worker] 승격 완료 - phaseType={}, phaseId={}, promoted={}, active={}",
-            phaseType, phaseId, promotedUserIds.size(), activeRepository.getActiveCount(phaseType, phaseId));
+            phaseType, phaseId, promotedSuccessCount, activeRepository.getActiveCount(phaseType, phaseId));
     }
 
     /**

@@ -35,8 +35,13 @@ public class PromotionScheduler {
     @Scheduled(fixedRateString = "${queue.release-interval-ms:1000}")
     public void promoteWaitingToActive() {
         RLock lock = redissonClient.getLock(LOCK_KEY);
-        // waitTime=0: 다른 인스턴스가 실행 중이면 즉시 스킵
-        if (!lock.tryLock()) {
+        // waitTime=0: 다른 인스턴스가 실행 중이면 즉시 스킵, leaseTime=LOCK_LEASE_SECONDS: 고정 만료(워치독 비사용)
+        try {
+            if (!lock.tryLock(0, LOCK_LEASE_SECONDS, TimeUnit.SECONDS)) {
+                return;
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // 인터럽트 상태 복원
             return;
         }
         try {

@@ -11,6 +11,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * WAITING Heartbeat 만료 정리 스케줄러
@@ -28,12 +29,19 @@ public class HeartbeatCleanupScheduler {
     private final RedissonClient redissonClient;
 
     private static final String LOCK_KEY = "lock:worker:heartbeat-cleanup";
+    /** 정리 주기(10s)와 동일 — 한 사이클이 완료되는 동안 락이 유지되도록 보장 */
+    private static final long LOCK_LEASE_SECONDS = 10;
 
     @Scheduled(fixedRateString = "${queue.heartbeat-cleanup-interval-ms:10000}")
     public void cleanupExpiredHeartbeats() {
         RLock lock = redissonClient.getLock(LOCK_KEY);
-        // waitTime=0: 다른 인스턴스가 실행 중이면 즉시 스킵
-        if (!lock.tryLock()) {
+        // waitTime=0: 다른 인스턴스가 실행 중이면 즉시 스킵, leaseTime=LOCK_LEASE_SECONDS: 고정 만료(워치독 비사용)
+        try {
+            if (!lock.tryLock(0, LOCK_LEASE_SECONDS, TimeUnit.SECONDS)) {
+                return;
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             return;
         }
         try {
