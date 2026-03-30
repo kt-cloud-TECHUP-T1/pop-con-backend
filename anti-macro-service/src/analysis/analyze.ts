@@ -90,7 +90,7 @@ export function analyzeRawData(payload: PageSignalPayload): AnalysisResult {
   }
 
   // === 마우스 ===
-  const movements = rawData.movements ?? [];
+  const movements = rawData.mouseMovements ?? [];
 
   if (rawData.hasUntrustedEvent) {
     detected.push({

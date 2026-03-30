@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: queue-worker
+
+  profiles:
+    active: local
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+  # queue-worker는 web 서버 불필요 — 스케줄러 전용
+  main:
+    web-application-type: none
+
+queue:
+  polling-default-ms: 3000
+  max-active-users: 1000
+  release-interval-ms: 1000
+  max-release-per-cycle: 100
+  cleanup-interval-ms: 60000
+  heartbeat-cleanup-interval-ms: 10000
+  heartbeat-ttl-seconds: 15
+  block-ttl-seconds: 1800
+  active-ttl:
+    draw-seconds: 900
+    auction-seconds: 3600
+
+logging:
+  level:
+    com.t1.popcon: info
+    org.springframework.data.redis: warn

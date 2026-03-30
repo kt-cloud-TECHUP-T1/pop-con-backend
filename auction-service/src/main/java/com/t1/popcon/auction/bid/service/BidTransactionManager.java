@@ -36,10 +36,10 @@ public class BidTransactionManager {
 
 	// [Step 3-1] 결제 성공 시: SUCCESS 처리 및 DB 재고 차감
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
-	public void completeBidSuccess(Long bidId, Long optionId) {
+	public void completeBidSuccess(Long bidId, Long optionId, String pgTxId, LocalDateTime paidAt) {
 		// 1. 상태 전이 시도 (PENDING -> SUCCESS)
 		int updatedRows = bidRepository.updateStatusWithCAS(
-			bidId, BidStatus.PENDING, BidStatus.SUCCESS, LocalDateTime.now()
+			bidId, BidStatus.PENDING, BidStatus.SUCCESS, paidAt, pgTxId
 		);
 
 		// 이미 SUCCESS이거나 다른 상태라면 로직 중단 (멱등성 보장)

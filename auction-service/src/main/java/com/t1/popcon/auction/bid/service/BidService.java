@@ -1,5 +1,7 @@
 package com.t1.popcon.auction.bid.service;
 
+import com.t1.popcon.auction.bid.client.UserBillingClient;
+import com.t1.popcon.auction.bid.client.dto.BillingKeyInternalResponse;
 import com.t1.popcon.auction.bid.domain.Bid;
 import com.t1.popcon.auction.bid.domain.BidStatus;
 import com.t1.popcon.auction.bid.dto.BidRequest;
@@ -12,13 +14,18 @@ import com.t1.popcon.auction.repository.AuctionOptionRepository;
 import com.t1.popcon.auction.service.AuctionPriceService;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
+import com.t1.popcon.common.infrastructure.dto.PortOneCancelResponse;
+import com.t1.popcon.common.infrastructure.dto.PortOnePaymentResponse;
 import com.t1.popcon.common.infrastructure.portone.PortOneClient;
+import com.t1.popcon.common.response.ApiResponse;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 @Slf4j
@@ -30,6 +37,7 @@ public class BidService {
 	private final AuctionOptionRepository auctionOptionRepository;
 	private final AuctionPriceService auctionPriceService;
 	private final PortOneClient portOneClient;
+	private final UserBillingClient userBillingClient;
 	private final BidTransactionManager txManager;
 
 	public BidResponse attemptBid(Long userId, BidRequest request) {
@@ -51,7 +59,10 @@ public class BidService {
 			throw new CustomException(ErrorCode.AUCTION_OPTION_SOLD_OUT);
 		}
 
-		String merchantUid = UUID.randomUUID().toString();
+		// 3. 주문 번호 생성 (yyyyMMdd_HHmmss_랜덤값)
+		String timestamp = now.format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+		String merchantUid = "order_no_" + timestamp + "_" + UUID.randomUUID().toString().substring(0, 8);
+
 		Bid bid = null;
 		boolean paymentAttempted = false;
 
@@ -59,15 +70,32 @@ public class BidService {
 			// [Step 1] PENDING 기록 생성
 			bid = txManager.preparePendingBid(userId, option, currentServerPrice, merchantUid);
 
-			// [Step 2] 외부 결제 실행
-			String billingKey = "DUMMY_KEY";
+			// [Step 2] 외부 결제 실행 (User-Service 연동하여 실제 빌링키 조회)
+			ApiResponse<BillingKeyInternalResponse> billingKeyResponse = userBillingClient.getDefaultBillingKey(userId);
+			if (billingKeyResponse == null || billingKeyResponse.getData() == null) {
+				throw new CustomException(ErrorCode.BILLING_KEY_NOT_FOUND);
+			}
+			String billingKey = billingKeyResponse.getData().customerUid();
 
 			// 결제 요청 직전에 시도 플래그를 세팅합니다.
 			paymentAttempted = true;
-			portOneClient.executePayment(billingKey, bid.getMerchantUid(), bid.getBidPrice(), "입장권 낙찰");
+			PortOnePaymentResponse paymentResponse = portOneClient.executePayment(billingKey, bid.getMerchantUid(), bid.getBidPrice(), "입장권 낙찰");
+
+			// 결제 상태 검증 (paidAt 존재 여부로 판단)
+			if (!paymentResponse.isPaid()) {
+				log.error(">>>> [결제 실패] 결제 완료 일시(paidAt)가 응답에 포함되지 않았습니다. MerchantUid: {}", bid.getMerchantUid());
+				throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제가 완료되지 않았습니다.");
+			}
+
+			String pgTxId = paymentResponse.getPgTxId();
+			if(pgTxId == null || pgTxId.isBlank()) {
+				log.error(">>>> [결제 응답 오류] pgTxId가 응답에 포함되지 않았습니다. MerchantUid: {}", bid.getMerchantUid());
+				throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 트랜잭션 ID가 누락되었습니다.");
+			}
 
 			// [Step 3] 최종 확정 (DB 트랜잭션)
-			txManager.completeBidSuccess(bid.getId(), option.getId());
+			LocalDateTime paidAt = parsePaidAt(paymentResponse.payment().paidAt());
+			txManager.completeBidSuccess(bid.getId(), option.getId(), pgTxId, paidAt);
 
 			return new BidResponse(bid.getId(), BidStatus.SUCCESS, "낙찰이 완료되었습니다.");
 
@@ -76,8 +104,14 @@ public class BidService {
 
 			if (paymentAttempted) {
 				try {
-					portOneClient.cancelPayment(merchantUid, "시스템 오류로 인한 자동 낙찰 취소");
-					log.info(">>>> [보상 완료] 결제 취소 요청 성공: {}", merchantUid);
+					PortOneCancelResponse cancelResponse = portOneClient.cancelPayment(merchantUid, bid.getBidPrice());
+					if (cancelResponse.isSucceeded()) {
+						log.info(">>>> [보상 완료] 결제 취소 완료: {}", merchantUid);
+					} else if (cancelResponse.isRequested()) {
+						log.warn(">>>> [보상 진행중] 결제 취소가 접수되었습니다(REQUESTED). 최종 확인 필요: {}", merchantUid);
+					} else {
+						log.error("!!!! [보상 실패] 결제 취소 실패(FAILED): {}. 상세 사유: {}", merchantUid, cancelResponse.reason());
+					}
 				} catch (Exception cancelEx) {
 					log.error("!!!! [긴급] 결제 취소 API 호출 실패 - 수동 확인 필요: {}", merchantUid, cancelEx);
 				}
@@ -98,6 +132,18 @@ public class BidService {
 	private void validateAuctionOpen(Auction auction, LocalDateTime now) {
 		if (auctionPriceService.calculateStatus(auction, now) != AuctionStatus.OPEN) {
 			throw new CustomException(ErrorCode.AUCTION_NOT_OPEN);
+		}
+	}
+
+	private LocalDateTime parsePaidAt(String paidAtStr) {
+		if (paidAtStr == null || paidAtStr.isBlank()) {
+			throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 완료 시각이 누락되었습니다.");
+		}
+		try {
+			return OffsetDateTime.parse(paidAtStr).toLocalDateTime();
+		} catch (Exception e) {
+			log.warn(">>>> [paidAt 파싱 실패] {}", paidAtStr, e);
+			throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 완료 시각 파싱에 실패했습니다.");
 		}
 	}
 }

@@ -1,0 +1,31 @@
+plugins {
+    id 'java-library'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+dependencies {
+    api project(':common')
+
+    // Spring Data Redis (ZSET, HASH 등 Redis 연산) — QueueRedisRepository 내부 구현, 소비자 모듈에서 별도 선언 필요
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // Redisson (분산 락) — 내부 구현용
+    implementation 'org.redisson:redisson-spring-boot-starter:3.52.0'
+
+    // Spring Boot Configuration Processor (@ConfigurationProperties 메타데이터 생성)
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+}

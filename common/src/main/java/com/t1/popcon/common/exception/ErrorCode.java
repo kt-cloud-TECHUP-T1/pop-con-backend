@@ -44,6 +44,9 @@ public enum ErrorCode {
     BILLING_KEY_NOT_FOUND("P002", HttpStatus.NOT_FOUND, "등록된 결제 수단이 없습니다."),
     PAYMENT_EXECUTION_FAILED("P003", HttpStatus.PAYMENT_REQUIRED, "결제 승인에 실패했습니다."),
     ALREADY_PAID("P004", HttpStatus.CONFLICT, "이미 결제가 완료된 주문입니다."),
+    PAYMENT_CANCEL_FAILED("P005", HttpStatus.BAD_GATEWAY, "결제 취소 요청에 실패했습니다."),
+
+    // Popup
     POPUP_NOT_FOUND("PO001", HttpStatus.NOT_FOUND, "존재하지 않는 팝업스토어입니다."),
 
     // Auction
@@ -62,10 +65,23 @@ public enum ErrorCode {
     DRAW_NOT_OPEN("D002", HttpStatus.BAD_REQUEST, "현재 진행 중인 드로우가 아닙니다."),
     DRAW_ALREADY_CLOSED("D003", HttpStatus.BAD_REQUEST, "이미 종료된 드로우입니다."),
     DRAW_OPTION_NOT_FOUND("D004", HttpStatus.NOT_FOUND, "존재하지 않는 드로우 옵션입니다."),
+    DRAW_ALREADY_APPLIED("D005", HttpStatus.CONFLICT, "이미 해당 회차에 응모하셨습니다."),
 
     // Encryption
     ENCRYPTION_FAILED("E001", HttpStatus.INTERNAL_SERVER_ERROR, "데이터 암호화에 실패했습니다."),
-    DECRYPTION_FAILED("E002", HttpStatus.INTERNAL_SERVER_ERROR, "데이터 복호화에 실패했습니다.");
+    DECRYPTION_FAILED("E002", HttpStatus.INTERNAL_SERVER_ERROR, "데이터 복호화에 실패했습니다."),
+
+    // Queue
+    QUEUE_BLOCKED("Q001", HttpStatus.FORBIDDEN, "정책 위반으로 접근이 제한되었습니다."),
+    QUEUE_TOKEN_MISSING("Q002", HttpStatus.UNAUTHORIZED, "대기열 토큰이 필요합니다."),
+    QUEUE_TOKEN_INVALID("Q003", HttpStatus.UNAUTHORIZED, "유효하지 않은 대기열 토큰입니다."),
+    QUEUE_NOT_ACTIVE("Q004", HttpStatus.FORBIDDEN, "아직 활성 상태가 아닙니다."),
+
+    // Quiz
+    QUIZ_PASSED_TOKEN_MISSING("QZ001", HttpStatus.UNAUTHORIZED, "퀴즈 통과 토큰이 필요합니다."),
+    QUIZ_PASSED_TOKEN_INVALID("QZ002", HttpStatus.UNAUTHORIZED, "유효하지 않은 퀴즈 통과 토큰입니다.");
+
+
 
 
     private final String code;

@@ -1,11 +1,15 @@
 package com.t1.popcon.user.domain;
 
 import com.t1.popcon.common.entity.BaseSoftDeleteEntity;
+import com.t1.popcon.user.billing.entity.UserBillingKey;
+
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Index;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
@@ -17,6 +21,8 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -83,6 +89,9 @@ public class User extends BaseSoftDeleteEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 10)
     private UserStatus status;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UserBillingKey> billingKeys = new ArrayList<>();
 
     private static UserBuilder baseBuilder(
             String ciHash,

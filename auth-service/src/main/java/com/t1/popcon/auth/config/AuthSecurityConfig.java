@@ -30,7 +30,7 @@ public class AuthSecurityConfig extends CommonSecurityConfig {
 			.requestMatchers(
 				"/auth/**",          // 로그인, 회원가입, 토큰 재발급 등
 				"/v3/api-docs/**",   // Swagger 관련
-				"/swagger-ui/**",
+				"/auth/swagger-ui/**",
 				"/health",           // 헬스체크
 					"/actuator/**"
 

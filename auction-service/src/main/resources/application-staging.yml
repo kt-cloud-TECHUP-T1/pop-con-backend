@@ -7,7 +7,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     open-in-view: false
     properties:
       hibernate:
@@ -29,13 +29,19 @@ server:
 logging:
   level:
     root: info
-    org.hibernate.SQL: warn
-    org.hibernate.orm.jdbc.bind: warn
+    org.hibernate: warn
+    org.hibernate.SQL: off
+    org.hibernate.orm.jdbc.bind: off
 
 jwt:
   secret: ${JWT_SECRET}
   access-token-expiration: 1800000
   refresh-token-expiration: 604800000
+
+services:
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8081}
+    internal-secret: ${INTERNAL_API_SECRET}
 
 
 management:

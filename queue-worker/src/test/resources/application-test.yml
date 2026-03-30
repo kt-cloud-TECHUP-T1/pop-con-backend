@@ -1,0 +1,21 @@
+spring:
+  profiles:
+    active: test
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+queue:
+  polling-default-ms: 3000
+  max-active-users: 100
+  release-interval-ms: 1000
+  max-release-per-cycle: 10
+  cleanup-interval-ms: 60000
+  heartbeat-cleanup-interval-ms: 10000
+  heartbeat-ttl-seconds: 15
+  block-ttl-seconds: 1800
+  active-ttl:
+    draw-seconds: 900
+    auction-seconds: 3600

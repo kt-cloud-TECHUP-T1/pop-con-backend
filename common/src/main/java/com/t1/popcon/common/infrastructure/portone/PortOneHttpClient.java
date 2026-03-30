@@ -5,7 +5,9 @@ import java.util.Map;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.common.infrastructure.dto.PortOneBillingKeyResponse;
+import com.t1.popcon.common.infrastructure.dto.PortOneCancelResponse;
 import com.t1.popcon.common.infrastructure.dto.PortOneIdentityVerificationResponse;
+import com.t1.popcon.common.infrastructure.dto.PortOnePaymentResponse;
 
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,9 @@ public class PortOneHttpClient implements PortOneClient {
 
 	@Value("${portone.api.secret}")
 	private String apiSecret;
+
+	@Value("${portone.api.store-id}")
+	private String storeId;
 
 	public PortOneHttpClient(@Value("${portone.url}") String baseUrl) {
 		if (baseUrl == null || baseUrl.isBlank()) {
@@ -46,6 +51,9 @@ public class PortOneHttpClient implements PortOneClient {
 	void validateConfig() {
 		if (apiSecret == null || apiSecret.isBlank()) {
 			throw new IllegalStateException("portone.api.secret must be configured");
+		}
+		if (storeId == null || storeId.isBlank()) {
+			throw new IllegalStateException("portone.api.store-id must be configured");
 		}
 	}
 
@@ -76,28 +84,35 @@ public class PortOneHttpClient implements PortOneClient {
 	}
 
 	@Override
-	public void executePayment(String billingKey, String merchantUid, int amount, String orderName) {
+	public PortOnePaymentResponse executePayment(String billingKey, String merchantUid, int amount, String orderName) {
 		try {
-			restClient.post()
+			PortOnePaymentResponse response = restClient.post()
 				.uri("/payments/{merchantUid}/billing-key", merchantUid)
 				.header("Authorization", "PortOne " + apiSecret.trim())
 				.contentType(MediaType.APPLICATION_JSON)
 				.body(Map.of(
 					"billingKey", billingKey,
+					"orderName", orderName,
 					"amount", Map.of(
 						"total", amount
 					),
-					"orderName", orderName,
-					"currency", "KRW"
+					"currency", "KRW",
+					"storeId", storeId
 				))
 				.retrieve()
 				.onStatus(HttpStatusCode::isError, (req, res) -> {
 					log.error(">>>> [PortOne Payment Error] Status: {}, MerchantUid: {}", res.getStatusCode(), merchantUid);
 					throw new CustomException(ErrorCode.PAYMENT_FETCH_FAILED);
 				})
-				.toBodilessEntity();
+				.body(PortOnePaymentResponse.class);
 
-			log.info(">>>> [PortOne Payment Success] MerchantUid: {}", merchantUid);
+			if (response == null || response.payment() == null) {
+				log.error(">>>> [PortOne Payment Error] Response body is null or missing payment object, MerchantUid: {}", merchantUid);
+				throw new CustomException(ErrorCode.PAYMENT_FETCH_FAILED);
+			}
+
+			log.info(">>>> [PortOne Payment API Call Success] MerchantUid: {}, paidAt: {}", merchantUid, response.payment().paidAt());
+			return response;
 		} catch (CustomException e) {
 			throw e;
 		} catch (Exception e) {
@@ -106,8 +121,37 @@ public class PortOneHttpClient implements PortOneClient {
 		}
 	}
 
-	public void cancelPayment(String merchantUid, String reason) {
-		log.info("PortOne 결제 취소 요청: {}, 사유: {}", merchantUid, reason);
+	@Override
+	public PortOneCancelResponse cancelPayment(String paymentId, int amount) {
+		try {
+			PortOneCancelResponse response = restClient.post()
+				.uri("/payments/{paymentId}/cancel", paymentId)
+				.header("Authorization", "PortOne " + apiSecret.trim())
+				.contentType(MediaType.APPLICATION_JSON)
+				.body(Map.of(
+					"reason", "티켓 예매 취소",
+					"amount", amount
+				))
+				.retrieve()
+				.onStatus(HttpStatusCode::isError, (req, res) -> {
+					log.error(">>>> [PortOne Cancel Error] Status: {}, PaymentId: {}", res.getStatusCode(), paymentId);
+					throw new CustomException(ErrorCode.PAYMENT_CANCEL_FAILED);
+				})
+				.body(PortOneCancelResponse.class);
+
+			if (response == null || response.cancellation() == null) {
+				log.error(">>>> [PortOne Cancel Error] Response body is null or invalid");
+				throw new CustomException(ErrorCode.PAYMENT_CANCEL_FAILED);
+			}
+
+			log.info(">>>> [PortOne Cancel Success] PaymentId: {}, status: {}", paymentId, response.status());
+			return response;
+		} catch (CustomException e) {
+			throw e;
+		} catch (Exception e) {
+			log.error(">>>> [PortOne Cancel Exception] PaymentId: {}, Message: {}", paymentId, e.getMessage());
+			throw new CustomException(ErrorCode.PAYMENT_CANCEL_FAILED);
+		}
 	}
 
     /**
