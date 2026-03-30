@@ -1,6 +1,8 @@
 package com.t1.popcon.auction.bid.service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -22,6 +24,7 @@ public class BidTransactionManager {
 
 	private final BidRepository bidRepository;
 	private final AuctionOptionRepository auctionOptionRepository;
+	private final ReservationNoGenerator reservationNoGenerator;
 
 	// [Step 1] 낙찰 시도 준비: PENDING 상태의 Bid 생성
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -34,17 +37,36 @@ public class BidTransactionManager {
 			.build());
 	}
 
-	// [Step 3-1] 결제 성공 시: SUCCESS 처리 및 DB 재고 차감
+	// [Step 3-1] 결제 성공 시: SUCCESS 처리 및 스냅샷 기록, DB 재고 차감
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
-	public void completeBidSuccess(Long bidId, Long optionId, String pgTxId, LocalDateTime paidAt) {
-		// 1. 상태 전이 시도 (PENDING -> SUCCESS)
-		int updatedRows = bidRepository.updateStatusWithCAS(
-			bidId, BidStatus.PENDING, BidStatus.SUCCESS, paidAt, pgTxId
-		);
+	public String completeBidSuccess(Long bidId, Long optionId, String pgTxId, LocalDateTime paidAt,
+								   String popupTitle, String popupAddress, String thumbnailUrl,
+								   LocalDate entryDate, LocalTime entryTime, Integer startPrice) {
 
-		// 이미 SUCCESS이거나 다른 상태라면 로직 중단 (멱등성 보장)
-		if (updatedRows == 0) {
-			return;
+		String reservationNo = reservationNoGenerator.generate();
+		int maxRetries = 3;
+		int retryCount = 0;
+
+		while (retryCount < maxRetries) {
+			try {
+				// 1. 상태 전이 시도 (PENDING -> SUCCESS) 및 스냅샷/예약번호 업데이트
+				int updatedRows = bidRepository.updateStatusWithCAS(
+					bidId, BidStatus.PENDING, BidStatus.SUCCESS, paidAt, pgTxId,
+					reservationNo, popupTitle, popupAddress, thumbnailUrl, entryDate, entryTime, startPrice
+				);
+
+				// 이미 SUCCESS이거나 다른 상태라면 로직 중단 (멱등성 보장)
+				if (updatedRows == 0) {
+					return null;
+				}
+				break;
+			} catch (org.springframework.dao.DataIntegrityViolationException e) {
+				retryCount++;
+				reservationNo = reservationNoGenerator.generate();
+				if (retryCount >= maxRetries) {
+					throw e;
+				}
+			}
 		}
 
 		// 2. 상태 전이에 성공한 경우에만 실제 DB 재고 차감
@@ -54,6 +76,8 @@ public class BidTransactionManager {
 		if (updatedStock == 0) {
 			throw new CustomException(ErrorCode.AUCTION_OPTION_SOLD_OUT);
 		}
+
+		return reservationNo;
 	}
 
 	// [Step 3-2] 결제 실패 시: FAILED 처리

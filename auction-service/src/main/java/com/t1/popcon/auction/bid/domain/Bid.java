@@ -16,7 +16,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLRestriction;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 @Getter
@@ -50,8 +52,34 @@ public class Bid extends BaseSoftDeleteEntity {
 
     private LocalDateTime paidAt;
 
+    @Column(name = "reservation_no", length = 20, unique = true)
+    private String reservationNo;
+
+    @Column(name = "popup_id")
+    private Long popupId;
+
+    @Column(name = "popup_title")
+    private String popupTitle;
+
+    @Column(name = "popup_address")
+    private String popupAddress;
+
+    @Column(name = "thumbnail_url")
+    private String thumbnailUrl;
+
+    @Column(name = "entry_date")
+    private LocalDate entryDate;
+
+    @Column(name = "entry_time")
+    private LocalTime entryTime;
+
+    @Column(name = "start_price")
+    private Integer startPrice;
+
     @Builder
-    public Bid(Long userId, AuctionOption auctionOption, Integer bidPrice, String merchantUid) {
+    public Bid(Long userId, AuctionOption auctionOption, Integer bidPrice, String merchantUid,
+               String reservationNo, Long popupId, String popupTitle, String popupAddress, String thumbnailUrl,
+               LocalDate entryDate, LocalTime entryTime, Integer startPrice) {
         if (userId == null || userId <= 0
                 || auctionOption == null
                 || bidPrice == null || bidPrice <= 0
@@ -64,6 +92,15 @@ public class Bid extends BaseSoftDeleteEntity {
         this.bidPrice = bidPrice;
         this.merchantUid = merchantUid;
         this.status = BidStatus.PENDING;
+
+        this.reservationNo = reservationNo;
+        this.popupId = popupId;
+        this.popupTitle = popupTitle;
+        this.popupAddress = popupAddress;
+        this.thumbnailUrl = thumbnailUrl;
+        this.entryDate = entryDate;
+        this.entryTime = entryTime;
+        this.startPrice = startPrice;
     }
 
     public void completePayment(String pgTxId, LocalDateTime paidAt) {

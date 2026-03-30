@@ -9,6 +9,7 @@ import com.t1.popcon.auction.bid.domain.BidStatus;
 import com.t1.popcon.auction.bid.dto.BidRequest;
 import com.t1.popcon.auction.bid.dto.BidResponse;
 import com.t1.popcon.auction.bid.dto.response.BidHistoryResponse;
+import com.t1.popcon.auction.bid.dto.response.ReservationDetailResponse;
 import com.t1.popcon.auction.bid.infrastructure.BidRedisRepository;
 import com.t1.popcon.auction.bid.repository.BidRepository;
 import com.t1.popcon.auction.domain.Auction;
@@ -56,27 +57,36 @@ public class BidService {
 			.toList();
 	}
 
-	private BidHistoryResponse convertToHistoryResponse(Bid bid) {
-		Long popupId = bid.getAuctionOption().getAuction().getPopupId();
-		try {
-			ApiResponse<PopupInternalResponse> response = popupServiceClient.getPopupDetail(popupId);
-			if (response == null || response.getData() == null) {
-				throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
-			}
-			PopupInternalResponse popupInfo = response.getData();
+	public ReservationDetailResponse getReservationDetail(Long userId, String reservationNo) {
+		Bid bid = bidRepository.findByReservationNo(reservationNo)
+			.orElseThrow(() -> new CustomException(ErrorCode.BID_NOT_FOUND));
 
-			return BidHistoryResponse.builder()
-				.id(bid.getId())
-				.thumbnailUrl(popupInfo.thumbnailUrl())
-				.popupTitle(popupInfo.title())
-				.bidPrice(bid.getBidPrice())
-				.paidAt(bid.getPaidAt())
-				.displayStatus(bid.getStatus().getDescription())
-				.build();
-		} catch (Exception e) {
-			log.error(">>>> [Popup-Service 연동 실패] Popup ID: {}, Error: {}", popupId, e.getMessage());
-			throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+		if (!bid.getUserId().equals(userId)) {
+			throw new CustomException(ErrorCode.ACCESS_DENIED);
 		}
+
+		return ReservationDetailResponse.builder()
+			.reservationNo(bid.getReservationNo())
+			.popupTitle(bid.getPopupTitle())
+			.popupAddress(bid.getPopupAddress())
+			.entryDate(bid.getEntryDate())
+			.entryTime(bid.getEntryTime())
+			.startPrice(bid.getStartPrice())
+			.discountAmount(bid.getStartPrice() - bid.getBidPrice())
+			.finalPrice(bid.getBidPrice())
+			.paidAt(bid.getPaidAt())
+			.build();
+	}
+
+	private BidHistoryResponse convertToHistoryResponse(Bid bid) {
+		return BidHistoryResponse.builder()
+			.id(bid.getId())
+			.thumbnailUrl(bid.getThumbnailUrl())
+			.popupTitle(bid.getPopupTitle())
+			.bidPrice(bid.getBidPrice())
+			.paidAt(bid.getPaidAt())
+			.displayStatus(bid.getStatus().getDescription())
+			.build();
 	}
 
 	public BidResponse attemptBid(Long userId, BidRequest request) {
@@ -147,9 +157,28 @@ public class BidService {
 			}
 
 			LocalDateTime paidAt = parsePaidAt(paymentResponse.payment().paidAt());
-			txManager.completeBidSuccess(bid.getId(), option.getId(), pgTxId, paidAt);
 
-			return new BidResponse(bid.getId(), BidStatus.SUCCESS, "낙찰이 완료되었습니다.");
+			// 결제 성공 후 스냅샷 정보 조회 (입찰 시점의 지연 최소화)
+			ApiResponse<PopupInternalResponse> popupResponse = popupServiceClient.getPopupDetail(option.getAuction().getPopupId());
+			if (popupResponse == null || popupResponse.getData() == null) {
+				throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+			}
+			PopupInternalResponse popupInfo = popupResponse.getData();
+
+			String reservationNo = txManager.completeBidSuccess(
+				bid.getId(),
+				option.getId(),
+				pgTxId,
+				paidAt,
+				popupInfo.title(),
+				popupInfo.location(),
+				popupInfo.thumbnailUrl(),
+				option.getEntryDate(),
+				option.getEntryTime(),
+				option.getAuction().getStartPrice()
+			);
+
+			return new BidResponse(bid.getId(), BidStatus.SUCCESS, "낙찰이 완료되었습니다.", reservationNo);
 
 		} catch (Exception e) {
 			log.error(">>>> 낙찰 처리 중 오류 userId={}, optionId={}, error={}", userId, option.getId(), e.getMessage());
