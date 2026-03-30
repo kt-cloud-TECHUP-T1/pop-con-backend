@@ -54,6 +54,14 @@ public class AuctionStockService {
 		bidRedisRepository.clearRestockAnchorAt(auctionId);
 	}
 
+	public boolean recordSoldOutIfAbsent(Long auctionId, Integer soldOutPrice) {
+		boolean stored = bidRedisRepository.setSoldOutPriceIfAbsent(auctionId, soldOutPrice);
+		if (stored) {
+			bidRedisRepository.clearRestockAnchorAt(auctionId);
+		}
+		return stored;
+	}
+
 	public void recordRestockAnchor(Long auctionId, LocalDateTime restockAnchorAt) {
 		bidRedisRepository.setRestockAnchorAt(auctionId, restockAnchorAt);
 	}

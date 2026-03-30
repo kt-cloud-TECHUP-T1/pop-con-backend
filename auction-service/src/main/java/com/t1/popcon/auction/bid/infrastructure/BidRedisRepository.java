@@ -54,6 +54,12 @@ public class BidRedisRepository {
 		redisTemplate.opsForValue().set(getSoldOutPriceKey(auctionId), String.valueOf(soldOutPrice));
 	}
 
+	public boolean setSoldOutPriceIfAbsent(Long auctionId, Integer soldOutPrice) {
+		Boolean stored = redisTemplate.opsForValue()
+			.setIfAbsent(getSoldOutPriceKey(auctionId), String.valueOf(soldOutPrice));
+		return Boolean.TRUE.equals(stored);
+	}
+
 	public LocalDateTime getRestockAnchorAt(Long auctionId) {
 		String value = redisTemplate.opsForValue().get(getRestockAnchorAtKey(auctionId));
 		return value != null ? LocalDateTime.parse(value) : null;

@@ -70,6 +70,9 @@ public class BidService {
 		if (remainingStock < 0) {
 			throw new CustomException(ErrorCode.AUCTION_OPTION_SOLD_OUT);
 		}
+		if (remainingStock == 0 && !auctionStockService.hasAvailableStock(option.getAuction().getId())) {
+			auctionStockService.recordSoldOutIfAbsent(option.getAuction().getId(), currentServerPrice);
+		}
 
 		String timestamp = now.format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
 		String merchantUid = "order_no_" + timestamp + "_" + UUID.randomUUID().toString().substring(0, 8);
@@ -131,8 +134,8 @@ public class BidService {
 			try {
 				PortOneCancelResponse cancelResponse = portOneClient.cancelPayment(merchantUid, bid.getBidPrice());
 				if (cancelResponse.isSucceeded()) {
-					cancelConfirmed = true;
 					bidRedisRepository.addPendingRestock(option.getId(), 1L);
+					cancelConfirmed = true;
 					log.info(">>>> [보상 완료] 결제 취소 완료 merchantUid={}", merchantUid);
 				} else if (cancelResponse.isRequested()) {
 					log.warn(">>>> [보상 보류] 결제 취소 요청만 접수됨 merchantUid={}", merchantUid);
