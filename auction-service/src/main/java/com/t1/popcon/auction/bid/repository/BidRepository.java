@@ -1,6 +1,7 @@
 package com.t1.popcon.auction.bid.repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import com.t1.popcon.auction.bid.domain.Bid;
 import com.t1.popcon.auction.bid.domain.BidStatus;
@@ -18,5 +19,12 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
 		@Param("fromStatus") BidStatus fromStatus,
 		@Param("toStatus") BidStatus toStatus,
 		@Param("paidAt") LocalDateTime paidAt,
-		@Param("pgTxId") String pgTxId);
+    @Param("pgTxId") String pgTxId);
+
+	@Query("SELECT b FROM Bid b " +
+		"JOIN FETCH b.auctionOption ao " +
+		"JOIN FETCH ao.auction a " +
+		"WHERE b.userId = :userId AND b.status = :status AND b.deleted = false " +
+		"ORDER BY b.createdAt DESC")
+	List<Bid> findAllByUserIdAndStatusOrderByCreatedAtDesc(@Param("userId") Long userId, @Param("status") BidStatus status);
 }

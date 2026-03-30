@@ -41,10 +41,3 @@ jwt:
 server:
   port: 8084
   shutdown: graceful
-
-internal:
-  api-secret: ${INTERNAL_API_SECRET:changeme-local-secret}
-
-services:
-  popup-service:
-    url: ${POPUP_SERVICE_URL:http://localhost:8082}
