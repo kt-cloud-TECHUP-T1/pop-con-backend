@@ -3,6 +3,7 @@ package com.t1.popcon.ticket.service;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.ticket.domain.Ticket;
+import com.t1.popcon.ticket.dto.response.TicketIssueResponse;
 import com.t1.popcon.ticket.dto.request.TicketIssueRequest;
 import com.t1.popcon.ticket.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,9 +17,11 @@ public class TicketIssueService {
     private final TicketRepository ticketRepository;
 
     @Transactional
-    public Ticket issue(TicketIssueRequest request) {
-        if (ticketRepository.existsBySourceTypeAndSourceId(request.sourceType(), request.sourceId())) {
-            throw new CustomException(ErrorCode.INVALID_INPUT);
+    public TicketIssueResponse issue(TicketIssueRequest request) {
+        Ticket existingTicket = ticketRepository.findBySourceTypeAndSourceId(request.sourceType(), request.sourceId())
+            .orElse(null);
+        if (existingTicket != null) {
+            return TicketIssueResponse.from(existingTicket);
         }
 
         Ticket ticket = Ticket.builder()
@@ -30,6 +33,7 @@ public class TicketIssueService {
             .entryTime(request.entryTime())
             .build();
 
-        return ticketRepository.save(ticket);
+        Ticket savedTicket = ticketRepository.save(ticket);
+        return TicketIssueResponse.from(savedTicket);
     }
 }
