@@ -29,4 +29,8 @@ encryption:
   secret: ${ENCRYPTION_SECRET}
 
 internal:
-  api-secret: ${INTERNAL_API_SECRET:changeme-local-secret}
+  api-secret: ${INTERNAL_API_SECRET}
+
+services:
+  popup-service:
+    url: ${POPUP_SERVICE_URL}

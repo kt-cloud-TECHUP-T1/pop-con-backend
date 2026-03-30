@@ -58,6 +58,3 @@ management:
   metrics:
     tags:
       application: auction-service
-      
-internal:
-  api-secret: ${INTERNAL_API_SECRET:changeme-local-secret}

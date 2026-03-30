@@ -53,13 +53,3 @@ management:
   metrics:
     tags:
       application: user-service
-
-internal:
-  api-secret: ${INTERNAL_API_SECRET:changeme-local-secret}
-
-
-services:
-  draw-service:
-    url: ${DRAW_SERVICE_URL}
-  auction-service:
-    url: ${AUCTION_SERVICE_URL}
