@@ -12,8 +12,10 @@ import com.t1.popcon.auction.domain.AuctionOption;
 import com.t1.popcon.auction.domain.AuctionStatus;
 import com.t1.popcon.auction.repository.AuctionOptionRepository;
 import com.t1.popcon.auction.service.AuctionPriceService;
+import com.t1.popcon.auction.service.AuctionStockService;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
+import com.t1.popcon.common.infrastructure.dto.PortOneCancelResponse;
 import com.t1.popcon.common.infrastructure.dto.PortOnePaymentResponse;
 import com.t1.popcon.common.infrastructure.portone.PortOneClient;
 import com.t1.popcon.common.response.ApiResponse;
@@ -35,7 +37,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class BidServiceTest {
+public class BidServiceTest {
 
 	@Mock
 	private BidRedisRepository bidRedisRepository;
@@ -43,6 +45,8 @@ class BidServiceTest {
 	private AuctionOptionRepository auctionOptionRepository;
 	@Mock
 	private AuctionPriceService auctionPriceService;
+	@Mock
+	private AuctionStockService auctionStockService;
 	@Mock
 	private PortOneClient portOneClient;
 	@Mock
@@ -73,8 +77,10 @@ class BidServiceTest {
 		// given
 		BidRequest request = new BidRequest(optionId, bidPrice);
 		given(auctionOptionRepository.findByIdWithAuction(optionId)).willReturn(Optional.of(option));
-		given(auctionPriceService.calculateStatus(any(), any())).willReturn(AuctionStatus.OPEN);
-		given(auctionPriceService.calculateCurrentPrice(any(), any())).willReturn(bidPrice);
+		given(auctionStockService.hasAvailableStock(anyLong())).willReturn(true);
+		given(auctionStockService.getPriceAnchor(anyLong())).willReturn(new AuctionStockService.PriceAnchor(null, null));
+		given(auctionPriceService.calculateStatus(any(), any(), anyBoolean())).willReturn(AuctionStatus.OPEN);
+		given(auctionPriceService.calculateCurrentPrice(any(), any(), any(), any(), any())).willReturn(bidPrice);
 		given(bidRedisRepository.decrementStock(optionId)).willReturn(5L);
 
 		String merchantUid = "merchant_123";
@@ -107,8 +113,10 @@ class BidServiceTest {
 		// given
 		BidRequest request = new BidRequest(optionId, bidPrice);
 		given(auctionOptionRepository.findByIdWithAuction(optionId)).willReturn(Optional.of(option));
-		given(auctionPriceService.calculateStatus(any(), any())).willReturn(AuctionStatus.OPEN);
-		given(auctionPriceService.calculateCurrentPrice(any(), any())).willReturn(bidPrice);
+		given(auctionStockService.hasAvailableStock(anyLong())).willReturn(true);
+		given(auctionStockService.getPriceAnchor(anyLong())).willReturn(new AuctionStockService.PriceAnchor(null, null));
+		given(auctionPriceService.calculateStatus(any(), any(), anyBoolean())).willReturn(AuctionStatus.OPEN);
+		given(auctionPriceService.calculateCurrentPrice(any(), any(), any(), any(), any())).willReturn(bidPrice);
 		given(bidRedisRepository.decrementStock(optionId)).willReturn(-1L);
 
 		// when & then
@@ -123,8 +131,10 @@ class BidServiceTest {
 		// given
 		BidRequest request = new BidRequest(optionId, bidPrice);
 		given(auctionOptionRepository.findByIdWithAuction(optionId)).willReturn(Optional.of(option));
-		given(auctionPriceService.calculateStatus(any(), any())).willReturn(AuctionStatus.OPEN);
-		given(auctionPriceService.calculateCurrentPrice(any(), any())).willReturn(bidPrice);
+		given(auctionStockService.hasAvailableStock(anyLong())).willReturn(true);
+		given(auctionStockService.getPriceAnchor(anyLong())).willReturn(new AuctionStockService.PriceAnchor(null, null));
+		given(auctionPriceService.calculateStatus(any(), any(), anyBoolean())).willReturn(AuctionStatus.OPEN);
+		given(auctionPriceService.calculateCurrentPrice(any(), any(), any(), any(), any())).willReturn(bidPrice);
 		given(bidRedisRepository.decrementStock(optionId)).willReturn(5L);
 
 		Bid bid = Bid.builder()
@@ -140,13 +150,17 @@ class BidServiceTest {
 
 		given(portOneClient.executePayment(anyString(), anyString(), anyInt(), anyString()))
 			.willThrow(new RuntimeException("Payment API Error"));
+		given(portOneClient.cancelPayment(anyString(), anyInt()))
+			.willReturn(new PortOneCancelResponse(
+				new PortOneCancelResponse.Cancellation("SUCCEEDED", "cancel_1", "pg_cancel_1", bidPrice, "test", "2026-03-30T00:00:00Z")
+			));
 
 		// when & then
 		assertThatThrownBy(() -> bidService.attemptBid(userId, request))
 			.isInstanceOf(CustomException.class);
 
 		verify(portOneClient).cancelPayment(anyString(), anyInt());
-		verify(bidRedisRepository).incrementStock(optionId);
+		verify(bidRedisRepository).addPendingRestock(optionId, 1L);
 		verify(txManager).completeBidFailure(any());
 	}
 }
