@@ -48,13 +48,20 @@ public class BidService {
 		LocalDateTime now = LocalDateTime.now();
 		validateAuctionOpen(option.getAuction(), now);
 
+		AuctionStockService.PriceAnchor priceAnchor = auctionStockService.getPriceAnchor(option.getAuction().getId());
 		AuctionStatus auctionStatus = auctionPriceService.calculateStatus(
 			option.getAuction(),
 			now,
 			auctionStockService.hasAvailableStock(option.getAuction().getId())
 		);
 
-		Integer currentServerPrice = auctionPriceService.calculateCurrentPrice(option.getAuction(), auctionStatus, now);
+		Integer currentServerPrice = auctionPriceService.calculateCurrentPrice(
+			option.getAuction(),
+			auctionStatus,
+			now,
+			priceAnchor.soldOutPrice(),
+			priceAnchor.restockAnchorAt()
+		);
 		if (!request.bidPrice().equals(currentServerPrice)) {
 			throw new CustomException(ErrorCode.AUCTION_PRICE_MISMATCH);
 		}
@@ -88,7 +95,7 @@ public class BidService {
 			);
 
 			if (!paymentResponse.isPaid()) {
-				log.error(">>>> [결제 실패] 결제 완료 일시가 없습니다. merchantUid={}", bid.getMerchantUid());
+				log.error(">>>> [결제 실패] 결제 완료 시각이 없습니다. merchantUid={}", bid.getMerchantUid());
 				throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제가 완료되지 않았습니다.");
 			}
 
@@ -106,25 +113,37 @@ public class BidService {
 		} catch (Exception e) {
 			log.error(">>>> 낙찰 처리 중 오류 userId={}, optionId={}, error={}", userId, option.getId(), e.getMessage());
 
+			boolean shouldMarkBidFailure = true;
+
 			if (paymentAttempted) {
+				boolean cancelConfirmed = false;
+
 				try {
 					PortOneCancelResponse cancelResponse = portOneClient.cancelPayment(merchantUid, bid.getBidPrice());
 					if (cancelResponse.isSucceeded()) {
+						cancelConfirmed = true;
+						bidRedisRepository.addPendingRestock(option.getId(), 1L);
 						log.info(">>>> [보상 완료] 결제 취소 완료 merchantUid={}", merchantUid);
 					} else if (cancelResponse.isRequested()) {
-						log.warn(">>>> [보상 진행중] 결제 취소가 접수되었습니다. merchantUid={}", merchantUid);
+						log.warn(">>>> [보상 보류] 결제 취소 요청만 접수됨 merchantUid={}", merchantUid);
 					} else {
 						log.error("!!!! [보상 실패] 결제 취소 실패 merchantUid={}, reason={}", merchantUid, cancelResponse.reason());
 					}
 				} catch (Exception cancelEx) {
 					log.error("!!!! [긴급] 결제 취소 API 호출 실패 merchantUid={}", merchantUid, cancelEx);
 				}
+
+				if (!cancelConfirmed) {
+					shouldMarkBidFailure = false;
+				}
 			}
 
-			bidRedisRepository.addPendingRestock(option.getId(), 1L);
-
-			if (bid != null) {
+			if (bid != null && shouldMarkBidFailure) {
 				txManager.completeBidFailure(bid.getId());
+			}
+
+			if (!shouldMarkBidFailure) {
+				throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 취소가 확정되지 않아 재고 복구를 보류합니다.");
 			}
 
 			throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, e);

@@ -37,15 +37,24 @@ public class AuctionPriceBroadcastScheduler {
         );
 
         for (Auction auction : auctions) {
+            AuctionStatus previousStatus = auction.getStatus();
             if (auctionPriceService.isPriceDropBoundary(auction, now)) {
                 auctionStockService.releasePendingRestocks(auction.getId());
             }
 
-            AuctionStatus calculatedStatus = auctionPriceService.calculateStatus(
-                    auction,
-                    now,
-                    auctionStockService.hasAvailableStock(auction.getId())
-            );
+            boolean hasAvailableStock = auctionStockService.hasAvailableStock(auction.getId());
+            AuctionStatus calculatedStatus = auctionPriceService.calculateStatus(auction, now, hasAvailableStock);
+
+            if (previousStatus != AuctionStatus.SOLD_OUT && calculatedStatus == AuctionStatus.SOLD_OUT) {
+                auctionStockService.recordSoldOut(
+                        auction.getId(),
+                        auctionPriceService.calculateTimeBasedPrice(auction, now)
+                );
+            }
+
+            if (previousStatus == AuctionStatus.SOLD_OUT && calculatedStatus == AuctionStatus.OPEN) {
+                auctionStockService.recordRestockAnchor(auction.getId(), now);
+            }
 
             if (auction.getStatus() != calculatedStatus) {
                 auction.updateStatus(calculatedStatus);
@@ -55,14 +64,31 @@ public class AuctionPriceBroadcastScheduler {
                 continue;
             }
 
-            Long remainingUntilOpenSeconds = auctionPriceService.calculateRemainingUntilOpenSeconds(auction, now);
-            Long remainingUntilCloseSeconds = auctionPriceService.calculateRemainingUntilCloseSeconds(auction, calculatedStatus, now);
+            AuctionStockService.PriceAnchor priceAnchor = auctionStockService.getPriceAnchor(auction.getId());
 
-            Integer currentPrice = auctionPriceService.calculateCurrentPrice(auction, calculatedStatus, now);
+            Long remainingUntilOpenSeconds = auctionPriceService.calculateRemainingUntilOpenSeconds(auction, now);
+            Long remainingUntilCloseSeconds = auctionPriceService.calculateRemainingUntilCloseSeconds(auction, now);
+            Integer currentPrice = auctionPriceService.calculateCurrentPrice(
+                    auction,
+                    calculatedStatus,
+                    now,
+                    priceAnchor.soldOutPrice(),
+                    priceAnchor.restockAnchorAt()
+            );
             Integer nextPrice = auctionPriceService.calculateNextPrice(auction, currentPrice);
             Integer discountAmount = auctionPriceService.calculateDiscountAmount(auction, currentPrice);
-            Long secondsUntilNextDrop = auctionPriceService.calculateSecondsUntilNextDrop(auction, calculatedStatus, now);
-            Long displaySecondsUntilNextDrop = auctionPriceService.calculateDisplaySecondsUntilNextDrop(auction, calculatedStatus, now);
+            Long secondsUntilNextDrop = auctionPriceService.calculateSecondsUntilNextDrop(
+                    auction,
+                    calculatedStatus,
+                    now,
+                    priceAnchor.restockAnchorAt()
+            );
+            Long displaySecondsUntilNextDrop = auctionPriceService.calculateDisplaySecondsUntilNextDrop(
+                    auction,
+                    calculatedStatus,
+                    now,
+                    priceAnchor.restockAnchorAt()
+            );
 
             Boolean canParticipate = auctionPriceService.canParticipate(calculatedStatus);
             AuctionButtonStatus buttonStatus = auctionPriceService.calculateButtonStatus(calculatedStatus);

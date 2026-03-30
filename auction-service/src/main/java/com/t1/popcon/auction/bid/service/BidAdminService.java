@@ -1,8 +1,8 @@
 package com.t1.popcon.auction.bid.service;
 
-import com.t1.popcon.auction.bid.infrastructure.BidRedisRepository;
 import com.t1.popcon.auction.domain.AuctionOption;
 import com.t1.popcon.auction.repository.AuctionOptionRepository;
+import com.t1.popcon.auction.service.AuctionStockService;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -16,17 +16,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class BidAdminService {
 
 	private final AuctionOptionRepository auctionOptionRepository;
-	private final BidRedisRepository bidRedisRepository;
+	private final AuctionStockService auctionStockService;
 
 	@Transactional(readOnly = true)
 	public void initStockToRedis(Long optionId) {
 		AuctionOption option = auctionOptionRepository.findById(optionId)
 			.orElseThrow(() -> new CustomException(ErrorCode.AUCTION_OPTION_NOT_FOUND));
 
-		int stock = option.getRemainingStock();
-		bidRedisRepository.setAvailableStock(optionId, stock);
-		bidRedisRepository.resetPendingRestock(optionId);
+		auctionStockService.initializeOptionStock(option, true);
 
-		log.info(">>>> [Admin] optionId={} availableStock={} pendingRestock=0", optionId, stock);
+		log.info(">>>> [Admin] optionId={} availableStock 재구성 완료 (pendingRestock 보존)", optionId);
 	}
 }

@@ -7,6 +7,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 
@@ -17,6 +18,8 @@ public class BidRedisRepository {
 
 	private static final String AVAILABLE_STOCK_KEY_PREFIX = "auction:option:%d:stock";
 	private static final String PENDING_RESTOCK_KEY_PREFIX = "auction:option:%d:pending-restock";
+	private static final String SOLD_OUT_PRICE_KEY_PREFIX = "auction:%d:sold-out-price";
+	private static final String RESTOCK_ANCHOR_AT_KEY_PREFIX = "auction:%d:restock-anchor-at";
 
 	private final RedisTemplate<String, String> redisTemplate;
 
@@ -34,12 +37,30 @@ public class BidRedisRepository {
 		redisTemplate.opsForValue().set(getAvailableStockKey(optionId), String.valueOf(stock));
 	}
 
-	public void resetPendingRestock(Long optionId) {
-		redisTemplate.delete(getPendingRestockKey(optionId));
-	}
-
 	public void addPendingRestock(Long optionId, long quantity) {
 		redisTemplate.opsForValue().increment(getPendingRestockKey(optionId), quantity);
+	}
+
+	public Integer getSoldOutPrice(Long auctionId) {
+		String value = redisTemplate.opsForValue().get(getSoldOutPriceKey(auctionId));
+		return value != null ? Integer.parseInt(value) : null;
+	}
+
+	public void setSoldOutPrice(Long auctionId, Integer soldOutPrice) {
+		redisTemplate.opsForValue().set(getSoldOutPriceKey(auctionId), String.valueOf(soldOutPrice));
+	}
+
+	public LocalDateTime getRestockAnchorAt(Long auctionId) {
+		String value = redisTemplate.opsForValue().get(getRestockAnchorAtKey(auctionId));
+		return value != null ? LocalDateTime.parse(value) : null;
+	}
+
+	public void setRestockAnchorAt(Long auctionId, LocalDateTime restockAnchorAt) {
+		redisTemplate.opsForValue().set(getRestockAnchorAtKey(auctionId), restockAnchorAt.toString());
+	}
+
+	public void clearRestockAnchorAt(Long auctionId) {
+		redisTemplate.delete(getRestockAnchorAtKey(auctionId));
 	}
 
 	private static final DefaultRedisScript<Long> DECREMENT_SCRIPT;
@@ -84,5 +105,13 @@ public class BidRedisRepository {
 
 	private String getPendingRestockKey(Long optionId) {
 		return String.format(PENDING_RESTOCK_KEY_PREFIX, optionId);
+	}
+
+	private String getSoldOutPriceKey(Long auctionId) {
+		return String.format(SOLD_OUT_PRICE_KEY_PREFIX, auctionId);
+	}
+
+	private String getRestockAnchorAtKey(Long auctionId) {
+		return String.format(RESTOCK_ANCHOR_AT_KEY_PREFIX, auctionId);
 	}
 }

@@ -1,8 +1,8 @@
 package com.t1.popcon.auction.bid.service;
 
-import com.t1.popcon.auction.bid.infrastructure.BidRedisRepository;
 import com.t1.popcon.auction.domain.AuctionOption;
 import com.t1.popcon.auction.repository.AuctionOptionRepository;
+import com.t1.popcon.auction.service.AuctionStockService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,7 +16,7 @@ import java.util.List;
 public class BidRedisInitService {
 
 	private final AuctionOptionRepository auctionOptionRepository;
-	private final BidRedisRepository bidRedisRepository;
+	private final AuctionStockService auctionStockService;
 
 	@Transactional(readOnly = true)
 	public void initializeStockToRedis(Long auctionId) {
@@ -31,9 +31,8 @@ public class BidRedisInitService {
 		}
 
 		for (AuctionOption option : options) {
-			bidRedisRepository.setAvailableStock(option.getId(), option.getRemainingStock());
-			bidRedisRepository.resetPendingRestock(option.getId());
-			log.info(">>>> [Redis Init] optionId={} availableStock={} pendingRestock=0", option.getId(), option.getRemainingStock());
+			auctionStockService.initializeOptionStock(option, false);
+			log.info(">>>> [Redis Init] optionId={} availableStock 초기화 완료", option.getId());
 		}
 
 		log.info(">>>> [Redis Init] auctionId={} 재고 초기화 완료 (총 {}개 회차)", auctionId, options.size());

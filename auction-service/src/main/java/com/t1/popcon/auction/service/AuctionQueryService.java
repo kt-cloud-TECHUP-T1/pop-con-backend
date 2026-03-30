@@ -25,19 +25,30 @@ public class AuctionQueryService {
                 .orElseThrow(() -> new CustomException(ErrorCode.AUCTION_NOT_FOUND));
 
         LocalDateTime now = LocalDateTime.now();
-
         AuctionStatus auctionStatus = auctionPriceService.calculateStatus(
                 auction,
                 now,
                 auctionStockService.hasAvailableStock(auction.getId())
         );
-        Long remainingUntilOpenSeconds = auctionPriceService.calculateRemainingUntilOpenSeconds(auction, now);
-        Long remainingUntilCloseSeconds = auctionPriceService.calculateRemainingUntilCloseSeconds(auction, auctionStatus, now);
+        AuctionStockService.PriceAnchor priceAnchor = auctionStockService.getPriceAnchor(auction.getId());
 
-        Integer currentPrice = auctionPriceService.calculateCurrentPrice(auction, auctionStatus, now);
+        Long remainingUntilOpenSeconds = auctionPriceService.calculateRemainingUntilOpenSeconds(auction, now);
+        Long remainingUntilCloseSeconds = auctionPriceService.calculateRemainingUntilCloseSeconds(auction, now);
+        Integer currentPrice = auctionPriceService.calculateCurrentPrice(
+                auction,
+                auctionStatus,
+                now,
+                priceAnchor.soldOutPrice(),
+                priceAnchor.restockAnchorAt()
+        );
         Integer nextPrice = auctionPriceService.calculateNextPrice(auction, currentPrice);
         Integer discountAmount = auctionPriceService.calculateDiscountAmount(auction, currentPrice);
-        Long secondsUntilNextDrop = auctionPriceService.calculateSecondsUntilNextDrop(auction, auctionStatus, now);
+        Long secondsUntilNextDrop = auctionPriceService.calculateSecondsUntilNextDrop(
+                auction,
+                auctionStatus,
+                now,
+                priceAnchor.restockAnchorAt()
+        );
 
         Boolean canParticipate = auctionPriceService.canParticipate(auctionStatus);
         AuctionButtonStatus buttonStatus = auctionPriceService.calculateButtonStatus(auctionStatus);
