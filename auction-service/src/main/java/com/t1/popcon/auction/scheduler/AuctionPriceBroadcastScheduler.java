@@ -38,22 +38,31 @@ public class AuctionPriceBroadcastScheduler {
 
         for (Auction auction : auctions) {
             AuctionStatus previousStatus = auction.getStatus();
+            LocalDateTime boundaryTime = auctionPriceService.getCurrentPriceDropBoundaryTime(auction, now);
+
             if (auctionPriceService.isPriceDropBoundary(auction, now)) {
                 auctionStockService.releasePendingRestocks(auction.getId());
             }
 
             boolean hasAvailableStock = auctionStockService.hasAvailableStock(auction.getId());
             AuctionStatus calculatedStatus = auctionPriceService.calculateStatus(auction, now, hasAvailableStock);
+            AuctionStockService.PriceAnchor priceAnchor = auctionStockService.getPriceAnchor(auction.getId());
+
+            Integer currentPrice = auctionPriceService.calculateCurrentPrice(
+                    auction,
+                    previousStatus,
+                    now,
+                    priceAnchor.soldOutPrice(),
+                    priceAnchor.restockAnchorAt()
+            );
 
             if (previousStatus != AuctionStatus.SOLD_OUT && calculatedStatus == AuctionStatus.SOLD_OUT) {
-                auctionStockService.recordSoldOut(
-                        auction.getId(),
-                        auctionPriceService.calculateTimeBasedPrice(auction, now)
-                );
+                auctionStockService.recordSoldOut(auction.getId(), currentPrice);
             }
 
             if (previousStatus == AuctionStatus.SOLD_OUT && calculatedStatus == AuctionStatus.OPEN) {
-                auctionStockService.recordRestockAnchor(auction.getId(), now);
+                auctionStockService.recordRestockAnchor(auction.getId(), boundaryTime);
+                priceAnchor = auctionStockService.getPriceAnchor(auction.getId());
             }
 
             if (auction.getStatus() != calculatedStatus) {
@@ -64,11 +73,9 @@ public class AuctionPriceBroadcastScheduler {
                 continue;
             }
 
-            AuctionStockService.PriceAnchor priceAnchor = auctionStockService.getPriceAnchor(auction.getId());
-
             Long remainingUntilOpenSeconds = auctionPriceService.calculateRemainingUntilOpenSeconds(auction, now);
             Long remainingUntilCloseSeconds = auctionPriceService.calculateRemainingUntilCloseSeconds(auction, now);
-            Integer currentPrice = auctionPriceService.calculateCurrentPrice(
+            currentPrice = auctionPriceService.calculateCurrentPrice(
                     auction,
                     calculatedStatus,
                     now,

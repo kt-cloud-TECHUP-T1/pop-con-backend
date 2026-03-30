@@ -113,36 +113,38 @@ public class BidService {
 		} catch (Exception e) {
 			log.error(">>>> 낙찰 처리 중 오류 userId={}, optionId={}, error={}", userId, option.getId(), e.getMessage());
 
-			boolean shouldMarkBidFailure = true;
+			if (!paymentAttempted) {
+				bidRedisRepository.incrementAvailableStock(option.getId(), 1L);
 
-			if (paymentAttempted) {
-				boolean cancelConfirmed = false;
-
-				try {
-					PortOneCancelResponse cancelResponse = portOneClient.cancelPayment(merchantUid, bid.getBidPrice());
-					if (cancelResponse.isSucceeded()) {
-						cancelConfirmed = true;
-						bidRedisRepository.addPendingRestock(option.getId(), 1L);
-						log.info(">>>> [보상 완료] 결제 취소 완료 merchantUid={}", merchantUid);
-					} else if (cancelResponse.isRequested()) {
-						log.warn(">>>> [보상 보류] 결제 취소 요청만 접수됨 merchantUid={}", merchantUid);
-					} else {
-						log.error("!!!! [보상 실패] 결제 취소 실패 merchantUid={}, reason={}", merchantUid, cancelResponse.reason());
-					}
-				} catch (Exception cancelEx) {
-					log.error("!!!! [긴급] 결제 취소 API 호출 실패 merchantUid={}", merchantUid, cancelEx);
+				if (bid != null) {
+					txManager.completeBidFailure(bid.getId());
 				}
 
-				if (!cancelConfirmed) {
-					shouldMarkBidFailure = false;
-				}
+				throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, e);
 			}
 
-			if (bid != null && shouldMarkBidFailure) {
+			boolean cancelConfirmed = false;
+
+			try {
+				PortOneCancelResponse cancelResponse = portOneClient.cancelPayment(merchantUid, bid.getBidPrice());
+				if (cancelResponse.isSucceeded()) {
+					cancelConfirmed = true;
+					bidRedisRepository.addPendingRestock(option.getId(), 1L);
+					log.info(">>>> [보상 완료] 결제 취소 완료 merchantUid={}", merchantUid);
+				} else if (cancelResponse.isRequested()) {
+					log.warn(">>>> [보상 보류] 결제 취소 요청만 접수됨 merchantUid={}", merchantUid);
+				} else {
+					log.error("!!!! [보상 실패] 결제 취소 실패 merchantUid={}, reason={}", merchantUid, cancelResponse.reason());
+				}
+			} catch (Exception cancelEx) {
+				log.error("!!!! [긴급] 결제 취소 API 호출 실패 merchantUid={}", merchantUid, cancelEx);
+			}
+
+			if (cancelConfirmed && bid != null) {
 				txManager.completeBidFailure(bid.getId());
 			}
 
-			if (!shouldMarkBidFailure) {
+			if (!cancelConfirmed) {
 				throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 취소가 확정되지 않아 재고 복구를 보류합니다.");
 			}
 

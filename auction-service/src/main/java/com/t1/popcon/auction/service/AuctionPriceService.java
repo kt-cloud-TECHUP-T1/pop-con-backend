@@ -52,6 +52,10 @@ public class AuctionPriceService {
             LocalDateTime now,
             LocalDateTime restockAnchorAt
     ) {
+        if (auctionStatus == AuctionStatus.SOLD_OUT) {
+            return 0L;
+        }
+
         if (now.isBefore(auction.getOpenedAt()) || now.isAfter(auction.getClosedAt())) {
             return 0L;
         }
@@ -125,8 +129,14 @@ public class AuctionPriceService {
             return false;
         }
 
+        return now.equals(getCurrentPriceDropBoundaryTime(auction, now));
+    }
+
+    public LocalDateTime getCurrentPriceDropBoundaryTime(Auction auction, LocalDateTime now) {
         long elapsedSeconds = Duration.between(auction.getOpenedAt(), now).getSeconds();
-        return elapsedSeconds >= 0 && elapsedSeconds % auction.getPriceDropIntervalSeconds() == 0;
+        long interval = auction.getPriceDropIntervalSeconds();
+        long boundaryOffset = (elapsedSeconds / interval) * interval;
+        return auction.getOpenedAt().plusSeconds(boundaryOffset);
     }
 
     public boolean canParticipate(AuctionStatus auctionStatus) {

@@ -41,6 +41,10 @@ public class BidRedisRepository {
 		redisTemplate.opsForValue().increment(getPendingRestockKey(optionId), quantity);
 	}
 
+	public void incrementAvailableStock(Long optionId, long quantity) {
+		redisTemplate.opsForValue().increment(getAvailableStockKey(optionId), quantity);
+	}
+
 	public Integer getSoldOutPrice(Long auctionId) {
 		String value = redisTemplate.opsForValue().get(getSoldOutPriceKey(auctionId));
 		return value != null ? Integer.parseInt(value) : null;
