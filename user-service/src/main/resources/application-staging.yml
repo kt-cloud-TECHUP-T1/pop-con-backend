@@ -56,7 +56,3 @@ management:
 
 internal:
   api-secret: ${INTERNAL_API_SECRET:changeme-local-secret}
-
-user:
-  nickname:
-    prefix: ${NICKNAME_PREFIX}
