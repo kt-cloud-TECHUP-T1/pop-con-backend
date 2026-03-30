@@ -11,11 +11,13 @@ import java.time.LocalDateTime;
 @Service
 public class AuctionPriceService {
 
-    public Integer calculateCurrentPrice(Auction auction, LocalDateTime now) {
-        if (auction.isSold()) {
-            return auction.getMinimumPrice();
-        }
-
+    public Integer calculateCurrentPrice(
+            Auction auction,
+            AuctionStatus auctionStatus,
+            LocalDateTime now,
+            Integer soldOutPrice,
+            LocalDateTime restockAnchorAt
+    ) {
         if (now.isBefore(auction.getOpenedAt())) {
             return null;
         }
@@ -24,13 +26,15 @@ public class AuctionPriceService {
             return auction.getMinimumPrice();
         }
 
-        long elapsedSeconds = Duration.between(auction.getOpenedAt(), now).getSeconds();
-        long dropCount = elapsedSeconds / auction.getPriceDropIntervalSeconds();
+        if (auctionStatus == AuctionStatus.SOLD_OUT) {
+            return soldOutPrice != null ? soldOutPrice : calculateTimeBasedPrice(auction, now);
+        }
 
-        int calculatedPrice = auction.getStartPrice()
-                - (int) (dropCount * auction.getPriceDropUnit());
+        if (restockAnchorAt != null && soldOutPrice != null && !now.isBefore(restockAnchorAt)) {
+            return calculateAnchoredPrice(auction, soldOutPrice, restockAnchorAt, now);
+        }
 
-        return Math.max(calculatedPrice, auction.getMinimumPrice());
+        return calculateTimeBasedPrice(auction, now);
     }
 
     public Integer calculateNextPrice(Auction auction, Integer currentPrice) {
@@ -42,24 +46,42 @@ public class AuctionPriceService {
         return Math.max(nextPrice, auction.getMinimumPrice());
     }
 
-    public Long calculateSecondsUntilNextDrop(Auction auction, LocalDateTime now) {
-        if (auction.isSold()) {
+    public Long calculateSecondsUntilNextDrop(
+            Auction auction,
+            AuctionStatus auctionStatus,
+            LocalDateTime now,
+            LocalDateTime restockAnchorAt
+    ) {
+        if (auctionStatus == AuctionStatus.SOLD_OUT) {
             return 0L;
         }
 
-        if (now.isBefore(auction.getOpenedAt())) {
+        if (now.isBefore(auction.getOpenedAt()) || now.isAfter(auction.getClosedAt())) {
             return 0L;
         }
 
-        if (now.isAfter(auction.getClosedAt())) {
-            return 0L;
-        }
+        LocalDateTime baseTime = (auctionStatus == AuctionStatus.OPEN && restockAnchorAt != null && !now.isBefore(restockAnchorAt))
+                ? restockAnchorAt
+                : auction.getOpenedAt();
 
-        long elapsedSeconds = Duration.between(auction.getOpenedAt(), now).getSeconds();
+        long elapsedSeconds = Duration.between(baseTime, now).getSeconds();
         long interval = auction.getPriceDropIntervalSeconds();
         long remainder = elapsedSeconds % interval;
 
         return remainder == 0 ? interval : interval - remainder;
+    }
+
+    public Long calculateDisplaySecondsUntilNextDrop(
+            Auction auction,
+            AuctionStatus auctionStatus,
+            LocalDateTime now,
+            LocalDateTime restockAnchorAt
+    ) {
+        if (auctionStatus == AuctionStatus.SOLD_OUT) {
+            return auction.getPriceDropIntervalSeconds().longValue();
+        }
+
+        return calculateSecondsUntilNextDrop(auction, auctionStatus, now, restockAnchorAt);
     }
 
     public Long calculateRemainingUntilOpenSeconds(Auction auction, LocalDateTime now) {
@@ -71,15 +93,7 @@ public class AuctionPriceService {
     }
 
     public Long calculateRemainingUntilCloseSeconds(Auction auction, LocalDateTime now) {
-        if (auction.isSold()) {
-            return 0L;
-        }
-
-        if (now.isBefore(auction.getOpenedAt())) {
-            return 0L;
-        }
-
-        if (now.isAfter(auction.getClosedAt())) {
+        if (now.isBefore(auction.getOpenedAt()) || now.isAfter(auction.getClosedAt())) {
             return 0L;
         }
 
@@ -94,11 +108,7 @@ public class AuctionPriceService {
         return auction.getStartPrice() - currentPrice;
     }
 
-    public AuctionStatus calculateStatus(Auction auction, LocalDateTime now) {
-        if (auction.isSold()) {
-            return AuctionStatus.SOLD_OUT;
-        }
-
+    public AuctionStatus calculateStatus(Auction auction, LocalDateTime now, boolean hasAvailableStock) {
         if (now.isBefore(auction.getOpenedAt())) {
             return AuctionStatus.SCHEDULED;
         }
@@ -107,7 +117,27 @@ public class AuctionPriceService {
             return AuctionStatus.CLOSED;
         }
 
+        if (!hasAvailableStock) {
+            return AuctionStatus.SOLD_OUT;
+        }
+
         return AuctionStatus.OPEN;
+    }
+
+    public boolean isPriceDropBoundary(Auction auction, LocalDateTime now) {
+        if (now.isBefore(auction.getOpenedAt()) || now.isAfter(auction.getClosedAt())) {
+            return false;
+        }
+
+        LocalDateTime normalizedNow = now.withNano(0);
+        return normalizedNow.equals(getCurrentPriceDropBoundaryTime(auction, normalizedNow));
+    }
+
+    public LocalDateTime getCurrentPriceDropBoundaryTime(Auction auction, LocalDateTime now) {
+        long elapsedSeconds = Duration.between(auction.getOpenedAt(), now).getSeconds();
+        long interval = auction.getPriceDropIntervalSeconds();
+        long boundaryOffset = (elapsedSeconds / interval) * interval;
+        return auction.getOpenedAt().plusSeconds(boundaryOffset);
     }
 
     public boolean canParticipate(AuctionStatus auctionStatus) {
@@ -121,5 +151,23 @@ public class AuctionPriceService {
             case SOLD_OUT -> AuctionButtonStatus.SOLD_OUT;
             case CLOSED -> AuctionButtonStatus.ENDED;
         };
+    }
+
+    public Integer calculateTimeBasedPrice(Auction auction, LocalDateTime now) {
+        long elapsedSeconds = Duration.between(auction.getOpenedAt(), now).getSeconds();
+        long dropCount = elapsedSeconds / auction.getPriceDropIntervalSeconds();
+
+        int calculatedPrice = auction.getStartPrice()
+                - (int) (dropCount * auction.getPriceDropUnit());
+
+        return Math.max(calculatedPrice, auction.getMinimumPrice());
+    }
+
+    private Integer calculateAnchoredPrice(Auction auction, Integer soldOutPrice, LocalDateTime anchorTime, LocalDateTime now) {
+        long elapsedSeconds = Duration.between(anchorTime, now).getSeconds();
+        long dropCount = Math.max(elapsedSeconds, 0L) / auction.getPriceDropIntervalSeconds();
+
+        int calculatedPrice = soldOutPrice - (int) (dropCount * auction.getPriceDropUnit());
+        return Math.max(calculatedPrice, auction.getMinimumPrice());
     }
 }

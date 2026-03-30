@@ -1,11 +1,9 @@
 package com.t1.popcon.auction.service;
 
 import com.t1.popcon.auction.domain.Auction;
-import com.t1.popcon.auction.domain.AuctionOption;
 import com.t1.popcon.auction.domain.AuctionStatus;
 import com.t1.popcon.auction.dto.response.AuctionAvailableDateResponse;
 import com.t1.popcon.auction.dto.response.AuctionOptionResponse;
-import com.t1.popcon.auction.repository.AuctionOptionRepository;
 import com.t1.popcon.auction.repository.AuctionRepository;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
@@ -23,34 +21,31 @@ import java.util.List;
 public class AuctionOptionService {
 
     private final AuctionRepository auctionRepository;
-    private final AuctionOptionRepository auctionOptionRepository;
     private final AuctionPriceService auctionPriceService;
+    private final AuctionStockService auctionStockService;
 
-    // 날짜 목록 조회
     public List<AuctionAvailableDateResponse> getAvailableDates(Long auctionId) {
         Auction auction = getSelectableAuction(auctionId);
 
-        return auctionOptionRepository
-            .findByAuction_IdAndRemainingStockGreaterThanOrderByEntryDateAscEntryTimeAsc(auction.getId(), 0)
-            .stream()
-            .map(AuctionOption::getEntryDate)
+        return auctionStockService.getOptionStocks(auction.getId()).values().stream()
+            .filter(AuctionStockService.OptionStockSnapshot::hasStockForListing)
+            .map(AuctionStockService.OptionStockSnapshot::entryDate)
             .distinct()
             .map(AuctionAvailableDateResponse::new)
             .toList();
     }
 
-    // 날짜별 회차 조회
     public List<AuctionOptionResponse> getOptionsByDate(Long auctionId, LocalDate entryDate) {
         Auction auction = getSelectableAuction(auctionId);
 
-        return auctionOptionRepository
-            .findByAuction_IdAndEntryDateOrderByEntryTimeAsc(auction.getId(), entryDate)
+        return auctionStockService.getOptionStocksByDate(auction.getId(), entryDate)
             .stream()
-            .map(option -> new AuctionOptionResponse(
-                option.getId(),
-                option.getEntryTime(),
-                option.getRemainingStock(),
-                option.isSelectable()
+            .map(snapshot -> new AuctionOptionResponse(
+                snapshot.optionId(),
+                snapshot.entryTime(),
+                snapshot.availableStock(),
+                snapshot.pendingStock(),
+                snapshot.isSelectable()
             ))
             .toList();
     }
@@ -60,7 +55,11 @@ public class AuctionOptionService {
             .orElseThrow(() -> new CustomException(ErrorCode.AUCTION_NOT_FOUND));
 
         LocalDateTime now = LocalDateTime.now();
-        AuctionStatus currentStatus = auctionPriceService.calculateStatus(auction, now);
+        AuctionStatus currentStatus = auctionPriceService.calculateStatus(
+            auction,
+            now,
+            auctionStockService.hasAvailableStock(auction.getId())
+        );
 
         if (currentStatus == AuctionStatus.CLOSED) {
             throw new CustomException(ErrorCode.AUCTION_ALREADY_CLOSED);

@@ -17,10 +17,10 @@ public class AuctionHeartbeatScheduler {
     private final AuctionRepository auctionRepository;
     private final AuctionSseService auctionSseService;
 
-    @Scheduled(fixedRate = 30000) // 30초마다
+    @Scheduled(fixedRate = 30000)
     public void sendHeartbeat() {
         List<Auction> auctions = auctionRepository.findAllByStatusIn(
-                List.of(AuctionStatus.SCHEDULED, AuctionStatus.OPEN)
+                List.of(AuctionStatus.SCHEDULED, AuctionStatus.OPEN, AuctionStatus.SOLD_OUT)
         );
 
         for (Auction auction : auctions) {

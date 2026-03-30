@@ -7,11 +7,15 @@ import com.t1.popcon.auction.dto.response.AuctionPriceStreamResponse;
 import com.t1.popcon.auction.repository.AuctionRepository;
 import com.t1.popcon.auction.service.AuctionPriceService;
 import com.t1.popcon.auction.service.AuctionSseService;
+import com.t1.popcon.auction.service.AuctionStockService;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -24,6 +28,7 @@ public class AuctionSseController {
 
     private final AuctionRepository auctionRepository;
     private final AuctionPriceService auctionPriceService;
+    private final AuctionStockService auctionStockService;
     private final AuctionSseService auctionSseService;
 
     @GetMapping(value = "/{auctionId}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -34,14 +39,36 @@ public class AuctionSseController {
         SseEmitter emitter = auctionSseService.subscribe(auctionId);
 
         LocalDateTime now = LocalDateTime.now();
-        AuctionStatus auctionStatus = auctionPriceService.calculateStatus(auction, now);
+        AuctionStatus auctionStatus = auctionPriceService.calculateStatus(
+                auction,
+                now,
+                auctionStockService.hasAvailableStock(auction.getId())
+        );
+        AuctionStockService.PriceAnchor priceAnchor = auctionStockService.getPriceAnchor(auction.getId());
+
         Long remainingUntilOpenSeconds = auctionPriceService.calculateRemainingUntilOpenSeconds(auction, now);
         Long remainingUntilCloseSeconds = auctionPriceService.calculateRemainingUntilCloseSeconds(auction, now);
-
-        Integer currentPrice = auctionPriceService.calculateCurrentPrice(auction, now);
+        Integer currentPrice = auctionPriceService.calculateCurrentPrice(
+                auction,
+                auctionStatus,
+                now,
+                priceAnchor.soldOutPrice(),
+                priceAnchor.restockAnchorAt()
+        );
         Integer nextPrice = auctionPriceService.calculateNextPrice(auction, currentPrice);
         Integer discountAmount = auctionPriceService.calculateDiscountAmount(auction, currentPrice);
-        Long secondsUntilNextDrop = auctionPriceService.calculateSecondsUntilNextDrop(auction, now);
+        Long secondsUntilNextDrop = auctionPriceService.calculateSecondsUntilNextDrop(
+                auction,
+                auctionStatus,
+                now,
+                priceAnchor.restockAnchorAt()
+        );
+        Long displaySecondsUntilNextDrop = auctionPriceService.calculateDisplaySecondsUntilNextDrop(
+                auction,
+                auctionStatus,
+                now,
+                priceAnchor.restockAnchorAt()
+        );
 
         Boolean canParticipate = auctionPriceService.canParticipate(auctionStatus);
         AuctionButtonStatus buttonStatus = auctionPriceService.calculateButtonStatus(auctionStatus);
@@ -56,6 +83,7 @@ public class AuctionSseController {
                 nextPrice,
                 discountAmount,
                 secondsUntilNextDrop,
+                displaySecondsUntilNextDrop,
                 canParticipate,
                 buttonStatus
         );
