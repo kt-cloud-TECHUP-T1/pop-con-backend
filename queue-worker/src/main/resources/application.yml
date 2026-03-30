@@ -2,14 +2,8 @@ spring:
   application:
     name: queue-worker
 
-  profiles:
-    active: local
-
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
+#  profiles:
+#    active: local
 
   # queue-worker는 web 서버 불필요 — 스케줄러 전용
   main:
@@ -27,8 +21,3 @@ queue:
   active-ttl:
     draw-seconds: 900
     auction-seconds: 3600
-
-logging:
-  level:
-    com.t1.popcon: info
-    org.springframework.data.redis: warn
