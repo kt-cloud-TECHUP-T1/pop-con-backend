@@ -4,6 +4,7 @@ import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.user.domain.User;
 import com.t1.popcon.user.dto.UserLookupResponse;
+import com.t1.popcon.user.dto.UserInternalResponse;
 import com.t1.popcon.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,19 @@ public class UserService {
 
     @Value("${user.nickname.prefix:User}")
     private String nicknamePrefix;
+
+    /**
+     * 사용자 상세 정보 조회 (내부 서비스용)
+     */
+    @Transactional(readOnly = true)
+    public UserInternalResponse getUserInternal(Long userId) {
+        User user = getUserOrThrow(userId);
+        return new UserInternalResponse(
+                user.getId(),
+                user.getEncryptedName(),
+                user.getEncryptedPhoneNumber()
+        );
+    }
 
     /**
      * 통합 회원 생성 (소셜 제공자 분기 처리)
