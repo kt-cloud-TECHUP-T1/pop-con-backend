@@ -23,6 +23,7 @@ jobs:
       anti_macro: ${{ steps.filter.outputs.anti_macro }}
       queue_service: ${{ steps.filter.outputs.queue_service }}
       queue_worker: ${{ steps.filter.outputs.queue_worker }}
+      queue_common: ${{ steps.filter.outputs.queue_common }}
 
     steps:
       - name: Checkout
@@ -51,6 +52,8 @@ jobs:
               - 'queue-service/**'
             queue_worker:
               - 'queue-worker/**'
+            queue_common:
+              - 'queue-common/**'
 
   build-and-push:
     needs: detect-changes
@@ -75,7 +78,7 @@ jobs:
           - service: queue-worker
             changed: ${{ needs.detect-changes.outputs.queue_worker }}
     env:
-      SHOULD_RUN: ${{ matrix.changed == 'true' || needs.detect-changes.outputs.common == 'true' }}
+      SHOULD_RUN: ${{ matrix.changed == 'true' || needs.detect-changes.outputs.common == 'true' || needs.detect-changes.outputs.queue_common == 'true' }}
 
     steps:
       - name: Checkout
