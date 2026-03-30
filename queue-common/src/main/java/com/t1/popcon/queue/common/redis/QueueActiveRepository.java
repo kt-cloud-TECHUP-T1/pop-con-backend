@@ -129,6 +129,20 @@ public class QueueActiveRepository {
         }
     }
 
+    /**
+     * ACTIVE 승격 시 user HASH / queueToken TTL 갱신 (해시값 기반)
+     * - Worker에서 user HASH의 FIELD_QUEUE_TOKEN(이미 해시값)을 읽어 전달
+     * - raw token이 없는 상황(Worker 등)에서 이중 해시 없이 TTL 갱신
+     */
+    public void refreshActiveTtlByHash(String phaseType, long phaseId, long userId,
+                                       String tokenHash, long ttlSeconds) {
+        Duration ttl = Duration.ofSeconds(ttlSeconds);
+        expireWithWarn(QueueRedisKeys.user(phaseType, phaseId, userId), ttl, "user HASH (ACTIVE)");
+        if (tokenHash != null) {
+            expireWithWarn(QueueRedisKeys.token(tokenHash), ttl, "queueToken (ACTIVE/byHash)");
+        }
+    }
+
     /** 유저 상태 필드만 업데이트 */
     public void updateUserStatus(String phaseType, long phaseId, long userId, String status) {
         redisTemplate.opsForHash().put(
