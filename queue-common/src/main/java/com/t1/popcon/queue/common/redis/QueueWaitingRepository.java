@@ -141,6 +141,19 @@ public class QueueWaitingRepository {
     }
 
     /**
+     * heartbeat 만료 시각 조회 (score = expireAtMillis)
+     * - 승격 스케줄러에서 ZPOPMIN 후 폴링 중단 사용자 판별에 사용
+     * - null = heartbeat ZSET에 미등록 (이탈 또는 heartbeat cleanup 완료)
+     */
+    public Long getHeartbeatScore(String phaseType, long phaseId, long userId) {
+        Double score = redisTemplate.opsForZSet().score(
+            QueueRedisKeys.heartbeat(phaseType, phaseId),
+            String.valueOf(userId)
+        );
+        return score != null ? score.longValue() : null;
+    }
+
+    /**
      * 만료된 heartbeat 사용자 원자적 조회 + 제거
      * - Lua 스크립트로 ZRANGEBYSCORE + ZREMRANGEBYSCORE를 단일 실행 (TOCTOU 없음)
      * - now: 호출부에서 Instant.now().toEpochMilli()를 구해 전달
