@@ -49,6 +49,12 @@ public class AuctionQueryService {
                 now,
                 priceAnchor.restockAnchorAt()
         );
+        Long displaySecondsUntilNextDrop = auctionPriceService.calculateDisplaySecondsUntilNextDrop(
+                auction,
+                auctionStatus,
+                now,
+                priceAnchor.restockAnchorAt()
+        );
 
         Boolean canParticipate = auctionPriceService.canParticipate(auctionStatus);
         AuctionButtonStatus buttonStatus = auctionPriceService.calculateButtonStatus(auctionStatus);
@@ -63,6 +69,7 @@ public class AuctionQueryService {
                 nextPrice,
                 discountAmount,
                 secondsUntilNextDrop,
+                displaySecondsUntilNextDrop,
                 canParticipate,
                 buttonStatus
         );
