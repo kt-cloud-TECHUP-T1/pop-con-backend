@@ -35,3 +35,6 @@ services:
   user-service:
     url: ${USER_SERVICE_URL:http://localhost:8081}
     internal-secret: ${INTERNAL_API_SECRET}
+  ticket-service:
+    url: ${TICKET_SERVICE_URL:http://localhost:8085}
+    internal-secret: ${INTERNAL_API_SECRET}

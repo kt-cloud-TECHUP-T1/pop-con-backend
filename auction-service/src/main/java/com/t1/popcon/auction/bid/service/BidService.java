@@ -1,9 +1,12 @@
 package com.t1.popcon.auction.bid.service;
 
 import com.t1.popcon.auction.bid.client.PopupServiceClient;
+import com.t1.popcon.auction.bid.client.TicketServiceClient;
 import com.t1.popcon.auction.bid.client.UserBillingClient;
 import com.t1.popcon.auction.bid.client.dto.BillingKeyInternalResponse;
 import com.t1.popcon.auction.bid.client.dto.PopupInternalResponse;
+import com.t1.popcon.auction.bid.client.dto.TicketIssueRequest;
+import com.t1.popcon.auction.bid.client.dto.TicketIssueResponse;
 import com.t1.popcon.auction.bid.domain.Bid;
 import com.t1.popcon.auction.bid.domain.BidStatus;
 import com.t1.popcon.auction.bid.dto.BidRequest;
@@ -23,203 +26,232 @@ import com.t1.popcon.common.infrastructure.dto.PortOneCancelResponse;
 import com.t1.popcon.common.infrastructure.dto.PortOnePaymentResponse;
 import com.t1.popcon.common.infrastructure.portone.PortOneClient;
 import com.t1.popcon.common.response.ApiResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class BidService {
 
-	private final BidRedisRepository bidRedisRepository;
-	private final BidRepository bidRepository;
-	private final AuctionOptionRepository auctionOptionRepository;
-	private final AuctionPriceService auctionPriceService;
-	private final AuctionStockService auctionStockService;
-	private final PortOneClient portOneClient;
-	private final UserBillingClient userBillingClient;
-	private final PopupServiceClient popupServiceClient;
-	private final BidTransactionManager txManager;
+    private final BidRedisRepository bidRedisRepository;
+    private final BidRepository bidRepository;
+    private final AuctionOptionRepository auctionOptionRepository;
+    private final AuctionPriceService auctionPriceService;
+    private final AuctionStockService auctionStockService;
+    private final PortOneClient portOneClient;
+    private final UserBillingClient userBillingClient;
+    private final PopupServiceClient popupServiceClient;
+    private final TicketServiceClient ticketServiceClient;
+    private final BidTransactionManager txManager;
 
-	public List<BidHistoryResponse> getBidHistory(Long userId) {
-		List<Bid> bids = bidRepository.findAllByUserIdAndStatusOrderByCreatedAtDesc(userId, BidStatus.SUCCESS);
+    public List<BidHistoryResponse> getBidHistory(Long userId) {
+        List<Bid> bids = bidRepository.findAllByUserIdAndStatusOrderByCreatedAtDesc(userId, BidStatus.SUCCESS);
 
-		return bids.stream()
-			.map(this::convertToHistoryResponse)
-			.toList();
-	}
+        return bids.stream()
+            .map(this::convertToHistoryResponse)
+            .toList();
+    }
 
-	private BidHistoryResponse convertToHistoryResponse(Bid bid) {
-		Long popupId = bid.getAuctionOption().getAuction().getPopupId();
-		try {
-			ApiResponse<PopupInternalResponse> response = popupServiceClient.getPopupDetail(popupId);
-			if (response == null || response.getData() == null) {
-				throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
-			}
-			PopupInternalResponse popupInfo = response.getData();
+    private BidHistoryResponse convertToHistoryResponse(Bid bid) {
+        Long popupId = bid.getAuctionOption().getAuction().getPopupId();
+        try {
+            ApiResponse<PopupInternalResponse> response = popupServiceClient.getPopupDetail(popupId);
+            if (response == null || response.getData() == null) {
+                throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+            }
+            PopupInternalResponse popupInfo = response.getData();
 
-			return BidHistoryResponse.builder()
-				.id(bid.getId())
-				.thumbnailUrl(popupInfo.thumbnailUrl())
-				.popupTitle(popupInfo.title())
-				.bidPrice(bid.getBidPrice())
-				.paidAt(bid.getPaidAt())
-				.displayStatus(bid.getStatus().getDescription())
-				.build();
-		} catch (Exception e) {
-			log.error(">>>> [Popup-Service 연동 실패] Popup ID: {}, Error: {}", popupId, e.getMessage());
-			throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
-		}
-	}
+            return BidHistoryResponse.builder()
+                .id(bid.getId())
+                .thumbnailUrl(popupInfo.thumbnailUrl())
+                .popupTitle(popupInfo.title())
+                .bidPrice(bid.getBidPrice())
+                .paidAt(bid.getPaidAt())
+                .displayStatus(bid.getStatus().getDescription())
+                .build();
+        } catch (Exception e) {
+            log.error(">>>> [Popup-Service 연동 실패] Popup ID: {}, Error: {}", popupId, e.getMessage());
+            throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+        }
+    }
 
-	public BidResponse attemptBid(Long userId, BidRequest request) {
-		AuctionOption option = auctionOptionRepository.findByIdWithAuction(request.auctionOptionId())
-			.orElseThrow(() -> new CustomException(ErrorCode.AUCTION_OPTION_NOT_FOUND));
+    public BidResponse attemptBid(Long userId, BidRequest request) {
+        AuctionOption option = auctionOptionRepository.findByIdWithAuction(request.auctionOptionId())
+            .orElseThrow(() -> new CustomException(ErrorCode.AUCTION_OPTION_NOT_FOUND));
 
-		LocalDateTime now = LocalDateTime.now();
-		validateAuctionOpen(option.getAuction(), now);
+        LocalDateTime now = LocalDateTime.now();
+        validateAuctionOpen(option.getAuction(), now);
 
-		AuctionStockService.PriceAnchor priceAnchor = auctionStockService.getPriceAnchor(option.getAuction().getId());
-		AuctionStatus auctionStatus = auctionPriceService.calculateStatus(
-			option.getAuction(),
-			now,
-			auctionStockService.hasAvailableStock(option.getAuction().getId())
-		);
+        AuctionStockService.PriceAnchor priceAnchor = auctionStockService.getPriceAnchor(option.getAuction().getId());
+        AuctionStatus auctionStatus = auctionPriceService.calculateStatus(
+            option.getAuction(),
+            now,
+            auctionStockService.hasAvailableStock(option.getAuction().getId())
+        );
 
-		Integer currentServerPrice = auctionPriceService.calculateCurrentPrice(
-			option.getAuction(),
-			auctionStatus,
-			now,
-			priceAnchor.soldOutPrice(),
-			priceAnchor.restockAnchorAt()
-		);
-		if (!request.bidPrice().equals(currentServerPrice)) {
-			throw new CustomException(ErrorCode.AUCTION_PRICE_MISMATCH);
-		}
+        Integer currentServerPrice = auctionPriceService.calculateCurrentPrice(
+            option.getAuction(),
+            auctionStatus,
+            now,
+            priceAnchor.soldOutPrice(),
+            priceAnchor.restockAnchorAt()
+        );
+        if (!request.bidPrice().equals(currentServerPrice)) {
+            throw new CustomException(ErrorCode.AUCTION_PRICE_MISMATCH);
+        }
 
-		Long remainingStock = bidRedisRepository.decrementStock(option.getId());
-		if (remainingStock < 0) {
-			throw new CustomException(ErrorCode.AUCTION_OPTION_SOLD_OUT);
-		}
-		if (remainingStock == 0 && !auctionStockService.hasAvailableStock(option.getAuction().getId())) {
-			auctionStockService.recordSoldOutIfAbsent(option.getAuction().getId(), currentServerPrice);
-		}
+        Long remainingStock = bidRedisRepository.decrementStock(option.getId());
+        if (remainingStock < 0) {
+            throw new CustomException(ErrorCode.AUCTION_OPTION_SOLD_OUT);
+        }
+        if (remainingStock == 0 && !auctionStockService.hasAvailableStock(option.getAuction().getId())) {
+            auctionStockService.recordSoldOutIfAbsent(option.getAuction().getId(), currentServerPrice);
+        }
 
-		String timestamp = now.format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-		String merchantUid = "order_no_" + timestamp + "_" + UUID.randomUUID().toString().substring(0, 8);
+        String timestamp = now.format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        String merchantUid = "order_no_" + timestamp + "_" + UUID.randomUUID().toString().substring(0, 8);
 
-		Bid bid = null;
-		boolean paymentAttempted = false;
+        Bid bid = null;
+        boolean paymentAttempted = false;
 
-		try {
-			bid = txManager.preparePendingBid(userId, option, currentServerPrice, merchantUid);
+        try {
+            bid = txManager.preparePendingBid(userId, option, currentServerPrice, merchantUid);
 
-			ApiResponse<BillingKeyInternalResponse> billingKeyResponse = userBillingClient.getDefaultBillingKey(userId);
-			if (billingKeyResponse == null || billingKeyResponse.getData() == null) {
-				throw new CustomException(ErrorCode.BILLING_KEY_NOT_FOUND);
-			}
-			String billingKey = billingKeyResponse.getData().customerUid();
+            ApiResponse<BillingKeyInternalResponse> billingKeyResponse = userBillingClient.getDefaultBillingKey(userId);
+            if (billingKeyResponse == null || billingKeyResponse.getData() == null) {
+                throw new CustomException(ErrorCode.BILLING_KEY_NOT_FOUND);
+            }
+            String billingKey = billingKeyResponse.getData().customerUid();
 
-			paymentAttempted = true;
-			PortOnePaymentResponse paymentResponse = portOneClient.executePayment(
-				billingKey,
-				bid.getMerchantUid(),
-				bid.getBidPrice(),
-				"입장권 낙찰"
-			);
+            paymentAttempted = true;
+            PortOnePaymentResponse paymentResponse = portOneClient.executePayment(
+                billingKey,
+                bid.getMerchantUid(),
+                bid.getBidPrice(),
+                "입장권 낙찰"
+            );
 
-			if (!paymentResponse.isPaid()) {
-				log.error(">>>> [결제 실패] 결제 완료 시각이 없습니다. merchantUid={}", bid.getMerchantUid());
-				throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제가 완료되지 않았습니다.");
-			}
+            if (!paymentResponse.isPaid()) {
+                log.error(">>>> [결제 실패] 결제 완료 시각이 없습니다. merchantUid={}", bid.getMerchantUid());
+                throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제가 완료되지 않았습니다.");
+            }
 
-			String pgTxId = paymentResponse.getPgTxId();
-			if (pgTxId == null || pgTxId.isBlank()) {
-				log.error(">>>> [결제 응답 오류] pgTxId 누락 merchantUid={}", bid.getMerchantUid());
-				throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 트랜잭션 ID가 누락되었습니다.");
-			}
+            String pgTxId = paymentResponse.getPgTxId();
+            if (pgTxId == null || pgTxId.isBlank()) {
+                log.error(">>>> [결제 응답 오류] pgTxId 누락 merchantUid={}", bid.getMerchantUid());
+                throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 트랜잭션 ID가 누락되었습니다.");
+            }
 
-			LocalDateTime paidAt = parsePaidAt(paymentResponse.payment().paidAt());
-			txManager.completeBidSuccess(bid.getId(), option.getId(), pgTxId, paidAt);
+            LocalDateTime paidAt = parsePaidAt(paymentResponse.payment().paidAt());
+            txManager.completeBidSuccess(bid.getId(), option.getId(), pgTxId, paidAt);
 
-			return new BidResponse(bid.getId(), BidStatus.SUCCESS, "낙찰이 완료되었습니다.");
+        } catch (Exception e) {
+            log.error(">>>> 낙찰 처리 중 오류 userId={}, optionId={}, error={}", userId, option.getId(), e.getMessage());
 
-		} catch (Exception e) {
-			log.error(">>>> 낙찰 처리 중 오류 userId={}, optionId={}, error={}", userId, option.getId(), e.getMessage());
+            if (!paymentAttempted) {
+                bidRedisRepository.incrementAvailableStock(option.getId(), 1L);
 
-			if (!paymentAttempted) {
-				bidRedisRepository.incrementAvailableStock(option.getId(), 1L);
+                if (bid != null) {
+                    txManager.completeBidFailure(bid.getId());
+                }
 
-				if (bid != null) {
-					txManager.completeBidFailure(bid.getId());
-				}
+                if (e instanceof CustomException customException) {
+                    throw customException;
+                }
+                throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, e);
+            }
 
-				if (e instanceof CustomException customException) {
-					throw customException;
-				}
-				throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, e);
-			}
+            boolean cancelConfirmed = false;
 
-			boolean cancelConfirmed = false;
+            try {
+                PortOneCancelResponse cancelResponse = portOneClient.cancelPayment(merchantUid, bid.getBidPrice());
+                if (cancelResponse.isSucceeded()) {
+                    bidRedisRepository.addPendingRestock(option.getId(), 1L);
+                    cancelConfirmed = true;
+                    log.info(">>>> [보상 완료] 결제 취소 완료 merchantUid={}", merchantUid);
+                } else if (cancelResponse.isRequested()) {
+                    log.warn(">>>> [보상 보류] 결제 취소 요청만 접수 merchantUid={}", merchantUid);
+                } else {
+                    log.error("!!!! [보상 실패] 결제 취소 실패 merchantUid={}, reason={}", merchantUid, cancelResponse.reason());
+                }
+            } catch (Exception cancelEx) {
+                log.error("!!!! [긴급] 결제 취소 API 호출 실패 merchantUid={}", merchantUid, cancelEx);
+            }
 
-			try {
-				PortOneCancelResponse cancelResponse = portOneClient.cancelPayment(merchantUid, bid.getBidPrice());
-				if (cancelResponse.isSucceeded()) {
-					bidRedisRepository.addPendingRestock(option.getId(), 1L);
-					cancelConfirmed = true;
-					log.info(">>>> [보상 완료] 결제 취소 완료 merchantUid={}", merchantUid);
-				} else if (cancelResponse.isRequested()) {
-					log.warn(">>>> [보상 보류] 결제 취소 요청만 접수됨 merchantUid={}", merchantUid);
-				} else {
-					log.error("!!!! [보상 실패] 결제 취소 실패 merchantUid={}, reason={}", merchantUid, cancelResponse.reason());
-				}
-			} catch (Exception cancelEx) {
-				log.error("!!!! [긴급] 결제 취소 API 호출 실패 merchantUid={}", merchantUid, cancelEx);
-			}
+            if (cancelConfirmed && bid != null) {
+                txManager.completeBidFailure(bid.getId());
+            }
 
-			if (cancelConfirmed && bid != null) {
-				txManager.completeBidFailure(bid.getId());
-			}
+            if (!cancelConfirmed) {
+                throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 취소가 확정되지 않아 재고 복구를 보류합니다.");
+            }
 
-			if (!cancelConfirmed) {
-				throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 취소가 확정되지 않아 재고 복구를 보류합니다.");
-			}
+            if (e instanceof CustomException customException) {
+                throw customException;
+            }
+            throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, e);
+        }
 
-			if (e instanceof CustomException customException) {
-				throw customException;
-			}
-			throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, e);
-		}
-	}
+        issueAuctionWinTicket(bid, option);
+        return new BidResponse(bid.getId(), BidStatus.SUCCESS, "낙찰이 완료되었습니다.");
+    }
 
-	private void validateAuctionOpen(Auction auction, LocalDateTime now) {
-		AuctionStatus auctionStatus = auctionPriceService.calculateStatus(
-			auction,
-			now,
-			auctionStockService.hasAvailableStock(auction.getId())
-		);
+    private void validateAuctionOpen(Auction auction, LocalDateTime now) {
+        AuctionStatus auctionStatus = auctionPriceService.calculateStatus(
+            auction,
+            now,
+            auctionStockService.hasAvailableStock(auction.getId())
+        );
 
-		if (auctionStatus != AuctionStatus.OPEN) {
-			throw new CustomException(ErrorCode.AUCTION_NOT_OPEN);
-		}
-	}
+        if (auctionStatus != AuctionStatus.OPEN) {
+            throw new CustomException(ErrorCode.AUCTION_NOT_OPEN);
+        }
+    }
 
-	private LocalDateTime parsePaidAt(String paidAtStr) {
-		if (paidAtStr == null || paidAtStr.isBlank()) {
-			throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 완료 시각이 누락되었습니다.");
-		}
-		try {
-			return OffsetDateTime.parse(paidAtStr).toLocalDateTime();
-		} catch (Exception e) {
-			log.warn(">>>> [paidAt 파싱 실패] {}", paidAtStr, e);
-			throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 완료 시각 파싱에 실패했습니다.");
-		}
-	}
+    private LocalDateTime parsePaidAt(String paidAtStr) {
+        if (paidAtStr == null || paidAtStr.isBlank()) {
+            throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 완료 시각이 누락되었습니다.");
+        }
+        try {
+            return OffsetDateTime.parse(paidAtStr).toLocalDateTime();
+        } catch (Exception e) {
+            log.warn(">>>> [paidAt 파싱 실패] {}", paidAtStr, e);
+            throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 완료 시각 파싱에 실패했습니다.");
+        }
+    }
+
+    private void issueAuctionWinTicket(Bid bid, AuctionOption option) {
+        try {
+            ApiResponse<TicketIssueResponse> response = ticketServiceClient.issueTicket(buildTicketIssueRequest(bid, option));
+            if (response == null || response.getData() == null) {
+                throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+            }
+        } catch (Exception e) {
+            log.error(">>>> [Ticket-Service 연동 실패] bidId={}, optionId={}, error={}",
+                bid.getId(), option.getId(), e.getMessage());
+            // TODO: Introduce async compensation/retry flow if ticket issuance must be recovered separately.
+            if (e instanceof CustomException customException) {
+                throw customException;
+            }
+            throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR, e);
+        }
+    }
+
+    private TicketIssueRequest buildTicketIssueRequest(Bid bid, AuctionOption option) {
+        return new TicketIssueRequest(
+            bid.getUserId(),
+            option.getAuction().getPopupId(),
+            "AUCTION",
+            bid.getId(),
+            option.getEntryDate(),
+            option.getEntryTime()
+        );
+    }
 }
