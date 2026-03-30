@@ -20,7 +20,7 @@ router.post('/signals', async (req: Request, res: Response) => {
 
     // 요청 검증
     if (!body?.payload?.page || !body?.payload?.rawData) {
-      return res.json({ received: true, vqaDifficulty: 'easy' });
+      return res.json({ received: true, vqaLevel: 1 });
     }
 
     const { payload } = body;
@@ -43,7 +43,7 @@ router.post('/signals', async (req: Request, res: Response) => {
     const totalScore = identityKey ? await getTotalScore(identityKey) : result.score;
 
     // 3. 로그 출력 (ID 마스킹)
-    console.log(`[anti-macro] page=${payload.page} score=${result.score} total=${totalScore} vqa=${result.vqaDifficulty}`, {
+    console.log(`[anti-macro] page=${payload.page} score=${result.score} total=${totalScore} vqaLevel=${result.vqaLevel}`, {
       signals: result.detectedSignals.map((s) => `${s.name}(${s.weight})`),
       visitorId: maskId(body.visitorId),
       userId: maskId(body.userId),
@@ -73,12 +73,12 @@ router.post('/signals', async (req: Request, res: Response) => {
     // 5. 응답
     res.json({
       received: true,
-      vqaDifficulty: result.vqaDifficulty,
+      vqaLevel: result.vqaLevel,
       drawResult: result.drawResult,
     });
   } catch (err) {
     console.error('[anti-macro] 시그널 처리 에러:', err);
-    res.json({ received: true, vqaDifficulty: 'easy' });
+    res.json({ received: true, vqaLevel: 1 });
   }
 });
 
