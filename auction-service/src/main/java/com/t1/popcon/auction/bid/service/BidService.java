@@ -1,12 +1,16 @@
 package com.t1.popcon.auction.bid.service;
 
+import com.t1.popcon.auction.bid.client.PopupServiceClient;
 import com.t1.popcon.auction.bid.client.UserBillingClient;
 import com.t1.popcon.auction.bid.client.dto.BillingKeyInternalResponse;
+import com.t1.popcon.auction.bid.client.dto.PopupInternalResponse;
 import com.t1.popcon.auction.bid.domain.Bid;
 import com.t1.popcon.auction.bid.domain.BidStatus;
 import com.t1.popcon.auction.bid.dto.BidRequest;
 import com.t1.popcon.auction.bid.dto.BidResponse;
+import com.t1.popcon.auction.bid.dto.response.BidHistoryResponse;
 import com.t1.popcon.auction.bid.infrastructure.BidRedisRepository;
+import com.t1.popcon.auction.bid.repository.BidRepository;
 import com.t1.popcon.auction.domain.Auction;
 import com.t1.popcon.auction.domain.AuctionOption;
 import com.t1.popcon.auction.domain.AuctionStatus;
@@ -24,7 +28,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -33,11 +39,44 @@ import java.util.UUID;
 public class BidService {
 
 	private final BidRedisRepository bidRedisRepository;
+	private final BidRepository bidRepository;
 	private final AuctionOptionRepository auctionOptionRepository;
 	private final AuctionPriceService auctionPriceService;
 	private final PortOneClient portOneClient;
 	private final UserBillingClient userBillingClient;
+	private final PopupServiceClient popupServiceClient;
 	private final BidTransactionManager txManager;
+
+	public List<BidHistoryResponse> getBidHistory(Long userId) {
+		List<Bid> bids = bidRepository.findAllByUserIdAndStatusOrderByCreatedAtDesc(userId, BidStatus.SUCCESS);
+
+		return bids.stream()
+			.map(this::convertToHistoryResponse)
+			.toList();
+	}
+
+	private BidHistoryResponse convertToHistoryResponse(Bid bid) {
+		Long popupId = bid.getAuctionOption().getAuction().getPopupId();
+		try {
+			ApiResponse<PopupInternalResponse> response = popupServiceClient.getPopupDetail(popupId);
+			if (response == null || response.getData() == null) {
+				throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+			}
+			PopupInternalResponse popupInfo = response.getData();
+
+			return BidHistoryResponse.builder()
+				.id(bid.getId())
+				.thumbnailUrl(popupInfo.thumbnailUrl())
+				.popupTitle(popupInfo.title())
+				.bidPrice(bid.getBidPrice())
+				.paidAt(bid.getPaidAt())
+				.displayStatus(bid.getStatus().getDescription())
+				.build();
+		} catch (Exception e) {
+			log.error(">>>> [Popup-Service 연동 실패] Popup ID: {}, Error: {}", popupId, e.getMessage());
+			throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+		}
+	}
 
 	public BidResponse attemptBid(Long userId, BidRequest request) {
 		// 1. 조회 및 검증
@@ -86,8 +125,15 @@ public class BidService {
 				throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제가 완료되지 않았습니다.");
 			}
 
+			String pgTxId = paymentResponse.getPgTxId();
+			if(pgTxId == null || pgTxId.isBlank()) {
+				log.error(">>>> [결제 응답 오류] pgTxId가 응답에 포함되지 않았습니다. MerchantUid: {}", bid.getMerchantUid());
+				throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 트랜잭션 ID가 누락되었습니다.");
+			}
+
 			// [Step 3] 최종 확정 (DB 트랜잭션)
-			txManager.completeBidSuccess(bid.getId(), option.getId());
+			LocalDateTime paidAt = parsePaidAt(paymentResponse.payment().paidAt());
+			txManager.completeBidSuccess(bid.getId(), option.getId(), pgTxId, paidAt);
 
 			return new BidResponse(bid.getId(), BidStatus.SUCCESS, "낙찰이 완료되었습니다.");
 
@@ -124,6 +170,18 @@ public class BidService {
 	private void validateAuctionOpen(Auction auction, LocalDateTime now) {
 		if (auctionPriceService.calculateStatus(auction, now) != AuctionStatus.OPEN) {
 			throw new CustomException(ErrorCode.AUCTION_NOT_OPEN);
+		}
+	}
+
+	private LocalDateTime parsePaidAt(String paidAtStr) {
+		if (paidAtStr == null || paidAtStr.isBlank()) {
+			throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 완료 시각이 누락되었습니다.");
+		}
+		try {
+			return OffsetDateTime.parse(paidAtStr).toLocalDateTime();
+		} catch (Exception e) {
+			log.warn(">>>> [paidAt 파싱 실패] {}", paidAtStr, e);
+			throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 완료 시각 파싱에 실패했습니다.");
 		}
 	}
 }

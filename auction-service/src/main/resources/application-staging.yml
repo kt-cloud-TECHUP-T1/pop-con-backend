@@ -58,4 +58,3 @@ management:
   metrics:
     tags:
       application: auction-service
-

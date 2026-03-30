@@ -1,0 +1,48 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.5.5'
+    id 'io.spring.dependency-management'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+dependencies {
+    implementation project(':queue-common')
+
+    // Spring Boot 기본 (web 미사용 — 스케줄러 전용)
+    implementation 'org.springframework.boot:spring-boot-starter'
+
+    // Spring Security (common 모듈 의존)
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    // Redis (queue-common 내부 구현 의존)
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // Redisson (분산 락 — 스케줄러 동시 실행 방지)
+    implementation 'org.redisson:redisson-spring-boot-starter:3.52.0'
+
+    // Actuator (헬스체크 / 모니터링)
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

@@ -4,6 +4,7 @@ import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.user.domain.User;
 import com.t1.popcon.user.dto.UserLookupResponse;
+import com.t1.popcon.user.dto.UserInternalResponse;
 import com.t1.popcon.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,6 +66,17 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
         return UserCreateResponse.from(savedUser);
+    }
+
+    @Transactional(readOnly = true)
+    public UserInternalResponse getUserInternal(Long userId) {
+        User user = getUserOrThrow(userId);
+
+        return new UserInternalResponse(
+                user.getId(),
+                user.getEncryptedName(),
+                user.getEncryptedPhoneNumber()
+        );
     }
 
     @Transactional(readOnly = true)
