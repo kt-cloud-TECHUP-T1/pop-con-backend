@@ -14,6 +14,8 @@ import java.util.Optional;
 
 public interface AuctionOptionRepository extends JpaRepository<AuctionOption, Long> {
 
+    List<AuctionOption> findByAuction_IdOrderByEntryDateAscEntryTimeAsc(Long auctionId);
+
     List<AuctionOption> findByAuction_IdAndRemainingStockGreaterThanOrderByEntryDateAscEntryTimeAsc(
         Long auctionId,
         Integer remainingStock

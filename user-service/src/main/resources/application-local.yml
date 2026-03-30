@@ -41,6 +41,3 @@ jwt:
 server:
   port: 8081
   shutdown: graceful
-
-internal:
-  api-secret: ${INTERNAL_API_SECRET:changeme-local-secret}

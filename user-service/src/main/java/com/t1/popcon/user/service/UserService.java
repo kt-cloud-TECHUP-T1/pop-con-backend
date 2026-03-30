@@ -6,21 +6,44 @@ import com.t1.popcon.user.domain.User;
 import com.t1.popcon.user.dto.UserLookupResponse;
 import com.t1.popcon.user.dto.UserInternalResponse;
 import com.t1.popcon.user.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.hibernate.exception.ConstraintViolationException;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import com.t1.popcon.user.dto.UserCreateRequest;
 import com.t1.popcon.user.dto.UserCreateResponse;
+import org.springframework.beans.factory.annotation.Value;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class UserService {
 
+    private static final int MAX_NICKNAME_RETRIES = 5;
+    private static final String NICKNAME_CONSTRAINT = "uk_users_nickname";
+    
     private final UserRepository userRepository;
+
+    @Value("${user.nickname.prefix:User}")
+    private String nicknamePrefix;
+
+    /**
+     * 사용자 상세 정보 조회 (내부 서비스용)
+     */
+    @Transactional(readOnly = true)
+    public UserInternalResponse getUserInternal(Long userId) {
+        User user = getUserOrThrow(userId);
+        return new UserInternalResponse(
+                user.getId(),
+                user.getEncryptedName(),
+                user.getEncryptedPhoneNumber()
+        );
+    }
 
     /**
      * 통합 회원 생성 (소셜 제공자 분기 처리)
@@ -30,47 +53,57 @@ public class UserService {
             throw new CustomException(ErrorCode.INVALID_PROVIDER);
         }
 
-        String nickname = normalizeNickname(request.nickname());
+        for (int i = 0; i < MAX_NICKNAME_RETRIES; i++) {
+            String currentNickname = generateUniqueNickname();
 
-        User user = switch (request.provider().toUpperCase()) {
-            case "KAKAO" -> User.createUserWithKakao(
-                    request.ciHash(),
-                    request.encryptedName(),
-                    request.encryptedPhoneNumber(),
-                    request.encryptedBirthDate(),
-                    request.encryptedGender(),
-                    request.encryptedNationality(),
-                    nickname,
-                    request.email(),
-                    request.providerUserId()
-            );
-            case "NAVER" -> User.createUserWithNaver(
-                    request.ciHash(),
-                    request.encryptedName(),
-                    request.encryptedPhoneNumber(),
-                    request.encryptedBirthDate(),
-                    request.encryptedGender(),
-                    request.encryptedNationality(),
-                    nickname,
-                    request.email(),
-                    request.providerUserId()
-            );
-            default -> throw new CustomException(ErrorCode.INVALID_PROVIDER);
-        };
+            User user = switch (request.provider().toUpperCase()) {
+                case "KAKAO" -> User.createUserWithKakao(
+                        request.ciHash(),
+                        request.encryptedName(),
+                        request.encryptedPhoneNumber(),
+                        request.encryptedBirthDate(),
+                        request.encryptedGender(),
+                        request.encryptedNationality(),
+                        currentNickname,
+                        request.email(),
+                        request.providerUserId()
+                );
+                case "NAVER" -> User.createUserWithNaver(
+                        request.ciHash(),
+                        request.encryptedName(),
+                        request.encryptedPhoneNumber(),
+                        request.encryptedBirthDate(),
+                        request.encryptedGender(),
+                        request.encryptedNationality(),
+                        currentNickname,
+                        request.email(),
+                        request.providerUserId()
+                );
+                default -> throw new CustomException(ErrorCode.INVALID_PROVIDER);
+            };
 
-        User savedUser = userRepository.save(user);
-        return UserCreateResponse.from(savedUser);
+            try {
+                User savedUser = userRepository.save(user);
+                return UserCreateResponse.from(savedUser);
+            } catch (DataIntegrityViolationException e) {
+                if (isNicknameConflict(e)) {
+                    if (i == MAX_NICKNAME_RETRIES - 1) {
+                        throw e;
+                    }
+                    continue;
+                }
+                throw e;
+            }
+        }
+        throw new CustomException(ErrorCode.ERROR_SYSTEM);
     }
 
-    @Transactional(readOnly = true)
-    public UserInternalResponse getUserInternal(Long userId) {
-        User user = getUserOrThrow(userId);
-
-        return new UserInternalResponse(
-                user.getId(),
-                user.getEncryptedName(),
-                user.getEncryptedPhoneNumber()
-        );
+    private boolean isNicknameConflict(DataIntegrityViolationException e) {
+        Throwable cause = e.getRootCause();
+        if (cause instanceof ConstraintViolationException hibernateEx) {
+            return NICKNAME_CONSTRAINT.equals(hibernateEx.getConstraintName());
+        }
+        return e.getMessage() != null && e.getMessage().contains(NICKNAME_CONSTRAINT);
     }
 
     @Transactional(readOnly = true)
@@ -111,6 +144,7 @@ public class UserService {
     /**
      * CI 기반 소셜 계정 연결 (본인인증 완료 후 기존 회원이 소셜 로그인 연결)
      */
+    @Transactional
     public void linkSocialByCi(String ciHash, String provider, String providerUserId) {
         if (ciHash == null || ciHash.isBlank()) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
@@ -153,14 +187,17 @@ public class UserService {
         user.connectNaver(naverUserId, LocalDateTime.now());
     }
 
+    @Transactional
     public void block(Long userId) {
         getUserOrThrow(userId).block();
     }
 
+    @Transactional
     public void activate(Long userId) {
         getUserOrThrow(userId).activate();
     }
 
+    @Transactional
     public void softDelete(Long userId, Long deleterId) {
         getUserOrThrow(userId).softDelete(deleterId);
     }
@@ -171,16 +208,9 @@ public class UserService {
         }
     }
 
-    private String normalizeNickname(String nickname) {
-        if (nickname == null || nickname.isBlank()) {
-            return null;
-        }
-
-        String normalized = nickname.trim();
-        if (normalized.length() > 50) {
-            throw new CustomException(ErrorCode.INVALID_INPUT);
-        }
-        return normalized;
+    private String generateUniqueNickname() {
+        String shortUuid = UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+        return nicknamePrefix + "_" + shortUuid;
     }
 
     private User getUserOrThrow(Long userId) {
