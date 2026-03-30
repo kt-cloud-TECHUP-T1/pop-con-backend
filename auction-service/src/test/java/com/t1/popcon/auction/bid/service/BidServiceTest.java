@@ -1,7 +1,9 @@
 package com.t1.popcon.auction.bid.service;
 
+import com.t1.popcon.auction.bid.client.PopupServiceClient;
 import com.t1.popcon.auction.bid.client.UserBillingClient;
 import com.t1.popcon.auction.bid.client.dto.BillingKeyInternalResponse;
+import com.t1.popcon.auction.bid.client.dto.PopupInternalResponse;
 import com.t1.popcon.auction.bid.domain.Bid;
 import com.t1.popcon.auction.bid.domain.BidStatus;
 import com.t1.popcon.auction.bid.dto.BidRequest;
@@ -27,7 +29,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,6 +55,8 @@ public class BidServiceTest {
 	private PortOneClient portOneClient;
 	@Mock
 	private UserBillingClient userBillingClient;
+	@Mock
+	private PopupServiceClient popupServiceClient;
 	@Mock
 	private BidTransactionManager txManager;
 
@@ -99,12 +105,30 @@ public class BidServiceTest {
 		PortOnePaymentResponse paymentResponse = new PortOnePaymentResponse(paymentDetail);
 		given(portOneClient.executePayment(anyString(), anyString(), anyInt(), anyString())).willReturn(paymentResponse);
 
+		PopupInternalResponse popupInfo = new PopupInternalResponse(1L, "Pop-up Title", "Location", "thumbnail.url");
+		given(auction.getPopupId()).willReturn(1L);
+		given(popupServiceClient.getPopupDetail(anyLong())).willReturn(ApiResponse.ok(popupInfo));
+		given(option.getEntryDate()).willReturn(LocalDate.now());
+		given(option.getEntryTime()).willReturn(LocalTime.now());
+		given(auction.getStartPrice()).willReturn(10000);
+
 		// when
 		BidResponse response = bidService.attemptBid(userId, request);
 
 		// then
 		assertThat(response.status()).isEqualTo(BidStatus.SUCCESS);
-		verify(txManager).completeBidSuccess(eq(bid.getId()), eq(optionId), eq("pg_tx_123"), any(LocalDateTime.class));
+		verify(txManager).completeBidSuccess(
+			eq(bid.getId()),
+			eq(optionId),
+			eq("pg_tx_123"),
+			any(LocalDateTime.class),
+			eq("Pop-up Title"),
+			eq("Location"),
+			eq("thumbnail.url"),
+			any(LocalDate.class),
+			any(LocalTime.class),
+			eq(10000)
+		);
 	}
 
 	@Test
