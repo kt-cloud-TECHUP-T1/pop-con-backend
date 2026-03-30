@@ -33,10 +33,11 @@ export const THRESHOLDS = {
   FINGERPRINT_CONFIDENCE_MIN: 0.3,
 } as const;
 
-// --- VQA 난이도 기준 ---
-export const VQA_DIFFICULTY = {
-  EASY_MAX: 20,
-  MEDIUM_MAX: 49,
+// --- VQA 레벨 기준 ---
+export const VQA_LEVEL = {
+  LEVEL_1_MAX: 20,
+  LEVEL_2_MAX: 50,
+  LEVEL_3_MAX: 80,
 } as const;
 
 // --- 의심 WebGL 렌더러 ---

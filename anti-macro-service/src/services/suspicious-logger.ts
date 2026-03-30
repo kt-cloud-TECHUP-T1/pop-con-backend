@@ -43,7 +43,7 @@ async function insertLog(params: LogParams): Promise<void> {
     params.page,
     params.pageScore,
     params.totalScore,
-    params.result.vqaDifficulty,
+    params.result.vqaLevel,
     params.result.drawResult || null,
     JSON.stringify(params.result.detectedSignals),
     params.rawSummary ? JSON.stringify(params.rawSummary) : null,

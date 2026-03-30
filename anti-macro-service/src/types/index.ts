@@ -34,7 +34,7 @@ export type BrowserFingerprint = {
   components: Record<string, unknown>;
 };
 
-export type PageType = 'login' | 'popup-detail' | 'draw-application';
+export type PageType = 'login' | 'popup-detail' | 'draw-application' | 'dutch-auction-detail' | 'dutch-auction-application';
 
 export type RawData = {
   // fingerprint 관련 (flat)
@@ -92,9 +92,11 @@ export type DetectedSignal = {
   value: unknown;
 };
 
+export type VqaLevel = 1 | 2 | 3 | 4;
+
 export type AnalysisResult = {
   score: number;
   detectedSignals: DetectedSignal[];
-  vqaDifficulty: 'easy' | 'medium' | 'hard';
+  vqaLevel: VqaLevel;
   drawResult?: 'pass' | 'fail';
 };
