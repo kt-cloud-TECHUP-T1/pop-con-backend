@@ -70,6 +70,11 @@ public class BidService {
 		Integer startPrice = bid.getStartPrice() != null ? bid.getStartPrice() : 0;
 		Integer bidPrice = bid.getBidPrice();
 
+		Integer discountAmount = Math.max(0, startPrice - bidPrice);
+		if (bid.getStartPrice() == null) {
+			log.warn(">>>> [데이터 정합성 경고] reservationNo={} 의 startPrice가 null입니다.", reservationNo);
+		}
+
 		return ReservationDetailResponse.builder()
 			.reservationNo(bid.getReservationNo())
 			.popupTitle(bid.getPopupTitle())
@@ -77,7 +82,7 @@ public class BidService {
 			.entryDate(bid.getEntryDate())
 			.entryTime(bid.getEntryTime())
 			.startPrice(startPrice)
-			.discountAmount(startPrice - bidPrice)
+			.discountAmount(discountAmount)
 			.finalPrice(bidPrice)
 			.paidAt(bid.getPaidAt())
 			.build();
