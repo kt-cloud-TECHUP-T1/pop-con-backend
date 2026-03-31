@@ -90,6 +90,7 @@ public class User extends BaseSoftDeleteEntity {
     @Column(name = "status", nullable = false, length = 10)
     private UserStatus status;
 
+    @Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserBillingKey> billingKeys = new ArrayList<>();
 

@@ -6,6 +6,7 @@ public record AuctionOptionResponse(
     Long optionId,
     LocalTime entryTime,
     int remainingStock,
+    int pendingStock,
     boolean selectable
 ) {
 }

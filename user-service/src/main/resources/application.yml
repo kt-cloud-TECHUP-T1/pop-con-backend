@@ -28,6 +28,10 @@ portone:
 encryption:
   secret: ${ENCRYPTION_SECRET}
 
+user:
+  nickname:
+    prefix: ${NICKNAME_PREFIX}
+    
 internal:
   api-secret: ${INTERNAL_API_SECRET}
 

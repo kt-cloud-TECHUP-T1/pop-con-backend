@@ -7,7 +7,6 @@ public record UserCreateRequest(
     String provider,
     String providerUserId,
     String email,
-    String nickname,
     String profileImageUrl,
     
     String ciHash,
@@ -24,7 +23,6 @@ public record UserCreateRequest(
             payload.provider().name(),
             payload.providerUserId(),
             payload.email(),
-            payload.nickname(),
             payload.profileImageUrl(),
             payload.ciHash(),
             payload.encryptedName(),

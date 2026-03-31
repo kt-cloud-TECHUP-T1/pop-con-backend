@@ -1,5 +1,5 @@
 import type { PageSignalPayload, DetectedSignal, AnalysisResult } from '../types';
-import { SIGNAL_WEIGHTS, THRESHOLDS, VQA_DIFFICULTY, SUSPICIOUS_WEBGL_RENDERERS } from './constants';
+import { SIGNAL_WEIGHTS, THRESHOLDS, VQA_LEVEL, SUSPICIOUS_WEBGL_RENDERERS } from './constants';
 import { stddev } from './utils';
 
 /**
@@ -8,6 +8,7 @@ import { stddev } from './utils';
 export function analyzeRawData(payload: PageSignalPayload): AnalysisResult {
   const detected: DetectedSignal[] = [];
   const { rawData, fingerprint } = payload;
+  const detailPages = new Set(['popup-detail', 'dutch-auction-detail']);
 
   // === fingerprint 기반 ===
   if (fingerprint) {
@@ -100,7 +101,7 @@ export function analyzeRawData(payload: PageSignalPayload): AnalysisResult {
     });
   }
 
-  if (movements.length === 0 && payload.page !== 'popup-detail') {
+  if (movements.length === 0 && !detailPages.has(payload.page)) {
     detected.push({
       ...SIGNAL_WEIGHTS.zero_mouse_touch_events,
       name: 'zero_mouse_touch_events',
@@ -111,7 +112,7 @@ export function analyzeRawData(payload: PageSignalPayload): AnalysisResult {
   // === 타이밍 ===
   if (rawData.loadToFirstClickMs !== null && rawData.loadToFirstClickMs !== undefined
     && rawData.loadToFirstClickMs < THRESHOLDS.FAST_CLICK_MS
-    && payload.page !== 'popup-detail') {
+    && !detailPages.has(payload.page)) {
     detected.push({
       ...SIGNAL_WEIGHTS.fast_load_to_click,
       name: 'fast_load_to_click',
@@ -159,21 +160,23 @@ export function analyzeRawData(payload: PageSignalPayload): AnalysisResult {
   // === 점수 합산 ===
   const score = detected.reduce((sum, s) => sum + s.weight, 0);
 
-  // === VQA 난이도 ===
-  let vqaDifficulty: 'easy' | 'medium' | 'hard';
-  if (score <= VQA_DIFFICULTY.EASY_MAX) {
-    vqaDifficulty = 'easy';
-  } else if (score <= VQA_DIFFICULTY.MEDIUM_MAX) {
-    vqaDifficulty = 'medium';
+  // === VQA 레벨 ===
+  let vqaLevel: 1 | 2 | 3 | 4;
+  if (score <= VQA_LEVEL.LEVEL_1_MAX) {
+    vqaLevel = 1;
+  } else if (score <= VQA_LEVEL.LEVEL_2_MAX) {
+    vqaLevel = 2;
+  } else if (score <= VQA_LEVEL.LEVEL_3_MAX) {
+    vqaLevel = 3;
   } else {
-    vqaDifficulty = 'hard';
+    vqaLevel = 4;
   }
 
   // === 드로우 신청 페이지 최종 판정 ===
   let drawResult: 'pass' | 'fail' | undefined;
   if (payload.page === 'draw-application') {
-    drawResult = score > VQA_DIFFICULTY.MEDIUM_MAX ? 'fail' : 'pass';
+    drawResult = score > VQA_LEVEL.LEVEL_2_MAX ? 'fail' : 'pass';
   }
 
-  return { score, detectedSignals: detected, vqaDifficulty, drawResult };
+  return { score, detectedSignals: detected, vqaLevel, drawResult };
 }
