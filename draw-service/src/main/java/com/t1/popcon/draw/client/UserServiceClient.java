@@ -1,7 +1,7 @@
 package com.t1.popcon.draw.client;
 
 import com.t1.popcon.common.response.ApiResponse;
-import com.t1.popcon.draw.client.config.UserServiceClientConfig;
+import com.t1.popcon.draw.client.config.FeignClientConfig;
 import com.t1.popcon.draw.client.dto.UserInternalResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 @FeignClient(
 	name = "user-service",
 	url = "${services.user-service.url:http://localhost:8081}",
-	configuration = UserServiceClientConfig.class
+	configuration = FeignClientConfig.class
 )
 public interface UserServiceClient {
 
