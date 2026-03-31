@@ -87,6 +87,7 @@ public enum ErrorCode {
 
 
 
+
     private final String code;
     private final HttpStatus status;
     private final String message;
