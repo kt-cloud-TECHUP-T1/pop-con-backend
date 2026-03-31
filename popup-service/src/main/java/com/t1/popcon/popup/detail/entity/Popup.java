@@ -3,7 +3,6 @@ package com.t1.popcon.popup.detail.entity;
 import com.t1.popcon.common.entity.BaseSoftDeleteEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -15,8 +14,6 @@ import org.hibernate.annotations.SQLRestriction;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Getter
@@ -70,11 +67,6 @@ public class Popup extends BaseSoftDeleteEntity {
     // 세로형 썸네일 (드로우 섹션 및 기본)
     @Column(name = "v_thumb_url", nullable = false, length = 500)
     private String vThumbUrl;
-
-    @OneToMany(mappedBy = "popup")
-    @jakarta.persistence.OrderBy("sortOrder ASC, id ASC")
-    @Builder.Default
-    private List<PopupImage> images = new ArrayList<>();
 
     @Column(name = "open_at", nullable = false)
     private LocalDate openAt;

@@ -5,7 +5,6 @@ import lombok.Builder;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.List;
 
 @Builder
 public record PopupDetailResponse(
@@ -15,7 +14,6 @@ public record PopupDetailResponse(
     Long popupId,
     Boolean liked,
     String thumbnailUrl,
-    List<ImageResponse> images,
     String title,
     String subtitle,
     Long viewCount,
@@ -31,18 +29,8 @@ public record PopupDetailResponse(
     LocalTime weekendClose
 ) {
     public PopupDetailResponse {
-        if (images == null) {
-            images = List.of();
-        }
         if (liked == null) {
             liked = false;
         }
-    }
-
-    public record ImageResponse(
-        Long id,
-        String imageUrl,
-        Integer sortOrder
-    ) {
     }
 }

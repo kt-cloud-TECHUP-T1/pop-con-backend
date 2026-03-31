@@ -41,7 +41,6 @@ class PopupDetailControllerTest extends AbstractRestDocsTest {
                 .drawId(null)
                 .liked(false)
                 .thumbnailUrl("https://example.com/thumb.jpg")
-                .images(List.of())
                 .title("테스트 팝업")
                 .subtitle("테스트 서브타이틀")
                 .viewCount(10L)

@@ -22,7 +22,7 @@ public class PopupDetailService {
     private final PopupRepository popupRepository;
 
     public PopupDetailResponse getPopupDetail(Long popupId) {
-        Popup popup = popupRepository.findWithImagesById(popupId)
+        Popup popup = popupRepository.findById(popupId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POPUP_NOT_FOUND));
 
         PhaseType phaseType = resolvePhaseType(popup, LocalDateTime.now());
@@ -35,13 +35,6 @@ public class PopupDetailService {
                 // TODO: popup_like 서비스/레포지토리 구현 후 현재 사용자 기준 좋아요 여부로 교체 필요
                 .liked(false)
                 .thumbnailUrl(phaseType == PhaseType.AUCTION ? popup.getHThumbUrl() : popup.getVThumbUrl())
-                .images(popup.getImages().stream()
-                        .map(image -> new PopupDetailResponse.ImageResponse(
-                                image.getId(),
-                                image.getImageUrl(),
-                                image.getSortOrder()
-                        ))
-                        .toList())
                 .title(popup.getTitle())
                 .subtitle(popup.getSubtitle())
                 .viewCount(popup.getViewCount())
