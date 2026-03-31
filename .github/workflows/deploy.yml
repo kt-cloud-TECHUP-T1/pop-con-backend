@@ -36,18 +36,31 @@ jobs:
             auth-service:
               - 'auth-service/**'
               - 'common/**'
+              - 'queue-common/**'
             user-service:
               - 'user-service/**'
               - 'common/**'
+              - 'queue-common/**'
             popup-service:
               - 'popup-service/**'
               - 'common/**'
+              - 'queue-common/**'
             auction-service:
               - 'auction-service/**'
               - 'common/**'
+              - 'queue-common/**'
             draw-service:
               - 'draw-service/**'
               - 'common/**'
+              - 'queue-common/**'
+            queue_service:
+              - 'queue-service/**'
+              - 'common/**'
+              - 'queue-common/**'
+            queue_worker:
+              - 'queue-worker/**'
+              - 'common/**'
+              - 'queue-common/**'
             anti-macro-service:
               - 'anti-macro-service/**'
 
