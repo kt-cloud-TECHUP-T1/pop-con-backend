@@ -11,10 +11,11 @@ public class ReservationNoGenerator {
 
     private static final String PREFIX = "TKT";
     private static final String DIGITS = "0123456789";
+    private static final int DIGIT_COUNT = 12;
     private static final SecureRandom RANDOM = new SecureRandom();
 
     public String generate() {
-        String randomDigits = IntStream.range(0, 8)
+        String randomDigits = IntStream.range(0, DIGIT_COUNT)
                 .map(i -> DIGITS.charAt(RANDOM.nextInt(DIGITS.length())))
                 .mapToObj(c -> String.valueOf((char) c))
                 .collect(Collectors.joining());

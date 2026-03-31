@@ -28,6 +28,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -59,6 +60,8 @@ public class BidServiceTest {
 	private PopupServiceClient popupServiceClient;
 	@Mock
 	private BidTransactionManager txManager;
+	@Mock
+	private ReservationNoGenerator reservationNoGenerator;
 
 	@InjectMocks
 	private BidService bidService;
@@ -96,6 +99,7 @@ public class BidServiceTest {
 			.bidPrice(bidPrice)
 			.merchantUid(merchantUid)
 			.build();
+		ReflectionTestUtils.setField(bid, "id", 1L);
 		given(txManager.preparePendingBid(anyLong(), any(), anyInt(), anyString())).willReturn(bid);
 
 		BillingKeyInternalResponse billingKey = new BillingKeyInternalResponse("billing_key_abc");
@@ -111,6 +115,9 @@ public class BidServiceTest {
 		given(option.getEntryDate()).willReturn(LocalDate.now());
 		given(option.getEntryTime()).willReturn(LocalTime.now());
 		given(auction.getStartPrice()).willReturn(10000);
+		given(reservationNoGenerator.generate()).willReturn("TKT123456789012");
+		given(txManager.completeBidSuccess(anyLong(), anyLong(), anyString(), any(), anyString(), anyString(), anyString(), anyString(), any(), any(), anyInt()))
+			.willReturn("TKT123456789012");
 
 		// when
 		BidResponse response = bidService.attemptBid(userId, request);
@@ -122,6 +129,7 @@ public class BidServiceTest {
 			eq(optionId),
 			eq("pg_tx_123"),
 			any(LocalDateTime.class),
+			eq("TKT123456789012"),
 			eq("Pop-up Title"),
 			eq("Location"),
 			eq("thumbnail.url"),
@@ -167,6 +175,7 @@ public class BidServiceTest {
 			.bidPrice(bidPrice)
 			.merchantUid("merchant_123")
 			.build();
+		ReflectionTestUtils.setField(bid, "id", 1L);
 		given(txManager.preparePendingBid(anyLong(), any(), anyInt(), anyString())).willReturn(bid);
 
 		BillingKeyInternalResponse billingKey = new BillingKeyInternalResponse("billing_key_abc");

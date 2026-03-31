@@ -78,7 +78,7 @@ public class Bid extends BaseSoftDeleteEntity {
 
     @Builder
     public Bid(Long userId, AuctionOption auctionOption, Integer bidPrice, String merchantUid,
-               String reservationNo, Long popupId, String popupTitle, String popupAddress, String thumbnailUrl,
+               String reservationNo, String popupTitle, String popupAddress, String thumbnailUrl,
                LocalDate entryDate, LocalTime entryTime, Integer startPrice) {
         if (userId == null || userId <= 0
                 || auctionOption == null
@@ -94,7 +94,7 @@ public class Bid extends BaseSoftDeleteEntity {
         this.status = BidStatus.PENDING;
 
         this.reservationNo = reservationNo;
-        this.popupId = popupId;
+        this.popupId = auctionOption.getAuction().getPopupId(); // AuctionOption에서 직접 추출
         this.popupTitle = popupTitle;
         this.popupAddress = popupAddress;
         this.thumbnailUrl = thumbnailUrl;

@@ -24,7 +24,6 @@ public class BidTransactionManager {
 
 	private final BidRepository bidRepository;
 	private final AuctionOptionRepository auctionOptionRepository;
-	private final ReservationNoGenerator reservationNoGenerator;
 
 	// [Step 1] 낙찰 시도 준비: PENDING 상태의 Bid 생성
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -40,33 +39,18 @@ public class BidTransactionManager {
 	// [Step 3-1] 결제 성공 시: SUCCESS 처리 및 스냅샷 기록, DB 재고 차감
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public String completeBidSuccess(Long bidId, Long optionId, String pgTxId, LocalDateTime paidAt,
-								   String popupTitle, String popupAddress, String thumbnailUrl,
+								   String reservationNo, String popupTitle, String popupAddress, String thumbnailUrl,
 								   LocalDate entryDate, LocalTime entryTime, Integer startPrice) {
 
-		String reservationNo = reservationNoGenerator.generate();
-		int maxRetries = 3;
-		int retryCount = 0;
+		// 1. 상태 전이 시도 (PENDING -> SUCCESS) 및 스냅샷/예약번호 업데이트
+		int updatedRows = bidRepository.updateStatusWithCAS(
+			bidId, BidStatus.PENDING, BidStatus.SUCCESS, paidAt, pgTxId,
+			reservationNo, popupTitle, popupAddress, thumbnailUrl, entryDate, entryTime, startPrice
+		);
 
-		while (retryCount < maxRetries) {
-			try {
-				// 1. 상태 전이 시도 (PENDING -> SUCCESS) 및 스냅샷/예약번호 업데이트
-				int updatedRows = bidRepository.updateStatusWithCAS(
-					bidId, BidStatus.PENDING, BidStatus.SUCCESS, paidAt, pgTxId,
-					reservationNo, popupTitle, popupAddress, thumbnailUrl, entryDate, entryTime, startPrice
-				);
-
-				// 이미 SUCCESS이거나 다른 상태라면 로직 중단 (멱등성 보장)
-				if (updatedRows == 0) {
-					return null;
-				}
-				break;
-			} catch (org.springframework.dao.DataIntegrityViolationException e) {
-				retryCount++;
-				reservationNo = reservationNoGenerator.generate();
-				if (retryCount >= maxRetries) {
-					throw e;
-				}
-			}
+		// 이미 SUCCESS이거나 다른 상태라면 로직 중단 (멱등성 보장)
+		if (updatedRows == 0) {
+			return null;
 		}
 
 		// 2. 상태 전이에 성공한 경우에만 실제 DB 재고 차감
