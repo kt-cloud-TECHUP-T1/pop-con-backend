@@ -127,7 +127,7 @@ jobs:
   # ── GitOps 이벤트 ─────────────────────────────────
   notify:
     needs: [detect-changes, build-and-push]
-    if: always() && needs.detect-changes.outputs.changes != '[]'
+    if: needs.build-and-push.result == 'success' && needs.detect-changes.outputs.changes != '[]'
     runs-on: ubuntu-latest
 
     steps:
@@ -141,7 +141,6 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Update GitOps deployment
-        if: needs.build-and-push.result == 'success'
         run: |
           DEPLOY_ENV=${{ github.ref_name == 'main' && 'prod' || 'staging' }}
           curl --fail --show-error -X POST \
