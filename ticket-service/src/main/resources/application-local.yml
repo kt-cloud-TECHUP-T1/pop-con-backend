@@ -33,5 +33,5 @@ jwt:
   refresh-token-expiration: 604800000
 
 server:
-  port: 8085
+  port: 8086
   shutdown: graceful
