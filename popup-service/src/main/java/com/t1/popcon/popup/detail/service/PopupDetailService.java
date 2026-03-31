@@ -34,7 +34,7 @@ public class PopupDetailService {
                 .popupId(popup.getId())
                 // TODO: popup_like 서비스/레포지토리 구현 후 현재 사용자 기준 좋아요 여부로 교체 필요
                 .liked(false)
-                .thumbnailUrl(popup.getThumbnailUrl())
+                .thumbnailUrl(phaseType == PhaseType.AUCTION ? popup.getHThumbUrl() : popup.getVThumbUrl())
                 .images(popup.getImages().stream()
                         .map(image -> new PopupDetailResponse.ImageResponse(
                                 image.getId(),
@@ -66,7 +66,7 @@ public class PopupDetailService {
                 .popupId(popup.getId())
                 .title(popup.getTitle())
                 .location(popup.getLocation())
-                .thumbnailUrl(popup.getThumbnailUrl())
+                .thumbnailUrl(popup.getVThumbUrl())
                 .build();
     }
 
@@ -76,7 +76,7 @@ public class PopupDetailService {
                         .popupId(popup.getId())
                         .title(popup.getTitle())
                         .location(popup.getLocation())
-                        .thumbnailUrl(popup.getThumbnailUrl())
+                        .thumbnailUrl(popup.getVThumbUrl())
                         .build())
                 .toList();
     }

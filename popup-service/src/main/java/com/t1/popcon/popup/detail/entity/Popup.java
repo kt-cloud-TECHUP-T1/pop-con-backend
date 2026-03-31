@@ -63,8 +63,13 @@ public class Popup extends BaseSoftDeleteEntity {
     @Column(name = "location", nullable = false, length = 255)
     private String location;
 
-    @Column(name = "thumbnail_url", nullable = false, length = 500)
-    private String thumbnailUrl;
+    // 가로형 썸네일 (경매 섹션용)
+    @Column(name = "h_thumb_url", nullable = false, length = 500)
+    private String hThumbUrl;
+
+    // 세로형 썸네일 (드로우 섹션 및 기본)
+    @Column(name = "v_thumb_url", nullable = false, length = 500)
+    private String vThumbUrl;
 
     @OneToMany(mappedBy = "popup")
     @jakarta.persistence.OrderBy("sortOrder ASC, id ASC")
