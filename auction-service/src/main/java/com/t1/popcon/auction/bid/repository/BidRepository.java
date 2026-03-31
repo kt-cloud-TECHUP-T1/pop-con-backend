@@ -37,8 +37,6 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
 	Optional<Bid> findByReservationNo(String reservationNo);
 
 	@Query("SELECT b FROM Bid b " +
-		"JOIN FETCH b.auctionOption ao " +
-		"JOIN FETCH ao.auction a " +
 		"WHERE b.userId = :userId AND b.status = :status AND b.deleted = false " +
 		"ORDER BY b.createdAt DESC")
 	List<Bid> findAllByUserIdAndStatusOrderByCreatedAtDesc(@Param("userId") Long userId, @Param("status") BidStatus status);
