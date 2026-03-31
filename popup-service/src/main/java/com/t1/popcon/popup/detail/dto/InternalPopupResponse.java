@@ -4,8 +4,9 @@ import lombok.Builder;
 
 @Builder
 public record InternalPopupResponse(
-    Long popupId,
-    String title,
-    String thumbnailUrl
+	Long popupId,
+	String title,
+	String location,
+	String thumbnailUrl
 ) {
 }

@@ -9,6 +9,7 @@ import com.t1.popcon.auction.bid.domain.BidStatus;
 import com.t1.popcon.auction.bid.dto.BidRequest;
 import com.t1.popcon.auction.bid.dto.BidResponse;
 import com.t1.popcon.auction.bid.dto.response.BidHistoryResponse;
+import com.t1.popcon.auction.bid.dto.response.ReservationDetailResponse;
 import com.t1.popcon.auction.bid.infrastructure.BidRedisRepository;
 import com.t1.popcon.auction.bid.repository.BidRepository;
 import com.t1.popcon.auction.domain.Auction;
@@ -25,6 +26,7 @@ import com.t1.popcon.common.infrastructure.portone.PortOneClient;
 import com.t1.popcon.common.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -47,6 +49,7 @@ public class BidService {
 	private final UserBillingClient userBillingClient;
 	private final PopupServiceClient popupServiceClient;
 	private final BidTransactionManager txManager;
+	private final ReservationNoGenerator reservationNoGenerator;
 
 	public List<BidHistoryResponse> getBidHistory(Long userId) {
 		List<Bid> bids = bidRepository.findAllByUserIdAndStatusOrderByCreatedAtDesc(userId, BidStatus.SUCCESS);
@@ -56,27 +59,44 @@ public class BidService {
 			.toList();
 	}
 
-	private BidHistoryResponse convertToHistoryResponse(Bid bid) {
-		Long popupId = bid.getAuctionOption().getAuction().getPopupId();
-		try {
-			ApiResponse<PopupInternalResponse> response = popupServiceClient.getPopupDetail(popupId);
-			if (response == null || response.getData() == null) {
-				throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
-			}
-			PopupInternalResponse popupInfo = response.getData();
+	public ReservationDetailResponse getReservationDetail(Long userId, String reservationNo) {
+		Bid bid = bidRepository.findByReservationNo(reservationNo)
+			.orElseThrow(() -> new CustomException(ErrorCode.BID_NOT_FOUND));
 
-			return BidHistoryResponse.builder()
-				.id(bid.getId())
-				.thumbnailUrl(popupInfo.thumbnailUrl())
-				.popupTitle(popupInfo.title())
-				.bidPrice(bid.getBidPrice())
-				.paidAt(bid.getPaidAt())
-				.displayStatus(bid.getStatus().getDescription())
-				.build();
-		} catch (Exception e) {
-			log.error(">>>> [Popup-Service 연동 실패] Popup ID: {}, Error: {}", popupId, e.getMessage());
-			throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+		if (!bid.getUserId().equals(userId)) {
+			throw new CustomException(ErrorCode.ACCESS_DENIED);
 		}
+
+		Integer startPrice = bid.getStartPrice() != null ? bid.getStartPrice() : 0;
+		Integer bidPrice = bid.getBidPrice();
+
+		Integer discountAmount = Math.max(0, startPrice - bidPrice);
+		if (bid.getStartPrice() == null) {
+			log.warn(">>>> [데이터 정합성 경고] reservationNo={} 의 startPrice가 null입니다.", reservationNo);
+		}
+
+		return ReservationDetailResponse.builder()
+			.reservationNo(bid.getReservationNo())
+			.popupTitle(bid.getPopupTitle())
+			.popupAddress(bid.getPopupAddress())
+			.entryDate(bid.getEntryDate())
+			.entryTime(bid.getEntryTime())
+			.startPrice(startPrice)
+			.discountAmount(discountAmount)
+			.finalPrice(bidPrice)
+			.paidAt(bid.getPaidAt())
+			.build();
+	}
+
+	private BidHistoryResponse convertToHistoryResponse(Bid bid) {
+		return BidHistoryResponse.builder()
+			.id(bid.getId())
+			.thumbnailUrl(bid.getThumbnailUrl())
+			.popupTitle(bid.getPopupTitle())
+			.bidPrice(bid.getBidPrice())
+			.paidAt(bid.getPaidAt())
+			.displayStatus(bid.getStatus().getDescription())
+			.build();
 	}
 
 	public BidResponse attemptBid(Long userId, BidRequest request) {
@@ -147,9 +167,64 @@ public class BidService {
 			}
 
 			LocalDateTime paidAt = parsePaidAt(paymentResponse.payment().paidAt());
-			txManager.completeBidSuccess(bid.getId(), option.getId(), pgTxId, paidAt);
 
-			return new BidResponse(bid.getId(), BidStatus.SUCCESS, "낙찰이 완료되었습니다.");
+			// 결제 성공 후 스냅샷 정보 조회 (입찰 시점의 지연 최소화)
+			String popupTitle = "정보 확인 중";
+			String popupAddress = "주소 확인 중";
+			String thumbnailUrl = null;
+
+			try {
+				ApiResponse<PopupInternalResponse> popupResponse = popupServiceClient.getPopupDetail(option.getAuction().getPopupId());
+				if (popupResponse != null && popupResponse.getData() != null) {
+					PopupInternalResponse popupInfo = popupResponse.getData();
+					popupTitle = popupInfo.title();
+					popupAddress = popupInfo.location();
+					thumbnailUrl = popupInfo.thumbnailUrl();
+				} else {
+					log.warn(">>>> [팝업 정보 조회 실패] 응답이 비어있음 popupId={}", option.getAuction().getPopupId());
+				}
+			} catch (Exception e) {
+				log.error(">>>> [팝업 정보 조회 오류] 외부 서비스 호출 중 예외 발생 popupId={}, error={}",
+					option.getAuction().getPopupId(), e.getMessage());
+			}
+
+			String reservationNo = null;
+			int maxRetries = 3;
+			int retryCount = 0;
+
+			while (retryCount < maxRetries) {
+				try {
+					String currentReservationNo = reservationNoGenerator.generate();
+					reservationNo = txManager.completeBidSuccess(
+						bid.getId(),
+						option.getId(),
+						pgTxId,
+						paidAt,
+						currentReservationNo,
+						popupTitle,
+						popupAddress,
+						thumbnailUrl,
+						option.getEntryDate(),
+						option.getEntryTime(),
+						option.getAuction().getStartPrice()
+					);
+					break;
+				} catch (DataIntegrityViolationException e) {
+					retryCount++;
+					log.warn(">>>> [예약번호 충돌] 재시도 중... retryCount={}, merchantUid={}", retryCount, bid.getMerchantUid());
+					if (retryCount >= maxRetries) {
+						throw e;
+					}
+				}
+			}
+
+			if (reservationNo == null) {
+				reservationNo = bidRepository.findById(bid.getId())
+					.map(Bid::getReservationNo)
+					.orElseThrow(() -> new CustomException(ErrorCode.BID_NOT_FOUND));
+			}
+
+			return new BidResponse(bid.getId(), BidStatus.SUCCESS, "낙찰이 완료되었습니다.", reservationNo);
 
 		} catch (Exception e) {
 			log.error(">>>> 낙찰 처리 중 오류 userId={}, optionId={}, error={}", userId, option.getId(), e.getMessage());
