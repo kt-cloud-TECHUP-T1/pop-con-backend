@@ -1,0 +1,46 @@
+spring:
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: true
+
+encryption:
+  secret: ${ENCRYPTION_SECRET}
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: 1800000
+  refresh-token-expiration: 604800000
+
+logging:
+  level:
+    root: info
+    com.t1.popcon: debug
+    org.springframework.data.redis: debug
+    org.springframework.scheduling: debug
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+      base-path: /actuator
+
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+
+
+  metrics:
+    tags:
+      application: queue-worker
+
+
+server:
+  port: 8080

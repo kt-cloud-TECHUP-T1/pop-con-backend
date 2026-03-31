@@ -21,6 +21,9 @@ jobs:
       common: ${{ steps.filter.outputs.common }}
       draw: ${{ steps.filter.outputs.draw }}
       anti_macro: ${{ steps.filter.outputs.anti_macro }}
+      queue_service: ${{ steps.filter.outputs.queue_service }}
+      queue_worker: ${{ steps.filter.outputs.queue_worker }}
+      queue_common: ${{ steps.filter.outputs.queue_common }}
 
     steps:
       - name: Checkout
@@ -45,39 +48,45 @@ jobs:
               - 'draw-service/**'
             anti_macro:
               - 'anti-macro-service/**'
+            queue_service:
+              - 'queue-service/**'
+            queue_worker:
+              - 'queue-worker/**'
+            queue_common:
+              - 'queue-common/**'
 
   build-and-push:
     needs: detect-changes
     runs-on: ubuntu-latest
 
     strategy:
+      max-parallel: 1
       matrix:
-        service:
-          - auth-service
-          - user-service
-          - popup-service
-          - auction-service
-          - draw-service
+        include:
+          - service: auth-service
+            changed: ${{ needs.detect-changes.outputs.auth }}
+          - service: user-service
+            changed: ${{ needs.detect-changes.outputs.user }}
+          - service: popup-service
+            changed: ${{ needs.detect-changes.outputs.popup }}
+          - service: auction-service
+            changed: ${{ needs.detect-changes.outputs.auction }}
+          - service: draw-service
+            changed: ${{ needs.detect-changes.outputs.draw }}
+          - service: queue-service
+            changed: ${{ needs.detect-changes.outputs.queue_service }}
+          - service: queue-worker
+            changed: ${{ needs.detect-changes.outputs.queue_worker }}
+    env:
+      SHOULD_RUN: ${{ matrix.changed == 'true' || needs.detect-changes.outputs.common == 'true' || needs.detect-changes.outputs.queue_common == 'true' }}
 
     steps:
-      - name: Skip unchanged service
-        if: |
-          !(
-            (matrix.service == 'auth-service' && needs.detect-changes.outputs.auth == 'true') ||
-            (matrix.service == 'user-service' && needs.detect-changes.outputs.user == 'true') ||
-            (matrix.service == 'popup-service' && needs.detect-changes.outputs.popup == 'true') ||
-            (matrix.service == 'auction-service' && needs.detect-changes.outputs.auction == 'true') ||
-            (matrix.service == 'draw-service' && needs.detect-changes.outputs.draw == 'true') ||
-            (needs.detect-changes.outputs.common == 'true')
-          )
-        run: |
-          echo "No changes for ${{ matrix.service }}. Skipping."
-          exit 0
-
       - name: Checkout
+        if: env.SHOULD_RUN == 'true'
         uses: actions/checkout@v4
 
       - name: Setup JDK
+        if: env.SHOULD_RUN == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -85,29 +94,36 @@ jobs:
           cache: gradle
 
       - name: Grant execute permission
+        if: env.SHOULD_RUN == 'true'
         run: chmod +x ./gradlew
 
       - name: Build service (Test + REST Docs)
+        if: env.SHOULD_RUN == 'true'
         run: |
           ./gradlew --no-daemon :${{ matrix.service }}:clean :${{ matrix.service }}:build
 
       - name: Configure AWS credentials
+        if: env.SHOULD_RUN == 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }}
           aws-region: ap-northeast-2
 
       - name: Login to Amazon ECR
+        if: env.SHOULD_RUN == 'true'
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Set short SHA
+        if: env.SHOULD_RUN == 'true'
         run: echo "SHORT_SHA=${GITHUB_SHA::10}" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
+        if: env.SHOULD_RUN == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push ${{ matrix.service }}
+        if: env.SHOULD_RUN == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -120,6 +136,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Update GitOps deployment
+        if: env.SHOULD_RUN == 'true'
         run: |
           curl -X POST \
             -H "Accept: application/vnd.github+json" \
