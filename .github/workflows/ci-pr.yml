@@ -84,6 +84,8 @@ jobs:
           - popup-service
           - auction-service
           - draw-service
+          - queue-service
+          - queue-worker
 
     steps:
       - uses: actions/checkout@v4

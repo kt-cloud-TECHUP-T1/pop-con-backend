@@ -65,6 +65,7 @@ public class PopupDetailService {
         return InternalPopupResponse.builder()
                 .popupId(popup.getId())
                 .title(popup.getTitle())
+                .location(popup.getLocation())
                 .thumbnailUrl(popup.getThumbnailUrl())
                 .build();
     }
@@ -74,6 +75,7 @@ public class PopupDetailService {
                 .map(popup -> InternalPopupResponse.builder()
                         .popupId(popup.getId())
                         .title(popup.getTitle())
+                        .location(popup.getLocation())
                         .thumbnailUrl(popup.getThumbnailUrl())
                         .build())
                 .toList();

@@ -2,18 +2,17 @@ package com.t1.popcon.auction.bid.controller;
 
 import com.t1.popcon.auction.bid.dto.BidRequest;
 import com.t1.popcon.auction.bid.dto.BidResponse;
+import com.t1.popcon.auction.bid.dto.response.ReservationDetailResponse;
 import com.t1.popcon.auction.bid.service.BidService;
+import com.t1.popcon.common.auth.domain.AuthUser;
 import com.t1.popcon.common.response.ApiResponse;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
@@ -25,15 +24,25 @@ public class BidController {
 
 	@PostMapping("/bids")
 	public ResponseEntity<ApiResponse<BidResponse>> attemptBid(
-		// TODO: 인증 방식(SecurityContext 등)에 맞춰 userId 가져와야 함, 헤더로 임시구현
-		// 예: @AuthenticationPrincipal UserPrincipal principal
-		@RequestHeader(value = "X-User-Id") Long userId,
+		@AuthenticationPrincipal AuthUser authUser,
 		@Valid @RequestBody BidRequest request
 	) {
 
-		log.info(">>>> [Bid Request] Member ID: {}, Option ID: {}", userId, request.auctionOptionId());
+		log.info(">>>> [Bid Request] Member ID: {}, Option ID: {}", authUser.id(), request.auctionOptionId());
 
-		BidResponse response = bidService.attemptBid(userId, request);
+		BidResponse response = bidService.attemptBid(authUser.id(), request);
+
+		return ResponseEntity.ok(ApiResponse.ok(response));
+	}
+
+	@GetMapping("/reservations/{reservationNo}")
+	public ResponseEntity<ApiResponse<ReservationDetailResponse>> getReservationDetail(
+		@AuthenticationPrincipal AuthUser authUser,
+		@PathVariable String reservationNo
+	) {
+		log.info(">>>> [Reservation Detail Request] Member ID: {}, Reservation No: {}", authUser.id(), reservationNo);
+
+		ReservationDetailResponse response = bidService.getReservationDetail(authUser.id(), reservationNo);
 
 		return ResponseEntity.ok(ApiResponse.ok(response));
 	}
