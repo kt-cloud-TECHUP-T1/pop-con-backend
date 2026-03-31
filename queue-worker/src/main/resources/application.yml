@@ -7,7 +7,7 @@ spring:
 
   # queue-worker는 web 서버 불필요 — 스케줄러 전용
   main:
-    web-application-type: none
+    web-application-type: servlet
 
 queue:
   polling-default-ms: 3000

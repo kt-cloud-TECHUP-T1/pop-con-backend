@@ -11,10 +11,6 @@ spring:
 encryption:
   secret: ${ENCRYPTION_SECRET}
 
-server:
-  port: 8080
-  shutdown: graceful
-
 jwt:
   secret: ${JWT_SECRET}
   access-token-expiration: 1800000
@@ -27,21 +23,24 @@ logging:
     org.springframework.data.redis: debug
     org.springframework.scheduling: debug
 
-
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus,metrics
+        include: health,info,prometheus
+      base-path: /actuator
 
   endpoint:
     health:
       probes:
         enabled: true
+      show-details: always
+
 
   metrics:
     tags:
-      application: queue-service
+      application: queue-worker
 
 
-
+server:
+  port: 8080
