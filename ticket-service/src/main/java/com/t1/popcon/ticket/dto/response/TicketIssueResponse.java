@@ -6,6 +6,8 @@ import com.t1.popcon.ticket.domain.TicketStatus;
 
 public record TicketIssueResponse(
     Long ticketId,
+    String ticketNumber,
+    String reservationNo,
     TicketStatus status,
     TicketSourceType sourceType,
     Long sourceId
@@ -14,6 +16,8 @@ public record TicketIssueResponse(
     public static TicketIssueResponse from(Ticket ticket) {
         return new TicketIssueResponse(
             ticket.getId(),
+            ticket.getTicketNumber(),
+            ticket.getReservationNo(),
             ticket.getStatus(),
             ticket.getSourceType(),
             ticket.getSourceId()

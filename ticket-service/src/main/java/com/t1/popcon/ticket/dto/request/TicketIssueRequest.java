@@ -10,6 +10,7 @@ public record TicketIssueRequest(
     @NotNull Long popupId,
     @NotNull TicketSourceType sourceType,
     @NotNull Long sourceId,
+    String reservationNo,
     @NotNull LocalDate entryDate,
     @NotNull LocalTime entryTime
 ) {

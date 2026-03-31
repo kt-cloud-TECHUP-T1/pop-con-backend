@@ -26,6 +26,10 @@ import org.hibernate.annotations.SQLRestriction;
         @UniqueConstraint(
             name = "uk_tickets_source_type_source_id_deleted",
             columnNames = {"source_type", "source_id", "deleted"}
+        ),
+        @UniqueConstraint(
+            name = "uk_tickets_ticket_number_deleted",
+            columnNames = {"ticket_number", "deleted"}
         )
     }
 )
@@ -46,6 +50,12 @@ public class Ticket extends BaseSoftDeleteEntity {
     @Column(name = "source_id", nullable = false)
     private Long sourceId;
 
+    @Column(name = "reservation_no", length = 20, unique = true)
+    private String reservationNo;
+
+    @Column(name = "ticket_number", length = 20, unique = true)
+    private String ticketNumber;
+
     @Column(name = "entry_date", nullable = false)
     private LocalDate entryDate;
 
@@ -65,6 +75,7 @@ public class Ticket extends BaseSoftDeleteEntity {
         Long popupId,
         TicketSourceType sourceType,
         Long sourceId,
+        String reservationNo,
         LocalDate entryDate,
         LocalTime entryTime
     ) {
@@ -73,10 +84,18 @@ public class Ticket extends BaseSoftDeleteEntity {
         this.popupId = popupId;
         this.sourceType = sourceType;
         this.sourceId = sourceId;
+        this.reservationNo = reservationNo;
         this.entryDate = entryDate;
         this.entryTime = entryTime;
         this.status = TicketStatus.ISSUED;
         this.issuedAt = LocalDateTime.now();
+    }
+
+    public void assignTicketNumber(String ticketNumber) {
+        if (ticketNumber == null || ticketNumber.isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+        this.ticketNumber = ticketNumber;
     }
 
     public void markUsed() {

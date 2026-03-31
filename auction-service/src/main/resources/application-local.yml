@@ -44,4 +44,4 @@ server:
 
 services:
   ticket-service:
-    url: ${TICKET_SERVICE_URL:http://localhost:8085}
+    url: ${TICKET_SERVICE_URL:http://localhost:8086}

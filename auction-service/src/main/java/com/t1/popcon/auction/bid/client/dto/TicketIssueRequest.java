@@ -8,6 +8,7 @@ public record TicketIssueRequest(
     Long popupId,
     String sourceType,
     Long sourceId,
+    String reservationNo,
     LocalDate entryDate,
     LocalTime entryTime
 ) {

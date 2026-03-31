@@ -41,7 +41,10 @@ public class UserSecurityConfig extends CommonSecurityConfig {
                         "/billing/**",
                         "/actuator/**"
                 ).permitAll()
-                .requestMatchers("/internal/users/**").permitAll()
+                .requestMatchers(
+                        "/internal/users/**",
+                        "/internal/billing/**"
+                ).permitAll()
                 .anyRequest().authenticated()
         );
 
