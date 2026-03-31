@@ -1,7 +1,7 @@
 spring:
   # 기본 활성 프로파일
-  profiles:
-    active: local
+#  profiles:
+#    active: local
 
   # queue-service는 JPA 미사용 — 자동 구성 제외
   autoconfigure:

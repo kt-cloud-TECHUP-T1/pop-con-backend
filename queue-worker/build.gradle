@@ -33,6 +33,7 @@ dependencies {
 
     // Actuator (헬스체크 / 모니터링)
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
