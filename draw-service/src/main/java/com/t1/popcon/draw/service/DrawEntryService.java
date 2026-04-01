@@ -103,7 +103,7 @@ public class DrawEntryService {
 		return DrawEntryResultResponse.builder()
 			.vThumbnailUrl(popupInfo != null ? popupInfo.vThumbnailUrl() : null)
 			.popupTitle(popupInfo != null ? popupInfo.title() : "알 수 없는 팝업")
-			.popupAddress(popupInfo != null ? popupInfo.address() : null)
+			.popupAddress(popupInfo != null ? popupInfo.location() : null)
 			.entryDate(drawOption.getEntryDate())
 			.entryTime(drawOption.getEntryTime())
 			.userName(encryptionService.decrypt(userInfo.encryptedName()))

@@ -8,6 +8,6 @@ public record PopupInternalResponse(
 	String title,
 	String hThumbnailUrl,
 	String vThumbnailUrl,
-	String address
+	String location
 ) {
 }
