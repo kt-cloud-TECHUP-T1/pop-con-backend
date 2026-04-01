@@ -140,7 +140,7 @@ public class PopupListingsService {
                 popup.getSubtitle(),
                 popup.getSubText() != null ? popup.getSubText() : popup.getLocation(),
                 popup.getCaption(),
-                popup.getThumbnailUrl(),
+                phaseType == PhaseType.AUCTION ? popup.getHThumbUrl() : popup.getVThumbUrl(),
                 false,
                 new PopupCardDto.StatsDto(popup.getLikeCount(), popup.getViewCount()),
                 resolveOverlay(phaseType, status),
