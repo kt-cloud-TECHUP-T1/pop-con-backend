@@ -9,12 +9,6 @@ public record InternalPopupResponse(
     String title,
     String hThumbnailUrl,
     String vThumbnailUrl,
-    String address,
-
-    @JsonProperty("thumbnailUrl")
-    String thumbnailUrl,
-
-    @JsonProperty("location")
     String location
 ) {
 }
