@@ -6,6 +6,8 @@ import lombok.Builder;
 public record PopupInternalResponse(
 	Long popupId,
 	String title,
-	String thumbnailUrl
+	String hThumbnailUrl,
+	String vThumbnailUrl,
+	String address
 ) {
 }

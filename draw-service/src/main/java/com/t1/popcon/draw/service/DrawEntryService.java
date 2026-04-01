@@ -1,5 +1,6 @@
 package com.t1.popcon.draw.service;
 
+import com.t1.popcon.common.encryption.EncryptionService;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.common.response.ApiResponse;
@@ -12,6 +13,7 @@ import com.t1.popcon.draw.domain.DrawEntryStatus;
 import com.t1.popcon.draw.domain.DrawOption;
 import com.t1.popcon.draw.dto.request.DrawEntryRequest;
 import com.t1.popcon.draw.dto.response.DrawEntryResponse;
+import com.t1.popcon.draw.dto.response.DrawEntryResultResponse;
 import com.t1.popcon.draw.repository.DrawEntryRepository;
 import com.t1.popcon.draw.repository.DrawOptionRepository;
 import lombok.RequiredArgsConstructor;
@@ -38,9 +40,10 @@ public class DrawEntryService {
 	private final DrawOptionRepository drawOptionRepository;
 	private final PopupServiceClient popupServiceClient;
 	private final UserServiceClient userServiceClient;
+	private final EncryptionService encryptionService;
 
 	@Transactional
-	public void applyForDraw(Long userId, Long drawId, Long drawOptionId, DrawEntryRequest request) {
+	public DrawEntryResultResponse applyForDraw(Long userId, Long drawId, Long drawOptionId, DrawEntryRequest request) {
 		// 1. 기본 입력 검증 (약관 동의)
 		if (!request.isTermsAgreed() || !request.isPrivacyAgreed()) {
 			throw new CustomException(ErrorCode.INVALID_INPUT);
@@ -89,12 +92,23 @@ public class DrawEntryService {
 			drawEntryRepository.save(entry);
 		} catch (DataIntegrityViolationException e) {
 			if (isDuplicateEntryViolation(e)) {
-				if (isDuplicateEntryViolation(e)) {
-					throw new CustomException(ErrorCode.DRAW_ALREADY_APPLIED);
-				}
-				throw e;
+				throw new CustomException(ErrorCode.DRAW_ALREADY_APPLIED);
 			}
+			throw e;
 		}
+
+		// 8. 응모 성공 상세 정보 조회 및 조합
+		PopupInternalResponse popupInfo = popupServiceClient.getPopupDetail(drawOption.getDraw().getPopupId()).getData();
+
+		return DrawEntryResultResponse.builder()
+			.vThumbnailUrl(popupInfo != null ? popupInfo.vThumbnailUrl() : null)
+			.popupTitle(popupInfo != null ? popupInfo.title() : "알 수 없는 팝업")
+			.popupAddress(popupInfo != null ? popupInfo.address() : null)
+			.entryDate(drawOption.getEntryDate())
+			.entryTime(drawOption.getEntryTime())
+			.userName(encryptionService.decrypt(userInfo.encryptedName()))
+			.userPhoneNumber(encryptionService.decrypt(userInfo.encryptedPhoneNumber()))
+			.build();
 	}
 
 	@Transactional(readOnly = true)
@@ -150,7 +164,9 @@ public class DrawEntryService {
 		}
 
 		return DrawEntryResponse.builder()
-			.thumbnailUrl(popupInfo != null ? popupInfo.thumbnailUrl() : null)
+			.id(entry.getId())
+			.drawId(entry.getDrawOption().getDraw().getId())
+			.vThumbnailUrl(popupInfo != null ? popupInfo.vThumbnailUrl() : null)
 			.title(popupInfo != null ? popupInfo.title() : "알 수 없는 팝업")
 			.price(0L) // TODO: 팝업 서비스에서 가격 정보를 주면 연결 필요
 			.paidAt(entry.getPaidAt())
