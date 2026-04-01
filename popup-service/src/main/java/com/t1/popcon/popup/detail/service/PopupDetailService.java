@@ -66,7 +66,10 @@ public class PopupDetailService {
                 .popupId(popup.getId())
                 .title(popup.getTitle())
                 .location(popup.getLocation())
+                .address(popup.getLocation())
                 .thumbnailUrl(popup.getThumbnailUrl())
+                .hThumbnailUrl(popup.getThumbnailUrl())
+                .vThumbnailUrl(popup.getThumbnailUrl())
                 .build();
     }
 
@@ -76,7 +79,10 @@ public class PopupDetailService {
                         .popupId(popup.getId())
                         .title(popup.getTitle())
                         .location(popup.getLocation())
+                        .address(popup.getLocation())
                         .thumbnailUrl(popup.getThumbnailUrl())
+                        .hThumbnailUrl(popup.getThumbnailUrl())
+                        .vThumbnailUrl(popup.getThumbnailUrl())
                         .build())
                 .toList();
     }
