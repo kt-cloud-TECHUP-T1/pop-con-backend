@@ -16,8 +16,6 @@ jobs:
     outputs:
       short_sha: ${{ steps.short-sha.outputs.short_sha }}
       changes: ${{ steps.filter.outputs.changes }}
-      java_services: ${{ steps.compute.outputs.java_services }}
-      anti_macro: ${{ steps.compute.outputs.anti_macro }}
 
     steps:
       - uses: actions/checkout@v4
@@ -59,12 +57,6 @@ jobs:
             anti-macro-service:
               - 'anti-macro-service/**'
 
-      - name: Compute service lists
-        id: compute
-        run: |
-          CHANGES='${{ steps.filter.outputs.changes }}'
-          echo "java_services=$(echo "$CHANGES" | jq '[.[] | select(. != "anti-macro-service")]')" >> $GITHUB_OUTPUT
-          echo "anti_macro=$(echo "$CHANGES"      | jq 'any(. == "anti-macro-service")')"          >> $GITHUB_OUTPUT
 
   # ── 빌드 + Docker 푸시 ───────────────────────────────────────────────────────
   build-and-push:
@@ -151,16 +143,17 @@ jobs:
       - name: Update GitOps deployment
         run: |
           DEPLOY_ENV=${{ github.ref_name == 'main' && 'prod' || 'staging' }}
+          SERVICES='${{ needs.detect-changes.outputs.changes }}'
+          SERVICES_JSON=$(echo "$SERVICES" | jq -c '.' 2>/dev/null || echo '[]')
+          PAYLOAD=$(jq -cn \
+            --arg event_type "deploy-v2" \
+            --arg env "$DEPLOY_ENV" \
+            --arg image "${{ steps.login-ecr.outputs.registry }}" \
+            --argjson services "$SERVICES_JSON" \
+            --arg tag "${{ needs.detect-changes.outputs.short_sha }}" \
+            '{event_type: $event_type, client_payload: {env: $env, image: $image, services: $services, tag: $tag}}')
           curl --fail --show-error -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.GITOPS_TOKEN }}" \
             https://api.github.com/repos/kt-cloud-TECHUP-T1/gitops/dispatches \
-            -d "{
-              \"event_type\": \"deploy-v2\",
-              \"client_payload\": {
-                \"env\": \"${DEPLOY_ENV}\",
-                \"image\": \"${{ steps.login-ecr.outputs.registry }}\",
-                \"services\": ${{ needs.detect-changes.outputs.changes }},
-                \"tag\": \"${{ needs.detect-changes.outputs.short_sha }}\"
-              }
-            }"
+            -d "$PAYLOAD"
