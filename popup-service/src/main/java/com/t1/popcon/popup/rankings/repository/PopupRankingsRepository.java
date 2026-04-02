@@ -24,5 +24,5 @@ public interface PopupRankingsRepository extends JpaRepository<Popup, Long> {
 	@Query("SELECT p FROM Popup p WHERE p.closeAt >= :today " +
 		"ORDER BY (p.viewCount * 1 + p.likeCount * 10 + p.reviewCount * 20) DESC, " +
 		"p.reviewCount DESC, p.likeCount DESC, p.viewCount DESC, p.id DESC")
-	List<Popup> findTop10ByOrderByWeightedScore(@Param("today") LocalDate today, Pageable pageable);
+	List<Popup> findPopupsByWeightedScore(@Param("today") LocalDate today, Pageable pageable);
 }

@@ -7,8 +7,10 @@ import com.t1.popcon.popup.detail.entity.Popup;
 
 public class PopupMapper {
 
+	private static final ZoneId TIME_ZONE = ZoneId.of("Asia/Seoul");
+
 	public static PopupCardDto toCardDto(Popup popup, Integer rank) {
-		LocalDateTime now = LocalDateTime.now();
+		LocalDateTime now = LocalDateTime.now(TIME_ZONE);
 		PhaseType type;
 		PhaseStatus status;
 		LocalDateTime openAt;
@@ -52,8 +54,8 @@ public class PopupMapper {
 			new PopupCardDto.PhaseDto(
 				type,
 				status,
-				openAt.atZone(ZoneId.systemDefault()).toOffsetDateTime(),
-				closeAt.atZone(ZoneId.systemDefault()).toOffsetDateTime()
+				openAt.atZone(TIME_ZONE).toOffsetDateTime(),
+				closeAt.atZone(TIME_ZONE).toOffsetDateTime()
 			)
 		);
 

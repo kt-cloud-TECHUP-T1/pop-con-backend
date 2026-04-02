@@ -13,6 +13,6 @@ import com.t1.popcon.popup.detail.entity.Popup;
 @Repository
 public interface PopupRecommendedRepository extends JpaRepository<Popup, Long> {
 
-	@Query(value = "SELECT * FROM popups WHERE close_at >= :today ORDER BY RAND() LIMIT :limit", nativeQuery = true)
-	List<Popup> findRandomPopups(@Param("today") LocalDate today, @Param("limit") int limit);
+	@Query("SELECT p FROM Popup p WHERE p.closeAt >= :today")
+	List<Popup> findAllByCloseAtAfter(@Param("today") LocalDate today);
 }
