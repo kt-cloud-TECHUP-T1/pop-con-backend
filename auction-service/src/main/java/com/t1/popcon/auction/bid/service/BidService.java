@@ -226,7 +226,7 @@ public class BidService {
                     .orElseThrow(() -> new CustomException(ErrorCode.BID_NOT_FOUND));
             }
 
-            issueAuctionWinTicket(bid, option);
+            issueAuctionWinTicket(bid, option, reservationNo);
             return new BidResponse(bid.getId(), BidStatus.SUCCESS, "낙찰이 완료되었습니다.", reservationNo);
 
         } catch (Exception e) {
@@ -301,9 +301,11 @@ public class BidService {
         }
     }
 
-    private void issueAuctionWinTicket(Bid bid, AuctionOption option) {
+    private void issueAuctionWinTicket(Bid bid, AuctionOption option, String reservationNo) {
         try {
-            ApiResponse<TicketIssueResponse> response = ticketServiceClient.issueTicket(buildTicketIssueRequest(bid, option));
+            ApiResponse<TicketIssueResponse> response = ticketServiceClient.issueTicket(
+                buildTicketIssueRequest(bid, option, reservationNo)
+            );
             if (response == null || response.getData() == null) {
                 throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
             }
@@ -318,13 +320,13 @@ public class BidService {
         }
     }
 
-    private TicketIssueRequest buildTicketIssueRequest(Bid bid, AuctionOption option) {
+    private TicketIssueRequest buildTicketIssueRequest(Bid bid, AuctionOption option, String reservationNo) {
         return new TicketIssueRequest(
             bid.getUserId(),
             option.getAuction().getPopupId(),
             "AUCTION",
             bid.getId(),
-            bid.getReservationNo(),
+            reservationNo,
             option.getEntryDate(),
             option.getEntryTime()
         );
