@@ -44,7 +44,7 @@ public class PopupFeaturedService {
                 popup.getSubtitle(),
                 popup.getSubText() != null ? popup.getSubText() : popup.getLocation(),
                 popup.getCaption(),
-                popup.getThumbnailUrl(),
+                popup.getVThumbUrl(),
                 false,
                 new PopupCardDto.StatsDto(
                         popup.getLikeCount(),

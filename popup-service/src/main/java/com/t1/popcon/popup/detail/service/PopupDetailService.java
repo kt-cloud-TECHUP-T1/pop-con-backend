@@ -22,7 +22,7 @@ public class PopupDetailService {
     private final PopupRepository popupRepository;
 
     public PopupDetailResponse getPopupDetail(Long popupId) {
-        Popup popup = popupRepository.findWithImagesById(popupId)
+        Popup popup = popupRepository.findById(popupId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POPUP_NOT_FOUND));
 
         PhaseType phaseType = resolvePhaseType(popup, LocalDateTime.now());
@@ -34,14 +34,7 @@ public class PopupDetailService {
                 .popupId(popup.getId())
                 // TODO: popup_like 서비스/레포지토리 구현 후 현재 사용자 기준 좋아요 여부로 교체 필요
                 .liked(false)
-                .thumbnailUrl(popup.getThumbnailUrl())
-                .images(popup.getImages().stream()
-                        .map(image -> new PopupDetailResponse.ImageResponse(
-                                image.getId(),
-                                image.getImageUrl(),
-                                image.getSortOrder()
-                        ))
-                        .toList())
+                .thumbnailUrl(phaseType == PhaseType.AUCTION ? popup.getHThumbUrl() : popup.getVThumbUrl())
                 .title(popup.getTitle())
                 .subtitle(popup.getSubtitle())
                 .viewCount(popup.getViewCount())
@@ -66,7 +59,7 @@ public class PopupDetailService {
                 .popupId(popup.getId())
                 .title(popup.getTitle())
                 .location(popup.getLocation())
-                .thumbnailUrl(popup.getThumbnailUrl())
+                .thumbnailUrl(popup.getVThumbUrl())
                 .build();
     }
 
@@ -76,7 +69,7 @@ public class PopupDetailService {
                         .popupId(popup.getId())
                         .title(popup.getTitle())
                         .location(popup.getLocation())
-                        .thumbnailUrl(popup.getThumbnailUrl())
+                        .thumbnailUrl(popup.getVThumbUrl())
                         .build())
                 .toList();
     }
