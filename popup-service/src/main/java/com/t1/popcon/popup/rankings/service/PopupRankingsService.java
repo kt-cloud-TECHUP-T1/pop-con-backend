@@ -24,8 +24,8 @@ public class PopupRankingsService {
 	private final PopupRankingsRepository popupRankingsRepository;
 	private static final ZoneId TIME_ZONE = ZoneId.of("Asia/Seoul");
 
-	@Cacheable(value = "weeklyRankings")
-	public PopupSectionResponse<PopupCardDto> getWeeklyRankings() {
+	@Cacheable(value = "popularRankings", key = "T(java.time.LocalDate).now(T(java.time.ZoneId).of('Asia/Seoul'))")
+	public PopupSectionResponse<PopupCardDto> getPopularRankings() {
 		// 1. 내부적으로 상위 10개만 조회하도록 고정
 		var popups = popupRankingsRepository.findPopupsByWeightedScore(LocalDate.now(TIME_ZONE), PageRequest.of(0, 10));
 

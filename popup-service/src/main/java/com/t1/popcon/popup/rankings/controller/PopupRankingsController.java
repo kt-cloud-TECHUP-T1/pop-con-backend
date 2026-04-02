@@ -20,8 +20,8 @@ public class PopupRankingsController {
 	private final PopupRankingsService popupRankingsService;
 
 	@GetMapping("/rankings")
-	public ResponseEntity<ApiResponse<PopupSectionResponse<PopupCardDto>>> getWeeklyRankings() {
-		PopupSectionResponse<PopupCardDto> response = popupRankingsService.getWeeklyRankings();
+	public ResponseEntity<ApiResponse<PopupSectionResponse<PopupCardDto>>> getPopularRankings() {
+		PopupSectionResponse<PopupCardDto> response = popupRankingsService.getPopularRankings();
 
 		return ResponseEntity.ok(ApiResponse.ok("주간 랭킹 팝업스토어 조회에 성공했습니다.", response));
 	}
