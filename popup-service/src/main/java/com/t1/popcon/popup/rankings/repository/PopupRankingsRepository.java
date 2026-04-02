@@ -16,12 +16,13 @@ public interface PopupRankingsRepository extends JpaRepository<Popup, Long> {
 
 	/**
 	 * 1. 가중치 점수 합계 (DESC)
-	 * 2. 좋아요 수 (DESC) - 점수 동률 시 우선 순위
-	 * 3. 조회수 (DESC) - 위 조건 동률 시 우선 순위
-	 * 4. ID (DESC) - 최종 동률 시 최신순
+	 * 2. 리뷰 수 (DESC) - 가중치 20점
+	 * 3. 좋아요 수 (DESC) - 가중치 10점
+	 * 4. 조회수 (DESC) - 가중치 1점
+	 * 5. ID (DESC) - 최종 동률 시 최신순
 	 */
 	@Query("SELECT p FROM Popup p WHERE p.closeAt >= :today " +
 		"ORDER BY (p.viewCount * 1 + p.likeCount * 10 + p.reviewCount * 20) DESC, " +
-		"p.likeCount DESC, p.viewCount DESC, p.id DESC")
+		"p.reviewCount DESC, p.likeCount DESC, p.viewCount DESC, p.id DESC")
 	List<Popup> findTop10ByOrderByWeightedScore(@Param("today") LocalDate today, Pageable pageable);
 }
