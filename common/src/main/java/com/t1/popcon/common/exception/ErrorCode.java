@@ -67,6 +67,11 @@ public enum ErrorCode {
     DRAW_ALREADY_CLOSED("D003", HttpStatus.BAD_REQUEST, "이미 종료된 드로우입니다."),
     DRAW_OPTION_NOT_FOUND("D004", HttpStatus.NOT_FOUND, "존재하지 않는 드로우 옵션입니다."),
     DRAW_ALREADY_APPLIED("D005", HttpStatus.CONFLICT, "이미 해당 회차에 응모하셨습니다."),
+    DRAW_RESULT_NOT_READY("D006", HttpStatus.BAD_REQUEST, "추첨 결과가 아직 준비되지 않았습니다."),
+    DRAW_RESULT_NOT_ANNOUNCED("D007", HttpStatus.BAD_REQUEST, "추첨 결과 발표 전입니다."),
+    DRAW_NOT_WINNER("D008", HttpStatus.BAD_REQUEST, "당첨된 응모가 아닙니다."),
+    DRAW_ALREADY_PROCESSED("D009", HttpStatus.CONFLICT, "이미 추첨이 완료된 드로우 옵션입니다."),
+    DRAW_ENTRY_NOT_FOUND("D010", HttpStatus.NOT_FOUND, "존재하지 않는 드로우 응모입니다."),
 
     // Encryption
     ENCRYPTION_FAILED("E001", HttpStatus.INTERNAL_SERVER_ERROR, "데이터 암호화에 실패했습니다."),

@@ -50,6 +50,12 @@ public class DrawEntry extends BaseSoftDeleteEntity {
 
 	private LocalDateTime paidAt;
 
+	@Column(name = "result_checked_at")
+	private LocalDateTime resultCheckedAt;
+
+	@Column(name = "ticket_issued_at")
+	private LocalDateTime ticketIssuedAt;
+
 	@Builder
 	public DrawEntry(
 		Long userId,
@@ -78,5 +84,17 @@ public class DrawEntry extends BaseSoftDeleteEntity {
 
 	public void completePayment() {
 		this.paidAt = LocalDateTime.now();
+	}
+
+	public void markResultChecked() {
+		if (this.resultCheckedAt == null) {
+			this.resultCheckedAt = LocalDateTime.now();
+		}
+	}
+
+	public void markTicketIssued() {
+		if (this.ticketIssuedAt == null) {
+			this.ticketIssuedAt = LocalDateTime.now();
+		}
 	}
 }

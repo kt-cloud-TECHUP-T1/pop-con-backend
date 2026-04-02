@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 @Getter
@@ -53,6 +54,10 @@ public class Draw extends BaseSoftDeleteEntity {
     public void updateStockPerOption(Integer stockPerOption) {
         validateStockPerOption(stockPerOption);
         this.stockPerOption = stockPerOption;
+    }
+
+    public LocalDateTime getAnnouncementAt() {
+        return drawCloseAt.toLocalDate().plusDays(1).atTime(LocalTime.of(11, 0));
     }
 
     private void validateStockPerOption(Integer stockPerOption) {
