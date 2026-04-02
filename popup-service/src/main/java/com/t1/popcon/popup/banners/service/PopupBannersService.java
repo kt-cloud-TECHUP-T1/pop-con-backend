@@ -65,7 +65,7 @@ public class PopupBannersService {
                 banner.getSupportingText(),
                 popup.getSubText(),
                 popup.getCaption(),
-                popup.getThumbnailUrl(),
+                popup.getVThumbUrl(),
                 false, // isLiked 기본값
                 new PopupCardDto.StatsDto(popup.getLikeCount(), popup.getViewCount()),
                 null,  // location 등 추가 필드
