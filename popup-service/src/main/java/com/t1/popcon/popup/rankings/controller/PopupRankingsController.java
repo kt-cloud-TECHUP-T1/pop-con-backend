@@ -23,6 +23,6 @@ public class PopupRankingsController {
 	public ResponseEntity<ApiResponse<PopupSectionResponse<PopupCardDto>>> getPopularRankings() {
 		PopupSectionResponse<PopupCardDto> response = popupRankingsService.getPopularRankings();
 
-		return ResponseEntity.ok(ApiResponse.ok("주간 랭킹 팝업스토어 조회에 성공했습니다.", response));
+		return ResponseEntity.ok(ApiResponse.ok("인기 랭킹 팝업스토어 조회에 성공했습니다.", response));
 	}
 }
