@@ -6,8 +6,12 @@ on:
       - staging
       - main
 
+concurrency:
+  group: ci-build-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
-  id-token: write
+  id-token: none
   contents: read
 
 jobs:
@@ -23,9 +27,6 @@ jobs:
       - name: Set short SHA
         id: short-sha
         run: echo "short_sha=${GITHUB_SHA::10}" >> $GITHUB_OUTPUT
-
-      # 서비스 추가 시 여기 한 곳만 수정하면 이후 모든 job에 자동 반영
-      # Java 서비스는 반드시 'common/**'을 포함해 주세요.
       - name: Filter changed services
         id: filter
         uses: dorny/paths-filter@v3
@@ -34,35 +35,65 @@ jobs:
             auth-service:
               - 'auth-service/**'
               - 'common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
             user-service:
               - 'user-service/**'
               - 'common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
             popup-service:
               - 'popup-service/**'
               - 'common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
             auction-service:
               - 'auction-service/**'
               - 'common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
             draw-service:
               - 'draw-service/**'
               - 'common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
             queue-service:
               - 'queue-service/**'
               - 'common/**'
               - 'queue-common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
             queue-worker:
               - 'queue-worker/**'
               - 'common/**'
               - 'queue-common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
             anti-macro-service:
               - 'anti-macro-service/**'
-
 
   # ── 빌드 + Docker 푸시 ───────────────────────────────────────────────────────
   build-and-push:
     needs: detect-changes
     if: needs.detect-changes.outputs.changes != '[]'
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
 
     strategy:
       matrix:
@@ -129,6 +160,9 @@ jobs:
     needs: [detect-changes, build-and-push]
     if: needs.build-and-push.result == 'success' && needs.detect-changes.outputs.changes != '[]'
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - uses: aws-actions/configure-aws-credentials@v4
