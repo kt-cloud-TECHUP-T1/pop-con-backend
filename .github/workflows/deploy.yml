@@ -48,11 +48,11 @@ jobs:
             draw-service:
               - 'draw-service/**'
               - 'common/**'
-            queue_service:
+            queue-service:
               - 'queue-service/**'
               - 'common/**'
               - 'queue-common/**'
-            queue_worker:
+            queue-worker:
               - 'queue-worker/**'
               - 'common/**'
               - 'queue-common/**'
