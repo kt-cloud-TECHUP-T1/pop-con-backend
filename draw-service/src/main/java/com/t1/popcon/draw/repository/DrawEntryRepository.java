@@ -14,9 +14,11 @@ public interface DrawEntryRepository extends JpaRepository<DrawEntry, Long> {
 
 	Slice<DrawEntry> findAllByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
-	List<DrawEntry> findAllByDrawOption_IdAndStatusOrderByIdAsc(Long drawOptionId, DrawEntryStatus status);
+    List<DrawEntry> findAllByDrawOption_IdAndStatusOrderByIdAsc(Long drawOptionId, DrawEntryStatus status);
 
-	boolean existsByDrawOption_IdAndStatusIn(Long drawOptionId, List<DrawEntryStatus> statuses);
+    boolean existsByDrawOption_IdAndStatusIn(Long drawOptionId, List<DrawEntryStatus> statuses);
 
-	Optional<DrawEntry> findByIdAndUserId(Long id, Long userId);
+    boolean existsByDrawOption_IdAndStatus(Long drawOptionId, DrawEntryStatus status);
+
+    Optional<DrawEntry> findByIdAndUserId(Long id, Long userId);
 }

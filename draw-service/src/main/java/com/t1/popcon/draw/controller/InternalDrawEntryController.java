@@ -3,6 +3,7 @@ package com.t1.popcon.draw.controller;
 import com.t1.popcon.common.response.ApiResponse;
 import com.t1.popcon.draw.dto.response.DrawEntryResponse;
 import com.t1.popcon.draw.dto.response.DrawExecuteResponse;
+import com.t1.popcon.draw.dto.response.DrawResultConfirmResponse;
 import com.t1.popcon.draw.service.DrawEntryService;
 import com.t1.popcon.draw.service.DrawResultService;
 import lombok.RequiredArgsConstructor;
@@ -36,5 +37,14 @@ public class InternalDrawEntryController {
     public ApiResponse<DrawExecuteResponse> executeDraw(@PathVariable("optionId") Long optionId) {
         DrawExecuteResponse response = drawResultService.executeDraw(optionId);
         return ApiResponse.ok("드로우 추첨 실행에 성공했습니다.", response);
+    }
+
+    @PostMapping("/entries/{entryId}/confirm-result")
+    public ApiResponse<DrawResultConfirmResponse> confirmResult(
+        @PathVariable("entryId") Long entryId,
+        @RequestParam("userId") Long userId
+    ) {
+        DrawResultConfirmResponse response = drawResultService.confirmResult(userId, entryId);
+        return ApiResponse.ok("드로우 결과 확인에 성공했습니다.", response);
     }
 }
