@@ -5,45 +5,83 @@ import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.common.response.ApiResponse;
 import com.t1.popcon.user.client.AuctionServiceClient;
 import com.t1.popcon.user.client.DrawServiceClient;
+import com.t1.popcon.user.client.TicketServiceClient;
 import com.t1.popcon.user.dto.history.AuctionHistoryResponse;
 import com.t1.popcon.user.dto.history.DrawHistoryResponse;
+import com.t1.popcon.user.dto.history.SliceResponse;
+import com.t1.popcon.user.dto.history.TicketHistoryResponse;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserHistoryService {
 
-	private final DrawServiceClient drawServiceClient;
-	private final AuctionServiceClient auctionServiceClient;
+    private static final int DEFAULT_HISTORY_PAGE = 0;
+    private static final int DEFAULT_HISTORY_SIZE = 100;
 
-	public List<DrawHistoryResponse> getDrawHistory(Long userId) {
-		try {
-			ApiResponse<List<DrawHistoryResponse>> response = drawServiceClient.getDrawEntries(userId);
-			if (response == null || response.getData() == null) {
-				throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
-			}
-			return response.getData();
-		} catch (Exception e) {
-			log.error(">>>> [Draw-Service 연동 실패] User ID: {}, Error: {}", userId, e.getMessage());
-			throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
-		}
-	}
+    private final DrawServiceClient drawServiceClient;
+    private final AuctionServiceClient auctionServiceClient;
+    private final TicketServiceClient ticketServiceClient;
 
-	public List<AuctionHistoryResponse> getAuctionHistory(Long userId) {
-		try {
-			ApiResponse<List<AuctionHistoryResponse>> response = auctionServiceClient.getAuctionBids(userId);
-			if (response == null || response.getData() == null) {
-				throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
-			}
-			return response.getData();
-		} catch (Exception e) {
-			log.error(">>>> [Auction-Service 연동 실패] User ID: {}, Error: {}", userId, e.getMessage());
-			throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
-		}
-	}
+    public List<DrawHistoryResponse> getDrawHistory(Long userId) {
+        try {
+            ApiResponse<SliceResponse<DrawHistoryResponse>> response = drawServiceClient.getDrawEntries(
+                userId,
+                DEFAULT_HISTORY_PAGE,
+                DEFAULT_HISTORY_SIZE
+            );
+            if (response == null || response.getData() == null || response.getData().getContent() == null) {
+                throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+            }
+            return response.getData().getContent();
+        } catch (Exception e) {
+            log.error(">>>> [Draw-Service 연동 실패] User ID: {}, Error: {}", userId, e.getMessage());
+            throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+        }
+    }
+
+    public List<AuctionHistoryResponse> getAuctionHistory(Long userId) {
+        try {
+            ApiResponse<List<AuctionHistoryResponse>> response = auctionServiceClient.getAuctionBids(userId);
+            if (response == null || response.getData() == null) {
+                throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+            }
+            return response.getData();
+        } catch (Exception e) {
+            log.error(">>>> [Auction-Service 연동 실패] User ID: {}, Error: {}", userId, e.getMessage());
+            throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+        }
+    }
+
+    public SliceResponse<TicketHistoryResponse> getTicketHistory(Long userId, int page, int size) {
+        try {
+            ApiResponse<SliceResponse<TicketHistoryResponse>> response = ticketServiceClient.getTickets(userId, page, size);
+            if (response == null || response.getData() == null) {
+                throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+            }
+            return response.getData();
+        } catch (Exception e) {
+            log.error(">>>> [Ticket-Service 연동 실패] User ID: {}, Error: {}", userId, e.getMessage());
+            throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+        }
+    }
+
+    public TicketHistoryResponse getTicketByReservationNo(String reservationNo) {
+        try {
+            ApiResponse<TicketHistoryResponse> response = ticketServiceClient.getTicketByReservationNo(reservationNo);
+            if (response == null || response.getData() == null) {
+                throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+            }
+            return response.getData();
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error(">>>> [Ticket-Service 연동 실패] reservationNo={}, Error: {}", reservationNo, e.getMessage());
+            throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+        }
+    }
 }
