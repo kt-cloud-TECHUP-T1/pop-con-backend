@@ -73,7 +73,11 @@ public class DrawEntryService {
 		}
 
 		// 6. 사용자 정보 조회 (암호화된 이름, 전화번호)
-		UserInternalResponse userInfo = userServiceClient.getUserInternal(userId).getData();
+		ApiResponse<UserInternalResponse> userResponse = userServiceClient.getUserInternal(userId);
+		if (userResponse == null) {
+			throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+		}
+		UserInternalResponse userInfo = userResponse.getData();
 		if (userInfo == null) {
 			throw new CustomException(ErrorCode.USER_NOT_FOUND);
 		}
@@ -89,7 +93,7 @@ public class DrawEntryService {
 			.build();
 
 		try {
-			drawEntryRepository.save(entry);
+			drawEntryRepository.saveAndFlush(entry);
 		} catch (DataIntegrityViolationException e) {
 			if (isDuplicateEntryViolation(e)) {
 				throw new CustomException(ErrorCode.DRAW_ALREADY_APPLIED);
