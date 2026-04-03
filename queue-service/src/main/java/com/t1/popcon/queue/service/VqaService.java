@@ -31,6 +31,7 @@ public class VqaService {
 
     /**
      * 보안 퀴즈 시작 (원샷 방식)
+     * - 레벨별 분기 구조 적용 (확장성 확보)
      */
     public VqaStartResponse start(String queueToken) {
         QueueTokenResolver.TokenInfo tokenInfo = tokenResolver.resolve(queueToken);
@@ -40,31 +41,42 @@ public class VqaService {
         int vqaLevel = resolveVqaLevel(totalScore);
         log.info("[VQA] 퀴즈 시작 시도 - userId={}, score={}, level={}", userId, totalScore, vqaLevel);
 
-        // 레벨 1 (0~20점): 면제
+        // 1. 레벨 1 (0~20점): 면제
         if (vqaLevel == 1) {
             String quizPassedToken = generateAndSaveQuizPassedToken(tokenInfo);
             log.info("[VQA] 퀴즈 면제 처리 - userId={}", userId);
             return VqaStartResponse.exempt(quizPassedToken);
         }
 
-        // VQA 서버 세션 시작 (user_agent는 현재 빈 값으로 전달)
-        VqaSessionStartResponse vqaResponse = vqaClient.startSession(VqaSessionStartRequest.empty());
+        // 2. 레벨 2~4: VQA 서버 세션 시작 (향후 레벨별 전용 로직 대응을 위해 분기 처리)
+        VqaSessionStartResponse vqaResponse;
+        if (vqaLevel == 2) {
+            // [Level 2] 향후 전용 로직 추가 가능
+            vqaResponse = vqaClient.startSession(VqaSessionStartRequest.empty());
+        } else if (vqaLevel == 3) {
+            // [Level 3] 향후 전용 로직 추가 가능
+            vqaResponse = vqaClient.startSession(VqaSessionStartRequest.empty());
+        } else {
+            // [Level 4] 향후 전용 로직 추가 가능
+            vqaResponse = vqaClient.startSession(VqaSessionStartRequest.empty());
+        }
+
         Long pythonSessionId = vqaResponse.sessionId();
 
-        // 즉시 첫 번째 문제 조회
+        // 즉시 첫 번째 문제 조회 (원샷 방식)
         VqaNextQuestionResponse firstQuestion = vqaClient.getNextQuestion(pythonSessionId);
 
         // 우리 플랫폼용 세션 UUID 생성 및 Redis 저장 (시도 횟수 0 초기화)
         String vqaSessionId = UUID.randomUUID().toString();
         saveVqaSession(vqaSessionId, pythonSessionId, tokenInfo, 0);
 
-        log.info("[VQA] 퀴즈 세션 생성 - userId={}, vqaSessionId={}, pythonSessionId={}", 
-            userId, vqaSessionId, pythonSessionId);
+        log.info("[VQA] 퀴즈 세션 생성 완료 - userId={}, vqaSessionId={}, level={}", 
+            userId, vqaSessionId, vqaLevel);
 
         return VqaStartResponse.session(vqaSessionId, firstQuestion);
     }
 
-    /** 다음 문제 정보 조회 */
+    /** 다음 문제 정보 조회 (재시도 시 사용) */
     public VqaNextQuestionResponse getNextQuestion(String vqaSessionId) {
         String sessionData = getSessionDataOrThrow(vqaSessionId);
         Long pythonSessionId = parsePythonSessionId(sessionData);
