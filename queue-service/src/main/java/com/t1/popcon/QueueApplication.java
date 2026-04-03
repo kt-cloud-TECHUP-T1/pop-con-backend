@@ -4,6 +4,7 @@ import com.t1.popcon.common.auth.config.JpaConfig;
 import com.t1.popcon.common.infrastructure.portone.PortOneHttpClient;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 
@@ -14,6 +15,7 @@ import org.springframework.context.annotation.FilterType;
  * - JpaConfig: JPA 미사용, @EnableJpaAuditing 로딩 시 spring-aspects 오류 발생
  * - PortOneHttpClient: 결제 인프라 불필요
  */
+@EnableFeignClients
 @SpringBootApplication
 @ComponentScan(
     basePackages = "com.t1.popcon",

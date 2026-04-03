@@ -22,3 +22,19 @@ queue:
   active-ttl:
     draw-seconds: 900
     auction-seconds: 3600
+
+# VQA 서버 설정
+vqa:
+  server:
+    url: ${VQA_SERVER_URL:http://localhost:8000}
+
+# Feign 클라이언트 설정
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 30000
+      vqa-client:
+        connectTimeout: 5000
+        readTimeout: 30000

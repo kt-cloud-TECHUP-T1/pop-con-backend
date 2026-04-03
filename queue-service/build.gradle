@@ -21,6 +21,10 @@ java {
     }
 }
 
+ext {
+    set('springCloudVersion', "2025.0.0")
+}
+
 configurations {
     compileOnly {
         extendsFrom annotationProcessor
@@ -31,6 +35,12 @@ repositories {
     mavenCentral()
 }
 
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
+}
+
 dependencies {
     // 내부 모듈 — queue-common이 common을 api로 노출하므로 common 직접 선언 불필요
     implementation project(':queue-common')
@@ -39,10 +49,11 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
-    // Redis — queue-common이 implementation으로 선언하여 런타임에만 전이됨
-    // queue-service 자체 코드에서 Redis 직접 import 필요 시 여기에 별도 선언
-    // 현재는 repository 추상화로 직접 접근하지 않으므로 미선언
+    // OpenFeign
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 
+    // Redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     // Redisson (분산 락)
     implementation 'org.redisson:redisson-spring-boot-starter:3.52.0'
 
