@@ -25,6 +25,7 @@ public interface TicketServiceClient {
 
     @GetMapping("/internal/tickets/reservations/{reservationNo}")
     ApiResponse<TicketHistoryResponse> getTicketByReservationNo(
-        @PathVariable("reservationNo") String reservationNo
+        @PathVariable("reservationNo") String reservationNo,
+        @RequestParam("userId") Long userId
     );
 }

@@ -157,7 +157,11 @@ public class DrawEntryService {
             }
 
             return response.getData().stream()
-                .collect(Collectors.toMap(PopupInternalResponse::popupId, popup -> popup));
+                .collect(Collectors.toMap(
+                    PopupInternalResponse::popupId,
+                    popup -> popup,
+                    (existing, incoming) -> existing
+                ));
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {

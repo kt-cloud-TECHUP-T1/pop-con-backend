@@ -44,8 +44,11 @@ public class InternalTicketController {
     }
 
     @GetMapping("/reservations/{reservationNo}")
-    public ApiResponse<TicketDetailResponse> getTicketByReservationNo(@PathVariable("reservationNo") String reservationNo) {
-        TicketDetailResponse response = ticketIssueService.getTicketByReservationNo(reservationNo);
+    public ApiResponse<TicketDetailResponse> getTicketByReservationNo(
+        @PathVariable("reservationNo") String reservationNo,
+        @RequestParam("userId") Long userId
+    ) {
+        TicketDetailResponse response = ticketIssueService.getTicketByReservationNo(reservationNo, userId);
         return ApiResponse.ok("티켓 상세 조회에 성공했습니다.", response);
     }
 }

@@ -10,6 +10,7 @@ import com.t1.popcon.user.dto.history.AuctionHistoryResponse;
 import com.t1.popcon.user.dto.history.DrawHistoryResponse;
 import com.t1.popcon.user.dto.history.SliceResponse;
 import com.t1.popcon.user.dto.history.TicketHistoryResponse;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,15 +30,33 @@ public class UserHistoryService {
 
     public List<DrawHistoryResponse> getDrawHistory(Long userId) {
         try {
-            ApiResponse<SliceResponse<DrawHistoryResponse>> response = drawServiceClient.getDrawEntries(
-                userId,
-                DEFAULT_HISTORY_PAGE,
-                DEFAULT_HISTORY_SIZE
-            );
-            if (response == null || response.getData() == null || response.getData().getContent() == null) {
-                throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+            List<DrawHistoryResponse> histories = new ArrayList<>();
+            int page = DEFAULT_HISTORY_PAGE;
+
+            while (true) {
+                ApiResponse<SliceResponse<DrawHistoryResponse>> response = drawServiceClient.getDrawEntries(
+                    userId,
+                    page,
+                    DEFAULT_HISTORY_SIZE
+                );
+                if (response == null || response.getData() == null || response.getData().getContent() == null) {
+                    throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+                }
+
+                List<DrawHistoryResponse> content = response.getData().getContent();
+                if (content.isEmpty()) {
+                    break;
+                }
+
+                histories.addAll(content);
+                if (response.getData().isLast() || content.size() < DEFAULT_HISTORY_SIZE) {
+                    break;
+                }
+
+                page++;
             }
-            return response.getData().getContent();
+
+            return histories;
         } catch (Exception e) {
             log.error(">>>> [Draw-Service 연동 실패] User ID: {}, Error: {}", userId, e.getMessage());
             throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
@@ -70,9 +89,9 @@ public class UserHistoryService {
         }
     }
 
-    public TicketHistoryResponse getTicketByReservationNo(String reservationNo) {
+    public TicketHistoryResponse getTicketByReservationNo(Long userId, String reservationNo) {
         try {
-            ApiResponse<TicketHistoryResponse> response = ticketServiceClient.getTicketByReservationNo(reservationNo);
+            ApiResponse<TicketHistoryResponse> response = ticketServiceClient.getTicketByReservationNo(reservationNo, userId);
             if (response == null || response.getData() == null) {
                 throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
             }
@@ -80,7 +99,7 @@ public class UserHistoryService {
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            log.error(">>>> [Ticket-Service 연동 실패] reservationNo={}, Error: {}", reservationNo, e.getMessage());
+            log.error(">>>> [Ticket-Service 연동 실패] userId={}, reservationNo={}, Error: {}", userId, reservationNo, e.getMessage());
             throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
         }
     }

@@ -63,12 +63,16 @@ public class TicketIssueService {
     }
 
     @Transactional(readOnly = true)
-    public TicketDetailResponse getTicketByReservationNo(String reservationNo) {
+    public TicketDetailResponse getTicketByReservationNo(String reservationNo, Long userId) {
         if (reservationNo == null || reservationNo.isBlank()) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
 
-        Ticket ticket = ticketRepository.findByReservationNo(reservationNo)
+        if (userId == null || userId <= 0) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+
+        Ticket ticket = ticketRepository.findByReservationNoAndUserId(reservationNo, userId)
             .orElseThrow(() -> new CustomException(ErrorCode.TICKET_NOT_FOUND));
         return TicketDetailResponse.from(ticket);
     }

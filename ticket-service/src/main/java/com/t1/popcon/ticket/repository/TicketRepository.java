@@ -15,7 +15,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     Optional<Ticket> findBySourceTypeAndSourceId(TicketSourceType sourceType, Long sourceId);
 
-    Optional<Ticket> findByReservationNo(String reservationNo);
+    Optional<Ticket> findByReservationNoAndUserId(String reservationNo, Long userId);
 
     Slice<Ticket> findAllByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 

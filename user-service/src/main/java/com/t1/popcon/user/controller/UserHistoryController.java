@@ -32,7 +32,7 @@ public class UserHistoryController {
     @GetMapping("/auctions")
     public ApiResponse<List<AuctionHistoryResponse>> getAuctionHistory(@AuthenticationPrincipal AuthUser authUser) {
         List<AuctionHistoryResponse> response = userHistoryService.getAuctionHistory(authUser.id());
-        return ApiResponse.ok("경매 낙찰 내역 조회를 성공했습니다.", response);
+        return ApiResponse.ok("경매 참여 내역 조회를 성공했습니다.", response);
     }
 
     @GetMapping("/tickets")
@@ -47,9 +47,10 @@ public class UserHistoryController {
 
     @GetMapping("/tickets/reservations/{reservationNo}")
     public ApiResponse<TicketHistoryResponse> getTicketByReservationNo(
+        @AuthenticationPrincipal AuthUser authUser,
         @PathVariable("reservationNo") String reservationNo
     ) {
-        TicketHistoryResponse response = userHistoryService.getTicketByReservationNo(reservationNo);
+        TicketHistoryResponse response = userHistoryService.getTicketByReservationNo(authUser.id(), reservationNo);
         return ApiResponse.ok("티켓 상세 조회를 성공했습니다.", response);
     }
 }
