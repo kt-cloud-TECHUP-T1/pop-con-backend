@@ -5,6 +5,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,8 +40,12 @@ public class InternalApiAuthFilter extends OncePerRequestFilter {
         FilterChain filterChain
     ) throws ServletException, IOException {
         String receivedSecret = request.getHeader(INTERNAL_SECRET_HEADER);
+        byte[] internalSecretBytes = internalSecret.getBytes(StandardCharsets.UTF_8);
+        byte[] receivedSecretBytes = receivedSecret == null
+            ? new byte[0]
+            : receivedSecret.getBytes(StandardCharsets.UTF_8);
 
-        if (receivedSecret == null || !internalSecret.equals(receivedSecret)) {
+        if (!MessageDigest.isEqual(internalSecretBytes, receivedSecretBytes)) {
             log.warn("Internal API authentication failed - uri: {}, method: {}, remoteAddr: {}",
                 request.getRequestURI(), request.getMethod(), request.getRemoteAddr());
 

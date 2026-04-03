@@ -42,7 +42,7 @@ public class TicketSecurityConfig extends CommonSecurityConfig {
                 "/ticket/swagger-ui/**",
                 "/actuator/**"
             ).permitAll()
-            .requestMatchers("/internal/**").permitAll()
+            .requestMatchers("/internal/**").hasRole("INTERNAL")
             .anyRequest().authenticated()
         );
 

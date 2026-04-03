@@ -50,10 +50,10 @@ public class Ticket extends BaseSoftDeleteEntity {
     @Column(name = "source_id", nullable = false)
     private Long sourceId;
 
-    @Column(name = "reservation_no", length = 20, unique = true)
+    @Column(name = "reservation_no", length = 20)
     private String reservationNo;
 
-    @Column(name = "ticket_number", length = 20, unique = true)
+    @Column(name = "ticket_number", length = 20)
     private String ticketNumber;
 
     @Column(name = "entry_date", nullable = false)
@@ -94,6 +94,9 @@ public class Ticket extends BaseSoftDeleteEntity {
     public void assignTicketNumber(String ticketNumber) {
         if (ticketNumber == null || ticketNumber.isBlank()) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+        if (this.ticketNumber != null && !this.ticketNumber.isBlank()) {
+            throw new CustomException(ErrorCode.TICKET_NUMBER_ALREADY_ASSIGNED);
         }
         this.ticketNumber = ticketNumber;
     }

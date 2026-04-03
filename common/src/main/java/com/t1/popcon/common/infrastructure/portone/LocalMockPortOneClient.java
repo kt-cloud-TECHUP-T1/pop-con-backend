@@ -14,16 +14,20 @@ import org.springframework.stereotype.Component;
 @Profile("local")
 public class LocalMockPortOneClient implements PortOneClient {
 
+    private static final String MASKED_VALUE = "****";
+
     @Override
     public PortOneBillingKeyResponse fetchBillingKeyInfo(String billingKey) {
-        log.info(">>>> [Local Mock PortOne] fetchBillingKeyInfo billingKey={}", billingKey);
+        log.info(">>>> [Local Mock PortOne] fetchBillingKeyInfo");
+        log.debug(">>>> [Local Mock PortOne] fetchBillingKeyInfo billingKey={}", mask(billingKey));
         return new PortOneBillingKeyResponse(billingKey, "READY", null, null);
     }
 
     @Override
     public PortOnePaymentResponse executePayment(String billingKey, String merchantUid, int amount, String orderName) {
-        log.info(">>>> [Local Mock PortOne] executePayment billingKey={}, merchantUid={}, amount={}, orderName={}",
-            billingKey, merchantUid, amount, orderName);
+        log.info(">>>> [Local Mock PortOne] executePayment merchantUid={}, amount={}, orderName={}",
+            merchantUid, amount, orderName);
+        log.debug(">>>> [Local Mock PortOne] executePayment billingKey={}", mask(billingKey));
 
         return new PortOnePaymentResponse(
             new PortOnePaymentResponse.Payment(
@@ -35,7 +39,8 @@ public class LocalMockPortOneClient implements PortOneClient {
 
     @Override
     public PortOneCancelResponse cancelPayment(String paymentId, int amount) {
-        log.info(">>>> [Local Mock PortOne] cancelPayment paymentId={}, amount={}", paymentId, amount);
+        log.info(">>>> [Local Mock PortOne] cancelPayment amount={}", amount);
+        log.debug(">>>> [Local Mock PortOne] cancelPayment paymentId={}", mask(paymentId));
 
         return new PortOneCancelResponse(
             new PortOneCancelResponse.Cancellation(
@@ -51,11 +56,23 @@ public class LocalMockPortOneClient implements PortOneClient {
 
     @Override
     public PortOneIdentityVerificationResponse fetchIdentityVerification(String identityVerificationId) {
-        log.info(">>>> [Local Mock PortOne] fetchIdentityVerification identityVerificationId={}", identityVerificationId);
+        log.info(">>>> [Local Mock PortOne] fetchIdentityVerification");
+        log.debug(">>>> [Local Mock PortOne] fetchIdentityVerification identityVerificationId={}",
+            mask(identityVerificationId));
         return new PortOneIdentityVerificationResponse(
             identityVerificationId,
             "VERIFIED",
             null
         );
+    }
+
+    private String mask(String value) {
+        if (value == null || value.isBlank()) {
+            return MASKED_VALUE;
+        }
+        if (value.length() <= 4) {
+            return MASKED_VALUE;
+        }
+        return MASKED_VALUE + value.substring(value.length() - 4);
     }
 }

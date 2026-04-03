@@ -6,8 +6,9 @@ import com.t1.popcon.ticket.dto.response.TicketDetailResponse;
 import com.t1.popcon.ticket.dto.response.TicketIssueResponse;
 import com.t1.popcon.ticket.service.TicketIssueService;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,8 +31,15 @@ public class InternalTicketController {
     }
 
     @GetMapping
-    public ApiResponse<List<TicketDetailResponse>> getTicketsByUserId(@RequestParam("userId") Long userId) {
-        List<TicketDetailResponse> response = ticketIssueService.getTicketsByUserId(userId);
+    public ApiResponse<Slice<TicketDetailResponse>> getTicketsByUserId(
+        @RequestParam("userId") Long userId,
+        @RequestParam(value = "page", defaultValue = "0") int page,
+        @RequestParam(value = "size", defaultValue = "20") int size
+    ) {
+        Slice<TicketDetailResponse> response = ticketIssueService.getTicketsByUserId(
+            userId,
+            PageRequest.of(page, size)
+        );
         return ApiResponse.ok("티켓 목록 조회에 성공했습니다.", response);
     }
 

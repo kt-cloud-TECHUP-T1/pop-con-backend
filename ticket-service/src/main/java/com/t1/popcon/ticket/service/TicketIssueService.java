@@ -7,8 +7,10 @@ import com.t1.popcon.ticket.dto.request.TicketIssueRequest;
 import com.t1.popcon.ticket.dto.response.TicketDetailResponse;
 import com.t1.popcon.ticket.dto.response.TicketIssueResponse;
 import com.t1.popcon.ticket.repository.TicketRepository;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +23,10 @@ public class TicketIssueService {
 
     @Transactional
     public TicketIssueResponse issue(TicketIssueRequest request) {
-        Ticket existingTicket = ticketRepository.findBySourceTypeAndSourceId(request.sourceType(), request.sourceId())
+        Ticket existingTicket = ticketRepository.findActiveBySourceTypeAndSourceId(
+                request.sourceType(),
+                request.sourceId()
+            )
             .orElse(null);
         if (existingTicket != null) {
             return TicketIssueResponse.from(existingTicket);
@@ -37,22 +42,30 @@ public class TicketIssueService {
             .entryTime(request.entryTime())
             .build();
 
-        Ticket savedTicket = ticketRepository.save(ticket);
-        savedTicket.assignTicketNumber(ticketNumberGenerator.generate(savedTicket.getId()));
-        return TicketIssueResponse.from(savedTicket);
+        try {
+            Ticket savedTicket = ticketRepository.saveAndFlush(ticket);
+            savedTicket.assignTicketNumber(ticketNumberGenerator.generate(savedTicket.getId()));
+            return TicketIssueResponse.from(savedTicket);
+        } catch (DataIntegrityViolationException e) {
+            Ticket duplicatedTicket = ticketRepository.findActiveBySourceTypeAndSourceId(
+                    request.sourceType(),
+                    request.sourceId()
+                )
+                .orElseThrow(() -> e);
+            return TicketIssueResponse.from(duplicatedTicket);
+        }
     }
 
     @Transactional(readOnly = true)
-    public List<TicketDetailResponse> getTicketsByUserId(Long userId) {
-        return ticketRepository.findAllByUserIdOrderByCreatedAtDesc(userId).stream()
-            .map(TicketDetailResponse::from)
-            .toList();
+    public Slice<TicketDetailResponse> getTicketsByUserId(Long userId, Pageable pageable) {
+        return ticketRepository.findAllByUserIdOrderByCreatedAtDesc(userId, pageable)
+            .map(TicketDetailResponse::from);
     }
 
     @Transactional(readOnly = true)
     public TicketDetailResponse getTicketByReservationNo(String reservationNo) {
         Ticket ticket = ticketRepository.findByReservationNo(reservationNo)
-            .orElseThrow(() -> new CustomException(ErrorCode.INVALID_INPUT));
+            .orElseThrow(() -> new CustomException(ErrorCode.TICKET_NOT_FOUND));
         return TicketDetailResponse.from(ticket);
     }
 }
