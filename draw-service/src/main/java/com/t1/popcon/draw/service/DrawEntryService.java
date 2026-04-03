@@ -98,8 +98,14 @@ public class DrawEntryService {
 		}
 
 		// 8. 응모 성공 상세 정보 조회 및 조합
-		ApiResponse<PopupInternalResponse> popupResponse = popupServiceClient.getPopupDetail(drawOption.getDraw().getPopupId());
-		PopupInternalResponse popupInfo = (popupResponse != null) ? popupResponse.getData() : null;
+		PopupInternalResponse popupInfo = null;
+		try {
+			ApiResponse<PopupInternalResponse> popupResponse =
+				popupServiceClient.getPopupDetail(drawOption.getDraw().getPopupId());
+			popupInfo = (popupResponse != null) ? popupResponse.getData() : null;
+		} catch (Exception e) {
+			log.warn("응모 결과용 팝업 상세 조회 실패 - popupId: {}", drawOption.getDraw().getPopupId(), e);
+		}
 
 		return DrawEntryResultResponse.builder()
 			.vThumbnailUrl(popupInfo != null ? popupInfo.vThumbnailUrl() : null)
