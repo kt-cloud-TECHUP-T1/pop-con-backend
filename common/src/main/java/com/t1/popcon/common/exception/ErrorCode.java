@@ -52,6 +52,7 @@ public enum ErrorCode {
     // Ticket
     TICKET_NOT_FOUND("T001", HttpStatus.NOT_FOUND, "존재하지 않는 티켓입니다."),
     TICKET_NUMBER_ALREADY_ASSIGNED("T002", HttpStatus.CONFLICT, "이미 티켓 번호가 할당되었습니다."),
+    TICKET_ALREADY_ISSUED("T003", HttpStatus.CONFLICT, "이미 티켓이 발급되었습니다."),
 
     // Auction
     AUCTION_NOT_FOUND("AU001", HttpStatus.NOT_FOUND, "존재하지 않는 경매입니다."),

@@ -96,7 +96,9 @@ public class DrawEntry extends BaseSoftDeleteEntity {
     }
 
     public void completePayment(LocalDateTime paidAt) {
-        this.paidAt = paidAt;
+        if (this.paidAt == null) {
+            this.paidAt = paidAt;
+        }
     }
 
     public void markResultChecked(LocalDateTime checkedAt) {

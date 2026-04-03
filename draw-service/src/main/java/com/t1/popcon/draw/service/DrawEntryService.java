@@ -202,7 +202,7 @@ public class DrawEntryService {
         }
 
         if (entry.getStatus() == DrawEntryStatus.WINNER) {
-            return entry.getResultCheckedAt() == null
+            return entry.getTicketIssuedAt() == null
                 ? DrawEntryStatus.WINNER.getDescription()
                 : DISPLAY_TICKET_ISSUED;
         }
