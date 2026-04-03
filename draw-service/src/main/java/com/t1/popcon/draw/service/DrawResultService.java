@@ -43,18 +43,31 @@ public class DrawResultService {
 
     @Transactional
     public DrawExecuteResponse executeDraw(Long drawOptionId) {
-        DrawOption drawOption = getDrawOption(drawOptionId);
+        DrawOption drawOption = drawOptionRepository.findByIdForUpdate(drawOptionId)
+            .orElseThrow(() -> new CustomException(ErrorCode.DRAW_OPTION_NOT_FOUND));
         Draw draw = drawOption.getDraw();
         validateDrawReady(draw);
-        validateNotProcessed(drawOptionId);
+        validateNotProcessed(drawOption);
 
         List<DrawEntry> entries = drawEntryRepository.findAllByDrawOption_IdAndStatusOrderByIdAsc(
             drawOptionId,
             DrawEntryStatus.APPLIED
         );
 
+        if (entries.isEmpty()) {
+            drawOption.markProcessed(LocalDateTime.now(clock));
+            return DrawExecuteResponse.builder()
+                .drawId(draw.getId())
+                .drawOptionId(drawOptionId)
+                .appliedCount(0)
+                .winnerCount(0)
+                .failedCount(0)
+                .build();
+        }
+
         Collections.shuffle(entries, RANDOM);
         int winnerCount = assignResults(entries, draw.getStockPerOption());
+        drawOption.markProcessed(LocalDateTime.now(clock));
 
         return DrawExecuteResponse.builder()
             .drawId(draw.getId())
@@ -88,11 +101,6 @@ public class DrawResultService {
             .build();
     }
 
-    private DrawOption getDrawOption(Long drawOptionId) {
-        return drawOptionRepository.findById(drawOptionId)
-            .orElseThrow(() -> new CustomException(ErrorCode.DRAW_OPTION_NOT_FOUND));
-    }
-
     private void validateDrawReady(Draw draw) {
         LocalDateTime now = LocalDateTime.now(clock);
         if (!now.isAfter(draw.getDrawCloseAt())) {
@@ -100,8 +108,9 @@ public class DrawResultService {
         }
     }
 
-    private void validateNotProcessed(Long drawOptionId) {
-        if (drawEntryRepository.existsByDrawOption_IdAndStatusIn(drawOptionId, PROCESSED_STATUSES)) {
+    private void validateNotProcessed(DrawOption drawOption) {
+        if (drawOption.isProcessed()
+            || drawEntryRepository.existsByDrawOption_IdAndStatusIn(drawOption.getId(), PROCESSED_STATUSES)) {
             throw new CustomException(ErrorCode.DRAW_ALREADY_PROCESSED);
         }
     }
