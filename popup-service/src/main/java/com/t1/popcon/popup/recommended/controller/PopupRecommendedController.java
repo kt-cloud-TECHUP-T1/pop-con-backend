@@ -19,7 +19,7 @@ public class PopupRecommendedController {
 	private final PopupRecommendedService popupRecommendedService;
 
 	@GetMapping("/recommended")
-	public ResponseEntity<ApiResponse<PopupSectionResponse<PopupCardDto>>> recommended() { // 제네릭 추가
+	public ResponseEntity<ApiResponse<PopupSectionResponse<PopupCardDto>>> recommended() {
 		PopupSectionResponse<PopupCardDto> response = popupRecommendedService.recommended();
 		return ResponseEntity.ok(ApiResponse.ok("추천 팝업스토어 조회에 성공했습니다.", response));
 	}

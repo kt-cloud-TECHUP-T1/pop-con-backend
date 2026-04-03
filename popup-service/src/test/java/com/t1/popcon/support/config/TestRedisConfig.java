@@ -14,6 +14,15 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 @TestConfiguration
 @Profile("test")
 public class TestRedisConfig {
+
+	@Bean
+	@Primary
+	public RedisConnectionFactory redisConnectionFactory() {
+		RedisConnectionFactory connectionFactory = mock(RedisConnectionFactory.class);
+		when(connectionFactory.getConnection()).thenReturn(mock(RedisConnection.class));
+		return connectionFactory;
+	}
+
 	@Bean
 	@Primary
 	public RedissonClient redissonClient() {
@@ -22,9 +31,7 @@ public class TestRedisConfig {
 
 	@Bean
 	@Primary
-	public StringRedisTemplate stringRedisTemplate() {
-		RedisConnectionFactory connectionFactory = mock(RedisConnectionFactory.class);
-		when(connectionFactory.getConnection()).thenReturn(mock(RedisConnection.class));
+	public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory connectionFactory) {
 		return spy(new StringRedisTemplate(connectionFactory));
 	}
 }

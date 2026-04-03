@@ -1,13 +1,19 @@
 package com.t1.popcon.support;
 
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.BDDMockito.*;
+import static org.mockito.Mockito.mock;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.*;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.cache.Cache;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.CacheManager;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.restdocs.RestDocumentationContextProvider;
 import org.springframework.restdocs.RestDocumentationExtension;
@@ -35,12 +41,20 @@ public abstract class AbstractRestDocsTest {
 	protected ObjectMapper objectMapper;
 
 	@MockitoBean
-	StringRedisTemplate stringRedisTemplate;
+	protected RedisConnectionFactory redisConnectionFactory;
+
+	@MockitoBean
+	protected CacheManager cacheManager;
+
+	@MockitoBean
+	protected StringRedisTemplate stringRedisTemplate;
 
 	protected MockMvc mockMvc;
 
 	@BeforeEach
 	void setUp(RestDocumentationContextProvider restDocumentation) {
+		given(cacheManager.getCache(anyString())).willReturn(mock(Cache.class));
+
 		this.mockMvc = MockMvcBuilders.webAppContextSetup(context)
 			.apply(documentationConfiguration(restDocumentation))
 			.alwaysDo(MockMvcResultHandlers.print())
