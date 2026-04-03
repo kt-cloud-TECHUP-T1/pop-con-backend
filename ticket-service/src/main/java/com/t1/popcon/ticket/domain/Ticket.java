@@ -79,12 +79,13 @@ public class Ticket extends BaseSoftDeleteEntity {
         LocalDate entryDate,
         LocalTime entryTime
     ) {
-        validate(userId, popupId, sourceType, sourceId, entryDate, entryTime);
+        String normalizedReservationNo = normalizeReservationNo(sourceType, reservationNo);
+        validate(userId, popupId, sourceType, sourceId, normalizedReservationNo, entryDate, entryTime);
         this.userId = userId;
         this.popupId = popupId;
         this.sourceType = sourceType;
         this.sourceId = sourceId;
-        this.reservationNo = reservationNo;
+        this.reservationNo = normalizedReservationNo;
         this.entryDate = entryDate;
         this.entryTime = entryTime;
         this.status = TicketStatus.ISSUED;
@@ -92,7 +93,11 @@ public class Ticket extends BaseSoftDeleteEntity {
     }
 
     public void assignTicketNumber(String ticketNumber) {
-        if (ticketNumber == null || ticketNumber.isBlank()) {
+        if (ticketNumber == null) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+        ticketNumber = ticketNumber.trim();
+        if (ticketNumber.isBlank()) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
         if (this.ticketNumber != null && !this.ticketNumber.isBlank()) {
@@ -112,6 +117,9 @@ public class Ticket extends BaseSoftDeleteEntity {
         if (this.status == TicketStatus.CANCELLED) {
             return;
         }
+        if (this.status == TicketStatus.USED) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
         this.status = TicketStatus.CANCELLED;
     }
 
@@ -120,6 +128,7 @@ public class Ticket extends BaseSoftDeleteEntity {
         Long popupId,
         TicketSourceType sourceType,
         Long sourceId,
+        String reservationNo,
         LocalDate entryDate,
         LocalTime entryTime
     ) {
@@ -127,9 +136,30 @@ public class Ticket extends BaseSoftDeleteEntity {
             || popupId == null || popupId <= 0
             || sourceType == null
             || sourceId == null || sourceId <= 0
+            || !isValidReservationInvariant(sourceType, reservationNo)
             || entryDate == null
             || entryTime == null) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
+    }
+
+    private String normalizeReservationNo(TicketSourceType sourceType, String reservationNo) {
+        if (reservationNo == null) {
+            return null;
+        }
+
+        String trimmedReservationNo = reservationNo.trim();
+        if (trimmedReservationNo.isBlank()) {
+            return sourceType == TicketSourceType.AUCTION ? trimmedReservationNo : null;
+        }
+
+        return trimmedReservationNo;
+    }
+
+    private boolean isValidReservationInvariant(TicketSourceType sourceType, String reservationNo) {
+        return switch (sourceType) {
+            case AUCTION -> reservationNo != null && !reservationNo.isBlank();
+            case DRAW -> reservationNo == null;
+        };
     }
 }

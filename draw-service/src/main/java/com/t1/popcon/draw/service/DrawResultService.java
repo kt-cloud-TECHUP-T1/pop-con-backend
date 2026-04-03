@@ -130,6 +130,10 @@ public class DrawResultService {
     }
 
     private void validateConfirmable(DrawEntry entry) {
+        if (entry.getTicketIssuedAt() != null) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+
         if (entry.getStatus() == DrawEntryStatus.APPLIED) {
             throw new CustomException(ErrorCode.DRAW_RESULT_NOT_READY);
         }

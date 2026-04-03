@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -28,9 +29,16 @@ public class InternalApiAuthFilter extends OncePerRequestFilter {
     @Value("${internal.api-secret}")
     private String internalSecret;
 
+    @PostConstruct
+    void validateInternalSecret() {
+        if (internalSecret == null || internalSecret.isBlank()) {
+            throw new IllegalStateException("internal.api-secret must not be blank");
+        }
+    }
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !request.getRequestURI().startsWith(INTERNAL_API_PREFIX);
+        return !request.getServletPath().startsWith(INTERNAL_API_PREFIX);
     }
 
     @Override
@@ -45,7 +53,7 @@ public class InternalApiAuthFilter extends OncePerRequestFilter {
             ? new byte[0]
             : receivedSecret.getBytes(StandardCharsets.UTF_8);
 
-        if (!MessageDigest.isEqual(internalSecretBytes, receivedSecretBytes)) {
+        if (internalSecretBytes.length == 0 || !MessageDigest.isEqual(internalSecretBytes, receivedSecretBytes)) {
             log.warn("Internal API authentication failed - uri: {}, method: {}, remoteAddr: {}",
                 request.getRequestURI(), request.getMethod(), request.getRemoteAddr());
 

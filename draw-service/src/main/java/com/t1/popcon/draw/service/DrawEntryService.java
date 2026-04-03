@@ -213,6 +213,6 @@ public class DrawEntryService {
     private boolean isDuplicateEntryViolation(DataIntegrityViolationException e) {
         Throwable root = e.getMostSpecificCause();
         String message = root != null ? root.getMessage() : e.getMessage();
-        return message != null && message.contains("uk_user_draw_option");
+        return message != null && message.contains(DrawEntry.UNIQUE_CONSTRAINT_NAME);
     }
 }

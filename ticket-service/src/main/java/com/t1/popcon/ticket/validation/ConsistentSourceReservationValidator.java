@@ -17,15 +17,12 @@ public class ConsistentSourceReservationValidator
         String reservationNo = value.reservationNo();
         boolean hasReservationNo = reservationNo != null && !reservationNo.isBlank();
 
-        if (value.sourceType() == TicketSourceType.AUCTION && !hasReservationNo) {
-            return addViolation(context, "reservationNo is required when sourceType is AUCTION");
-        }
-
-        if (value.sourceType() == TicketSourceType.DRAW && hasReservationNo) {
-            return addViolation(context, "reservationNo must be blank when sourceType is DRAW");
-        }
-
-        return true;
+        return switch (value.sourceType()) {
+            case AUCTION -> hasReservationNo
+                || addViolation(context, "reservationNo is required when sourceType is AUCTION");
+            case DRAW -> reservationNo == null
+                || addViolation(context, "reservationNo must be null when sourceType is DRAW");
+        };
     }
 
     private boolean addViolation(ConstraintValidatorContext context, String message) {

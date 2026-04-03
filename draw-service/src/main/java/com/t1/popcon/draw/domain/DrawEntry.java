@@ -34,6 +34,8 @@ import org.hibernate.annotations.SQLRestriction;
 @SQLRestriction("deleted = false")
 public class DrawEntry extends BaseSoftDeleteEntity {
 
+    public static final String UNIQUE_CONSTRAINT_NAME = "uk_user_draw_option";
+
     @Column(nullable = false)
     private Long userId;
 

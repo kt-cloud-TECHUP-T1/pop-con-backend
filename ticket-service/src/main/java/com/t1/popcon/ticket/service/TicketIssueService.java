@@ -64,6 +64,10 @@ public class TicketIssueService {
 
     @Transactional(readOnly = true)
     public TicketDetailResponse getTicketByReservationNo(String reservationNo) {
+        if (reservationNo == null || reservationNo.isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+
         Ticket ticket = ticketRepository.findByReservationNo(reservationNo)
             .orElseThrow(() -> new CustomException(ErrorCode.TICKET_NOT_FOUND));
         return TicketDetailResponse.from(ticket);
