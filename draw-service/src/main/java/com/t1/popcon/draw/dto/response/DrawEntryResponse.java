@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 public class DrawEntryResponse {
 	private Long id;                     // 응모 내역(Entry) ID
 	private Long drawId;                 // 드로우(Draw) ID
-	private String thumbnailUrl;
+	private String vThumbnailUrl;
 	private String title;
 	private Long price;
 	private LocalDateTime paidAt;        // 결제 완료 날짜 (미결제 시 null)
