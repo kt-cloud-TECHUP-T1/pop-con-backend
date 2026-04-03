@@ -1,17 +1,18 @@
 package com.t1.popcon.draw.domain;
 
 import com.t1.popcon.common.entity.BaseSoftDeleteEntity;
+import com.t1.popcon.common.exception.CustomException;
+import com.t1.popcon.common.exception.ErrorCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLRestriction;
-
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 
 @Entity
 @Getter
@@ -19,6 +20,8 @@ import java.time.LocalTime;
 @Table(name = "draws")
 @SQLRestriction("deleted = false")
 public class Draw extends BaseSoftDeleteEntity {
+
+    private static final LocalTime ANNOUNCEMENT_TIME = LocalTime.of(11, 0);
 
     @Column(nullable = false, unique = true)
     private Long popupId;
@@ -34,12 +37,14 @@ public class Draw extends BaseSoftDeleteEntity {
 
     @Builder
     public Draw(
-            Long popupId,
-            LocalDateTime drawOpenAt,
-            LocalDateTime drawCloseAt,
-            Integer stockPerOption
+        Long popupId,
+        LocalDateTime drawOpenAt,
+        LocalDateTime drawCloseAt,
+        Integer stockPerOption
     ) {
+        validateSchedule(drawOpenAt, drawCloseAt);
         validateStockPerOption(stockPerOption);
+
         this.popupId = popupId;
         this.drawOpenAt = drawOpenAt;
         this.drawCloseAt = drawCloseAt;
@@ -47,6 +52,7 @@ public class Draw extends BaseSoftDeleteEntity {
     }
 
     public void updateSchedule(LocalDateTime drawOpenAt, LocalDateTime drawCloseAt) {
+        validateSchedule(drawOpenAt, drawCloseAt);
         this.drawOpenAt = drawOpenAt;
         this.drawCloseAt = drawCloseAt;
     }
@@ -57,12 +63,18 @@ public class Draw extends BaseSoftDeleteEntity {
     }
 
     public LocalDateTime getAnnouncementAt() {
-        return drawCloseAt.toLocalDate().plusDays(1).atTime(LocalTime.of(11, 0));
+        return drawCloseAt.toLocalDate().plusDays(1).atTime(ANNOUNCEMENT_TIME);
+    }
+
+    private void validateSchedule(LocalDateTime drawOpenAt, LocalDateTime drawCloseAt) {
+        if (drawOpenAt == null || drawCloseAt == null || !drawCloseAt.isAfter(drawOpenAt)) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
     }
 
     private void validateStockPerOption(Integer stockPerOption) {
-        if (stockPerOption == null ||  stockPerOption <= 0) {
-            throw new IllegalArgumentException("회차당 당첨 수량은 0보다 커야 합니다.");
+        if (stockPerOption == null || stockPerOption <= 0) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
         }
     }
 }

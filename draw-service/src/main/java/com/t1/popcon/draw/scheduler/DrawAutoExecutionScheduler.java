@@ -18,6 +18,11 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class DrawAutoExecutionScheduler {
 
+    private static final List<DrawEntryStatus> PROCESSED_STATUSES = List.of(
+        DrawEntryStatus.WINNER,
+        DrawEntryStatus.FAILED
+    );
+
     private final DrawOptionRepository drawOptionRepository;
     private final DrawEntryRepository drawEntryRepository;
     private final DrawResultService drawResultService;
@@ -31,10 +36,7 @@ public class DrawAutoExecutionScheduler {
         for (DrawOption drawOption : closedOptions) {
             Long optionId = drawOption.getId();
 
-            if (drawEntryRepository.existsByDrawOption_IdAndStatusIn(
-                optionId,
-                List.of(DrawEntryStatus.WINNER, DrawEntryStatus.FAILED)
-            )) {
+            if (drawEntryRepository.existsByDrawOption_IdAndStatusIn(optionId, PROCESSED_STATUSES)) {
                 continue;
             }
 
