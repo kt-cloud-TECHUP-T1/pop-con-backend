@@ -98,7 +98,8 @@ public class DrawEntryService {
 		}
 
 		// 8. 응모 성공 상세 정보 조회 및 조합
-		PopupInternalResponse popupInfo = popupServiceClient.getPopupDetail(drawOption.getDraw().getPopupId()).getData();
+		ApiResponse<PopupInternalResponse> popupResponse = popupServiceClient.getPopupDetail(drawOption.getDraw().getPopupId());
+		PopupInternalResponse popupInfo = (popupResponse != null) ? popupResponse.getData() : null;
 
 		return DrawEntryResultResponse.builder()
 			.vThumbnailUrl(popupInfo != null ? popupInfo.vThumbnailUrl() : null)
