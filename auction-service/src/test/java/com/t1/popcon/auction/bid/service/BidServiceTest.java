@@ -1,9 +1,11 @@
 package com.t1.popcon.auction.bid.service;
 
 import com.t1.popcon.auction.bid.client.PopupServiceClient;
+import com.t1.popcon.auction.bid.client.TicketServiceClient;
 import com.t1.popcon.auction.bid.client.UserBillingClient;
 import com.t1.popcon.auction.bid.client.dto.BillingKeyInternalResponse;
 import com.t1.popcon.auction.bid.client.dto.PopupInternalResponse;
+import com.t1.popcon.auction.bid.client.dto.TicketIssueResponse;
 import com.t1.popcon.auction.bid.domain.Bid;
 import com.t1.popcon.auction.bid.domain.BidStatus;
 import com.t1.popcon.auction.bid.dto.BidRequest;
@@ -58,6 +60,8 @@ public class BidServiceTest {
 	private UserBillingClient userBillingClient;
 	@Mock
 	private PopupServiceClient popupServiceClient;
+	@Mock
+	private TicketServiceClient ticketServiceClient;
 	@Mock
 	private BidTransactionManager txManager;
 	@Mock
@@ -118,6 +122,16 @@ public class BidServiceTest {
 		given(reservationNoGenerator.generate()).willReturn("TKT123456789012");
 		given(txManager.completeBidSuccess(anyLong(), anyLong(), anyString(), any(), anyString(), anyString(), anyString(), anyString(), any(), any(), anyInt()))
 			.willReturn("TKT123456789012");
+		given(ticketServiceClient.issueTicket(any())).willReturn(
+			ApiResponse.ok(new TicketIssueResponse(
+				1L,
+				"TKT00000001",
+				"TKT123456789012",
+				"ISSUED",
+				"AUCTION",
+				1L
+			))
+		);
 
 		// when
 		BidResponse response = bidService.attemptBid(userId, request);
@@ -137,6 +151,7 @@ public class BidServiceTest {
 			any(LocalTime.class),
 			eq(10000)
 		);
+		verify(ticketServiceClient).issueTicket(any());
 	}
 
 	@Test
