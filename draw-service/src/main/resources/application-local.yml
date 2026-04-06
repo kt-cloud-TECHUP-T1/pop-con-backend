@@ -1,0 +1,51 @@
+spring:
+  config:
+    import: optional:file:.env[.properties]
+
+  datasource:
+    url: jdbc:mysql://localhost:${DB_PORT}/${DB_NAME}?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Seoul
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: Asia/Seoul
+    show-sql: true
+    defer-datasource-initialization: true
+
+  jackson:
+    time-zone: Asia/Seoul
+
+  data:
+    redis:
+      host: localhost
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: 1800000
+  refresh-token-expiration: 604800000
+
+server:
+  port: 8084
+  shutdown: graceful
+
+services:
+  popup-service:
+    url: ${POPUP_SERVICE_URL:http://localhost:8082}
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8081}
+  ticket-service:
+    url: ${TICKET_SERVICE_URL:http://localhost:8086}

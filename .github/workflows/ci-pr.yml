@@ -1,0 +1,143 @@
+name: CI(PR) - Test + Docs + Docker Build
+
+on:
+  pull_request:
+    branches: ["staging"]
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-docs:
+    runs-on: ubuntu-latest
+    env:
+      SPRING_PROFILES_ACTIVE: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Test + Docs (OpenAPI copy)
+        run: ./gradlew --no-daemon clean test :auth-service:bootJar :user-service:bootJar :popup-service:bootJar :auction-service:bootJar :draw-service:bootJar :queue-service:bootJar :queue-worker:bootJar copyOasToSwagger
+
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: |
+            auth-service/build/reports/tests/test
+            user-service/build/reports/tests/test
+            popup-service/build/reports/tests/test
+            auction-service/build/reports/tests/test
+            draw-service/build/reports/tests/test
+            queue-common/build/reports/tests/test
+            queue-service/build/reports/tests/test
+            queue-worker/build/reports/tests/test
+
+          if-no-files-found: warn
+
+      - name: Upload swagger-ui artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: swagger-ui
+          path: |
+            auth-service/src/main/resources/static/swagger-ui
+            popup-service/src/main/resources/static/swagger-ui
+            user-service/src/main/resources/static/swagger-ui
+            auction-service/src/main/resources/static/swagger-ui
+            draw-service/src/main/resources/static/swagger-ui
+            queue-service/src/main/resources/static/swagger-ui
+          if-no-files-found: warn
+
+      - name: Notify Discord (Test & Docs)
+        if: always()
+        continue-on-error: true
+        uses: tsickert/discord-webhook@v7.0.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_PR_CI }}
+          content: |
+            🧪 PR 검사 결과(테스트/문서): **${{ job.status }}**
+            - 레포: ${{ github.repository }}
+            - PR: <${{ github.event.pull_request.html_url }}>
+            - 실행 로그: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: test-and-docs
+
+    strategy:
+      matrix:
+        service:
+          - auth-service
+          - user-service
+          - popup-service
+          - auction-service
+          - draw-service
+          - queue-service
+          - queue-worker
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - run: chmod +x ./gradlew
+
+      - name: Build jar
+        run: ./gradlew :${{ matrix.service }}:bootJar
+
+      - name: Check jars
+        run: ls -al ${{ matrix.service }}/build/libs
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./${{ matrix.service }}/Dockerfile
+          push: false
+          tags: pr-check:${{ matrix.service }}
+
+  docker-build-anti-macro:
+    runs-on: ubuntu-latest
+    needs: test-and-docs
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: anti-macro-service/package-lock.json
+
+      - name: Install dependencies
+        run: cd anti-macro-service && npm ci
+
+      - name: Build
+        run: cd anti-macro-service && npm run build
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./anti-macro-service/Dockerfile
+          push: false
+          tags: pr-check:anti-macro-service

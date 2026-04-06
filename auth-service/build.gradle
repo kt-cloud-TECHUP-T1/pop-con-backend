@@ -1,0 +1,183 @@
+buildscript {
+    repositories { mavenCentral() }
+    dependencies { classpath 'org.yaml:snakeyaml:2.5' }
+}
+
+import org.yaml.snakeyaml.Yaml
+
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.5.5'
+    id 'com.epages.restdocs-api-spec' version '0.19.4'
+}
+
+group = 'com.t1.popcon'
+version = '0.0.1-SNAPSHOT'
+description = 'pop-con-backend'
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(21) } // Java 21
+}
+
+ext {
+    set('springCloudVersion', "2025.0.0")
+}
+
+configurations {
+    compileOnly { extendsFrom annotationProcessor }
+}
+
+repositories { mavenCentral() }
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
+}
+
+dependencies {
+    implementation project(':common')
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
+    compileOnly 'org.projectlombok:lombok'
+    runtimeOnly 'com.h2database:h2'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+    annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+
+    // redis & redisson
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.redisson:redisson-spring-boot-starter:3.52.0'
+
+    // test & restdocs
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
+    testImplementation 'com.epages:restdocs-api-spec-mockmvc:0.19.4'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // Security & JWT
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+    // grafana, prometheus
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+
+    // logback
+    implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
+}
+
+openapi3 {
+//    servers = [{ url = 'http://localhost:8080' }]
+    servers = [{ url = 'http://localhost:8080' }]
+    title = '인증 서비스 API 명세서'
+    description = '예약 및 드로우, 굿즈 관리 API'
+    version = '0.1.0'
+    format = 'yaml'
+}
+
+def isSkipTest = gradle.startParameter.excludedTaskNames.any { taskName ->
+    taskName == 'test' || taskName.endsWith(':test')
+}
+
+/**
+ * 2. openapi3.yaml 에 bearerAuth Security 스키마를 구조적으로 merge
+ */
+tasks.register('enhanceOpenapiWithJwt') {
+    if (!isSkipTest) dependsOn 'openapi3'
+
+    doLast {
+        def openapiFile = layout.buildDirectory.file("api-spec/openapi3.yaml").get().asFile
+        if (!openapiFile.exists()) {
+            if (isSkipTest) return
+            throw new GradleException("openapi3.yaml 생성 실패: ${openapiFile}")
+        }
+
+        def yaml = new Yaml()
+        def loaded = yaml.load(openapiFile.getText('UTF-8'))
+        if (!(loaded instanceof Map)) {
+            throw new GradleException("openapi3.yaml 루트 구조가 올바르지 않습니다: ${openapiFile}")
+        }
+        def model = (Map) loaded
+
+        def components = (model.get('components') ?: [:]) as Map
+        model.put('components', components)
+        def securitySchemes = (components.get('securitySchemes') ?: [:]) as Map
+        components.put('securitySchemes', securitySchemes)
+
+        if (!securitySchemes.containsKey('bearerAuth')) {
+            securitySchemes.put('bearerAuth', [type: 'http', scheme: 'bearer', bearerFormat: 'JWT'])
+        }
+
+        def security = model.get('security') ?: []
+        if (!security.any { it.containsKey('bearerAuth') }) {
+            security << [('bearerAuth'): []]
+            model.put('security', security)
+        }
+
+        openapiFile.setText(yaml.dumpAsMap(model), 'UTF-8')
+    }
+}
+
+/**
+ * 3. Swagger UI 폴더로 파일 복사 (src 폴더 갱신용)
+ */
+tasks.register('copyOasToSwagger', Copy) {
+    group = 'documentation'
+    dependsOn 'enhanceOpenapiWithJwt'
+    from layout.buildDirectory.file("api-spec/openapi3.yaml")
+    into layout.projectDirectory.dir("src/main/resources/static/swagger-ui/auth")
+    doFirst {
+        def target = file("${destinationDir.path}/openapi3.yaml")
+        if (target.exists()) target.delete()
+    }
+}
+
+/**
+ * 4. 최종 자동화 설계 (Gradle 9.3 대응)
+ */
+afterEvaluate {
+    tasks.named('processResources') {
+        exclude 'static/swagger-ui/openapi3.yaml'
+    }
+
+    tasks.named('test') {
+        useJUnitPlatform()
+        if (!isSkipTest) {
+            finalizedBy 'copyOasToSwagger'
+        }
+    }
+
+    tasks.named('openapi3') {
+        it.setDependsOn([])
+        if (!isSkipTest) dependsOn 'test'
+    }
+
+    tasks.named('bootJar') {
+        duplicatesStrategy = DuplicatesStrategy.INCLUDE
+        if (!isSkipTest) {
+            dependsOn 'copyOasToSwagger'
+            from(layout.buildDirectory.file("api-spec/openapi3.yaml")) {
+                into 'BOOT-INF/classes/static/swagger-ui'
+            }
+        }
+    }
+    tasks.named('bootRun') {
+        // 기본 bootRun 경로에서는 테스트/문서 생성 체인을 분리
+    }
+    tasks.register('bootRunWithDocs') {
+        dependsOn 'copyOasToSwagger', 'bootRun'
+    }
+
+    tasks.named('resolveMainClassName') {
+        mustRunAfter 'copyOasToSwagger'
+    }
+}

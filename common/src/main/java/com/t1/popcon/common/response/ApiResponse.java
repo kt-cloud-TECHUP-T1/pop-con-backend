@@ -1,0 +1,55 @@
+package com.t1.popcon.common.response;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.t1.popcon.common.exception.ErrorCode;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@JsonPropertyOrder({"code", "message", "data"})
+public class ApiResponse<T> {
+
+    private static final String SUCCESS = "SUCCESS";
+    private static final String DEFAULT_SUCCESS_MESSAGE = "성공하였습니다.";
+
+    private String code;
+    private String message;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private T data;
+
+    // ====== 성공 응답 ======
+    public static <T> ApiResponse<T> ok(String message, T data) {
+        return new ApiResponse<>(SUCCESS, message, data);
+    }
+
+    public static ApiResponse<Void> ok(String message) {
+        return new ApiResponse<>(SUCCESS, message, null);
+    }
+
+    public static <T> ApiResponse<T> ok(T data) {
+        return new ApiResponse<>(SUCCESS, DEFAULT_SUCCESS_MESSAGE, data);
+    }
+
+    // ====== 실패 응답 ======
+    public static ApiResponse<Void> fail(String code, String message) {
+        return new ApiResponse<>(code, message, null);
+    }
+
+    public static <T> ApiResponse<T> fail(String code, String message, T data) {
+        return new ApiResponse<>(code, message, data);
+    }
+
+    public static ApiResponse<Void> fail(ErrorCode errorCode) {
+        return new ApiResponse<>(errorCode.getCode(), errorCode.getMessage(), null);
+    }
+
+    public static <T> ApiResponse<T> fail(ErrorCode errorCode, T data) {
+        return new ApiResponse<>(errorCode.getCode(), errorCode.getMessage(), data);
+    }
+}

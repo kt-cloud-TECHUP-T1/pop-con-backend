@@ -1,0 +1,364 @@
+openapi: 3.0.1
+info:
+  title: 인증 서비스 API 명세서
+  description: 예약 및 드로우, 굿즈 관리 API
+  version: 0.1.0
+servers:
+- url: http://localhost:8080
+tags: []
+paths:
+  /auth/signup:
+    post:
+      tags:
+      - Auth
+      summary: 회원가입 및 약관 동의
+      description: |
+        본인인증 후 발급된 임시 토큰과 약관 동의 정보를 기반으로 회원가입을 진행합니다.
+
+        [에러 케이스]
+        - 400 (C001): 입력값이 올바르지 않음 (필수 약관 누락 등)
+        - 400 (U002): 가입 세션의 소셜 정보 누락
+        - 401 (A001): 회원가입 세션 만료
+        - 401 (A002): 인증 정보가 유효하지 않음
+        - 409 (J002): 이미 가입이 완료된 회원
+        - 500 (S001): 서버 오류
+      operationId: auth-signup
+      requestBody:
+        content:
+          application/json;charset=UTF-8:
+            schema:
+              $ref: '#/components/schemas/Signup'
+            examples:
+              auth-signup:
+                value: "{\r\n  \"agreements\" : {\r\n    \"isPrivacyPolicyAgreed\"\
+                  \ : true,\r\n    \"isIdentifierPolicyAgreed\" : true,\r\n    \"\
+                  isServicePolicyAgreed\" : true,\r\n    \"isMarketingAgreed\" : true\r\
+                  \n  }\r\n}"
+              auth-signup-fail-already-signed-up:
+                value: "{\r\n  \"agreements\" : {\r\n    \"isPrivacyPolicyAgreed\"\
+                  \ : true,\r\n    \"isIdentifierPolicyAgreed\" : true,\r\n    \"\
+                  isServicePolicyAgreed\" : true,\r\n    \"isMarketingAgreed\" : true\r\
+                  \n  }\r\n}"
+              auth-signup-fail-invalid-input:
+                value: "{\r\n  \"agreements\" : {\r\n    \"isPrivacyPolicyAgreed\"\
+                  \ : false,\r\n    \"isIdentifierPolicyAgreed\" : false,\r\n    \"\
+                  isServicePolicyAgreed\" : false,\r\n    \"isMarketingAgreed\" :\
+                  \ null\r\n  }\r\n}"
+              auth-signup-fail-invalid-token:
+                value: "{\r\n  \"agreements\" : {\r\n    \"isPrivacyPolicyAgreed\"\
+                  \ : true,\r\n    \"isIdentifierPolicyAgreed\" : true,\r\n    \"\
+                  isServicePolicyAgreed\" : true,\r\n    \"isMarketingAgreed\" : true\r\
+                  \n  }\r\n}"
+              auth-signup-fail-server-error:
+                value: "{\r\n  \"agreements\" : {\r\n    \"isPrivacyPolicyAgreed\"\
+                  \ : true,\r\n    \"isIdentifierPolicyAgreed\" : true,\r\n    \"\
+                  isServicePolicyAgreed\" : true,\r\n    \"isMarketingAgreed\" : true\r\
+                  \n  }\r\n}"
+              auth-signup-fail-social-info-missing:
+                value: "{\r\n  \"agreements\" : {\r\n    \"isPrivacyPolicyAgreed\"\
+                  \ : true,\r\n    \"isIdentifierPolicyAgreed\" : true,\r\n    \"\
+                  isServicePolicyAgreed\" : true,\r\n    \"isMarketingAgreed\" : true\r\
+                  \n  }\r\n}"
+              auth-signup-fail-token-expired:
+                value: "{\r\n  \"agreements\" : {\r\n    \"isPrivacyPolicyAgreed\"\
+                  \ : true,\r\n    \"isIdentifierPolicyAgreed\" : true,\r\n    \"\
+                  isServicePolicyAgreed\" : true,\r\n    \"isMarketingAgreed\" : true\r\
+                  \n  }\r\n}"
+      responses:
+        '200':
+          description: '200'
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                auth-signup:
+                  value: "{\r\n  \"code\" : \"SUCCESS\",\r\n  \"message\" : \"약관 동\
+                    의 및 회원가입이 완료되었습니다.\",\r\n  \"data\" : {\r\n    \"userId\" : 1,\r\
+                    \n    \"name\" : \"홍길동\",\r\n    \"accessToken\" : \"access_token\"\
+                    ,\r\n    \"createdAt\" : \"2026-03-27T13:53:32.9351242\"\r\n \
+                    \ }\r\n}"
+        '409':
+          description: '409'
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                auth-signup-fail-already-signed-up:
+                  value: "{\r\n  \"code\" : \"J002\",\r\n  \"message\" : \"이미 약관 동\
+                    의 및 회원가입이 완료된 회원입니다.\"\r\n}"
+        '400':
+          description: '400'
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                auth-signup-fail-invalid-input:
+                  value: "{\r\n  \"code\" : \"C001\",\r\n  \"message\" : \"입력값이 올바\
+                    르지 않습니다.\",\r\n  \"data\" : {\r\n    \"agreements.isIdentifierPolicyAgreed\"\
+                    \ : \"필수 동의 항목입니다.\",\r\n    \"agreements.isPrivacyPolicyAgreed\"\
+                    \ : \"필수 동의 항목입니다.\",\r\n    \"agreements.isMarketingAgreed\"\
+                    \ : \"선택 약관 항목이 누락되었습니다.\",\r\n    \"agreements.isServicePolicyAgreed\"\
+                    \ : \"필수 동의 항목입니다.\"\r\n  }\r\n}"
+                auth-signup-fail-social-info-missing:
+                  value: "{\r\n  \"code\" : \"U002\",\r\n  \"message\" : \"가입 세션의\
+                    \ 소셜 정보가 누락되었습니다.\"\r\n}"
+        '401':
+          description: '401'
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                auth-signup-fail-invalid-token:
+                  value: "{\r\n  \"code\" : \"A002\",\r\n  \"message\" : \"유효하지 않은\
+                    \ 토큰입니다.\"\r\n}"
+                auth-signup-fail-token-expired:
+                  value: "{\r\n  \"code\" : \"A001\",\r\n  \"message\" : \"회원가입 세션\
+                    이 만료되었습니다. 다시 가입 절차를 진행해주세요.\"\r\n}"
+        '500':
+          description: '500'
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                auth-signup-fail-server-error:
+                  value: "{\r\n  \"code\" : \"S001\",\r\n  \"message\" : \"시스템 오류가\
+                    \ 발생했습니다.\"\r\n}"
+  /auth/identity/complete:
+    post:
+      tags:
+      - Auth
+      summary: 포트원 본인인증 완료 처리
+      description: |
+        포트원 본인인증 완료 후 결과를 검증하고, 기존/신규 회원 여부에 따라 다음 단계를 분기합니다.
+
+        [헤더 파라미터]
+        - X-Device-Id: (선택) 기기 식별값
+
+        [쿠키 파라미터]
+        - register_token: (필수) 가입 진행 토큰
+
+        [에러 케이스]
+        - 400 (C001): 본인인증 식별자 누락
+        - 401 (A001): 가입 세션(register_token) 만료 또는 누락
+        - 400 (I001/I002): 본인인증 조회/검증 실패
+        - 403 (J001): 만 14세 미만 가입 제한
+      operationId: identity-complete-
+      requestBody:
+        content:
+          application/json;charset=UTF-8:
+            schema:
+              $ref: '#/components/schemas/Complete'
+            examples:
+              identity-complete-existing-user-success:
+                value: "{\r\n  \"identityVerificationId\" : \"imp_1234567890\"\r\n\
+                  }"
+              identity-complete-fail-invalid-input:
+                value: "{\r\n  \"identityVerificationId\" : \"\"\r\n}"
+              identity-complete-fail-missing-cookie:
+                value: "{\r\n  \"identityVerificationId\" : \"imp_1234567890\"\r\n\
+                  }"
+              identity-complete-new-user-success:
+                value: "{\r\n  \"identityVerificationId\" : \"imp_1234567890\"\r\n\
+                  }"
+      responses:
+        '200':
+          description: '200'
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                identity-complete-existing-user-success:
+                  value: "{\r\n  \"code\" : \"SUCCESS\",\r\n  \"message\" : \"계정 연\
+                    결 및 로그인이 완료되었습니다.\",\r\n  \"data\" : {\r\n    \"isNewUser\" :\
+                    \ false,\r\n    \"userId\" : 105,\r\n    \"accessToken\" : \"\
+                    access_token_mock\"\r\n  }\r\n}"
+                identity-complete-new-user-success:
+                  value: "{\r\n  \"code\" : \"SUCCESS\",\r\n  \"message\" : \"본인인증\
+                    이 완료되었습니다. 약관에 동의해주세요.\",\r\n  \"data\" : {\r\n    \"isNewUser\"\
+                    \ : true,\r\n    \"nextStep\" : \"TERMS\"\r\n  }\r\n}"
+        '400':
+          description: '400'
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                identity-complete-fail-invalid-input:
+                  value: "{\r\n  \"code\" : \"C001\",\r\n  \"message\" : \"입력값이 올바\
+                    르지 않습니다.\",\r\n  \"data\" : {\r\n    \"identityVerificationId\"\
+                    \ : \"본인인증 식별자가 필요합니다.\"\r\n  }\r\n}"
+        '401':
+          description: '401'
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                identity-complete-fail-missing-cookie:
+                  value: "{\r\n  \"code\" : \"A001\",\r\n  \"message\" : \"회원가입 세션\
+                    이 만료되었습니다. 다시 가입 절차를 진행해주세요.\"\r\n}"
+  /auth/token/refresh:
+    post:
+      tags:
+      - Token
+      summary: 토큰 재발급
+      description: |
+        Refresh Token 쿠키를 사용하여 새로운 Access Token(바디)과 Refresh Token(쿠키)을 발급받습니다.
+
+        [에러 케이스]
+        - 400: refresh_token 쿠키 누락
+        - 401 (A002): 인증 정보가 유효하지 않음 (refreshToken 위조/서명 실패)
+        - 401 (A003): 인증 만료/세션 만료 (refreshToken 만료 또는 폐기됨)
+        - 500 (S001): 서버 오류
+      operationId: token-refresh-
+      responses:
+        '401':
+          description: '401'
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                token-refresh-fail-invalid-token:
+                  value: "{\r\n  \"code\" : \"A002\",\r\n  \"message\" : \"유효하지 않은\
+                    \ 토큰입니다.\"\r\n}"
+                token-refresh-fail-token-expired:
+                  value: "{\r\n  \"code\" : \"A003\",\r\n  \"message\" : \"인증이 만료되\
+                    었습니다. 다시 로그인해주세요.\"\r\n}"
+        '400':
+          description: '400'
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                token-refresh-fail-missing-cookie:
+                  value: "{\r\n  \"code\" : \"C001\",\r\n  \"message\" : \"입력값이 올바\
+                    르지 않습니다.\"\r\n}"
+        '500':
+          description: '500'
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                token-refresh-fail-server-error:
+                  value: "{\r\n  \"code\" : \"S001\",\r\n  \"message\" : \"시스템 오류가\
+                    \ 발생했습니다.\"\r\n}"
+        '200':
+          description: '200'
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                token-refresh-success:
+                  value: "{\r\n  \"code\" : \"SUCCESS\",\r\n  \"message\" : \"토큰이\
+                    \ 재발급되었습니다.\",\r\n  \"data\" : {\r\n    \"accessToken\" : \"new.access.token\"\
+                    ,\r\n    \"expiresIn\" : 3600\r\n  }\r\n}"
+  /health:
+    get:
+      tags:
+      - Common
+      summary: 서버 헬스 체크
+      description: 팝콘 서버의 정상 작동 여부를 확인합니다.
+      operationId: health-check
+      responses:
+        '200':
+          description: '200'
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/health486549215'
+              examples:
+                health-check:
+                  value: Pop-Con Server is running
+components:
+  schemas:
+    ApiResponse:
+      title: ApiResponse
+      type: object
+      properties:
+        DEFAULT_SUCCESS_MESSAGE:
+          type: string
+          description: DEFAULT_SUCCESS_MESSAGE
+          nullable: true
+        code:
+          type: string
+          description: code
+          nullable: true
+        SUCCESS:
+          type: string
+          description: SUCCESS
+          nullable: true
+        data:
+          type: object
+          properties:
+            nextStep:
+              type: string
+              description: nextStep
+              nullable: true
+            isNewUser:
+              type: boolean
+              description: isNewUser
+              nullable: true
+            accessToken:
+              type: string
+              description: accessToken
+              nullable: true
+            userId:
+              type: number
+              description: userId
+              nullable: true
+          description: data
+        message:
+          type: string
+          description: message
+          nullable: true
+    Signup:
+      title: Signup
+      type: object
+      properties:
+        agreements:
+          type: object
+          properties:
+            isMarketingAgreed:
+              type: boolean
+              description: isMarketingAgreed
+              nullable: true
+            isPrivacyPolicyAgreed:
+              type: boolean
+              description: isPrivacyPolicyAgreed
+              nullable: true
+            isServicePolicyAgreed:
+              type: boolean
+              description: isServicePolicyAgreed
+              nullable: true
+            isIdentifierPolicyAgreed:
+              type: boolean
+              description: isIdentifierPolicyAgreed
+              nullable: true
+          description: agreements
+    Complete:
+      title: Complete
+      type: object
+      properties:
+        identityVerificationId:
+          type: string
+          description: identityVerificationId
+          nullable: true
+    health486549215:
+      type: object
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+- bearerAuth: []

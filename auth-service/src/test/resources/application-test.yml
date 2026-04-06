@@ -1,0 +1,75 @@
+app:
+  oauth:
+    base-url: http://localhost:8080
+    redirect-path: /auth/oauth/{provider}/callback
+    state-ttl-seconds: 300
+
+    kakao:
+      client-id: dummy-kakao-client-id
+      client-secret: dummy-kakao-client-secret
+      authorize-url: https://kauth.kakao.com/oauth/authorize
+      token-url: https://kauth.kakao.com/oauth/token
+      userinfo-url: https://kapi.kakao.com/v2/user/me
+      scopes: profile_nickname,account_email
+
+    naver:
+      client-id: dummy-naver-client-id
+      client-secret: dummy-naver-client-secret
+      authorize-url: https://nid.naver.com/oauth2.0/authorize
+      token-url: https://nid.naver.com/oauth2.0/token
+      userinfo-url: https://openapi.naver.com/v1/nid/me
+      scopes: name,email,profile_image
+
+services:
+  user-service:
+    url: http://localhost:8081
+    internal-secret: ${INTERNAL_API_SECRET:changeme-local-secret}
+
+spring:
+  config:
+    import: optional:file:.env[.properties]
+
+  datasource:
+    url: jdbc:h2:mem:popcon
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+    defer-datasource-initialization: true
+
+  autoconfigure:
+    exclude:
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
+
+jwt:
+  # 테스트용 공개 키
+  secret: popcon-backend-test-secret-key-1234567890-abcdefghijklmnopqrstuvwxyz-64bytes-over
+  access-token-expiration: 3600000
+  refresh-token-expiration: 604800000
+
+portone:
+  api:
+    secret: ${PORTONE_API_SECRET:test-portone-secret}
+    store-id: ${PORTONE_STORE_ID:test-store-id}
+  url: "https://api.portone.io"
+
+encryption:
+  secret: ${ENCRYPTION_SECRET:default_test_secret_key_32_chars}

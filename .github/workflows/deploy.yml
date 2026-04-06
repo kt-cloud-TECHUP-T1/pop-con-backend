@@ -1,0 +1,193 @@
+name: CI - Build and Push to ECR
+
+on:
+  push:
+    branches:
+      - staging
+      - main
+
+concurrency:
+  group: ci-build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  id-token: none
+  contents: read
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      short_sha: ${{ steps.short-sha.outputs.short_sha }}
+      changes: ${{ steps.filter.outputs.changes }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set short SHA
+        id: short-sha
+        run: echo "short_sha=${GITHUB_SHA::10}" >> $GITHUB_OUTPUT
+      - name: Filter changed services
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            auth-service:
+              - 'auth-service/**'
+              - 'common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
+            user-service:
+              - 'user-service/**'
+              - 'common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
+            popup-service:
+              - 'popup-service/**'
+              - 'common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
+            auction-service:
+              - 'auction-service/**'
+              - 'common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
+            draw-service:
+              - 'draw-service/**'
+              - 'common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
+            queue-service:
+              - 'queue-service/**'
+              - 'common/**'
+              - 'queue-common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
+            queue-worker:
+              - 'queue-worker/**'
+              - 'common/**'
+              - 'queue-common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
+            anti-macro-service:
+              - 'anti-macro-service/**'
+
+  # ── 빌드 + Docker 푸시 ───────────────────────────────────────────────────────
+  build-and-push:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.changes != '[]'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.changes) }}
+
+    steps:
+      # ── Java 빌드 ────────────────────────────────────────────
+      - uses: actions/checkout@v4
+        if: matrix.service != 'anti-macro-service'
+
+      - uses: actions/setup-java@v4
+        if: matrix.service != 'anti-macro-service'
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Build (Java)
+        if: matrix.service != 'anti-macro-service'
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon :${{ matrix.service }}:clean :${{ matrix.service }}:build
+
+      # ── Node 빌드 ────────────────────────────────────────────
+      - uses: actions/checkout@v4
+        if: matrix.service == 'anti-macro-service'
+
+      - uses: actions/setup-node@v4
+        if: matrix.service == 'anti-macro-service'
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: anti-macro-service/package-lock.json
+
+      - name: Build (Node)
+        if: matrix.service == 'anti-macro-service'
+        run: cd anti-macro-service && npm ci && npm run build
+
+      # ── 공통: Docker 푸시 ────────────────────────────────────
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }}
+          aws-region: ap-northeast-2
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./${{ matrix.service }}/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ matrix.service }}:${{ needs.detect-changes.outputs.short_sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ matrix.service }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── GitOps 이벤트 ─────────────────────────────────
+  notify:
+    needs: [detect-changes, build-and-push]
+    if: needs.build-and-push.result == 'success' && needs.detect-changes.outputs.changes != '[]'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }}
+          aws-region: ap-northeast-2
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Update GitOps deployment
+        run: |
+          DEPLOY_ENV=${{ github.ref_name == 'main' && 'prod' || 'staging' }}
+          SERVICES='${{ needs.detect-changes.outputs.changes }}'
+          SERVICES_JSON=$(echo "$SERVICES" | jq -c '.' 2>/dev/null || echo '[]')
+          PAYLOAD=$(jq -cn \
+            --arg event_type "deploy-v2" \
+            --arg env "$DEPLOY_ENV" \
+            --arg image "${{ steps.login-ecr.outputs.registry }}" \
+            --argjson services "$SERVICES_JSON" \
+            --arg tag "${{ needs.detect-changes.outputs.short_sha }}" \
+            '{event_type: $event_type, client_payload: {env: $env, image: $image, services: $services, tag: $tag}}')
+          curl --fail --show-error -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITOPS_TOKEN }}" \
+            https://api.github.com/repos/kt-cloud-TECHUP-T1/gitops/dispatches \
+            -d "$PAYLOAD"

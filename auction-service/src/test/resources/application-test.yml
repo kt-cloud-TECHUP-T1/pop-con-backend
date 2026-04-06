@@ -1,0 +1,43 @@
+spring:
+  config:
+    import: optional:file:.env[.properties]
+
+  datasource:
+    url: jdbc:h2:mem:popcon
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+    defer-datasource-initialization: true
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
+
+jwt:
+  # 테스트용 공개 키
+  secret: popcon-backend-test-secret-key-1234567890-abcdefghijklmnopqrstuvwxyz-64bytes-over
+  access-token-expiration: 3600000
+  refresh-token-expiration: 604800000
+
+portone:
+  api:
+    secret: ${PORTONE_API_SECRET}
+    store-id: ${PORTONE_STORE_ID}
+  url: "https://api.portone.io"
+
+encryption:
+  secret: ${ENCRYPTION_SECRET:default_test_secret_key_32_chars}

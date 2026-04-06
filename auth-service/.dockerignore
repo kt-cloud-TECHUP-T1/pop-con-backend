@@ -1,0 +1,46 @@
+# Git
+.git
+../.gitignore
+.gitattributes
+
+# Build output
+build/*
+**/build/*
+!**/build/libs/
+!**/build/libs/*.jar
+out/
+
+# IDE
+.idea
+.vscode
+*.iws
+*.iml
+*.ipr
+
+# Gradle cache
+.gradle
+
+# Docs
+README.md
+HELP.md
+*.md
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Security
+*.pem
+*.key
+*.env
+aws.yml
+secrets.yml
+application-secret.yml
+application-prod.yml
+
+# Docker
+docker-compose*.yml
+
+# GitHub
+.github/

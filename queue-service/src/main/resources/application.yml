@@ -1,0 +1,24 @@
+spring:
+  # 기본 활성 프로파일
+#  profiles:
+#    active: local
+
+  # queue-service는 JPA 미사용 — 자동 구성 제외
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+
+# 대기열 설정 (QueueProperties 바인딩)
+queue:
+  polling-default-ms: 3000
+  max-active-users: 1000
+  release-interval-ms: 1000
+  max-release-per-cycle: 100
+  cleanup-interval-ms: 60000
+  heartbeat-cleanup-interval-ms: 10000
+  heartbeat-ttl-seconds: 15
+  block-ttl-seconds: 1800
+  active-ttl:
+    draw-seconds: 900
+    auction-seconds: 3600

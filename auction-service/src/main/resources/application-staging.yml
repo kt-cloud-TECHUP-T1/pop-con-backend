@@ -1,0 +1,72 @@
+spring:
+  datasource:
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 600000 # 10분, 유휴 커넥션 제거
+      max-lifetime: 1800000 # 30분, 커넥션 최대 수명
+      connection-timeout: 30000 # 30초, 커넥션 못얻으면 기다리는 시간
+      validation-timeout: 5000 # 커넥션이 정상인지 확인할 때 최대 기다리는 시간
+      keepalive-time: 300000 # 커넥션 ping
+      pool-name: auction-pool # 커넥션 풀 이름 (메트릭 식별용)
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+    show-sql: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: true
+
+server:
+  port: 8080
+  shutdown: graceful
+
+logging:
+  level:
+    root: info
+    org.hibernate: warn
+    org.hibernate.SQL: off
+    org.hibernate.orm.jdbc.bind: off
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: 1800000
+  refresh-token-expiration: 604800000
+
+services:
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8081}
+    internal-secret: ${INTERNAL_API_SECRET}
+  ticket-service:
+    url: ${TICKET_SERVICE_URL:http://localhost:8086}
+    internal-secret: ${INTERNAL_API_SECRET}
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+  metrics:
+    tags:
+      application: auction-service

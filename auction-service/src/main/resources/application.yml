@@ -1,0 +1,40 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:popcon
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+    defer-datasource-initialization: true
+
+portone:
+  api:
+    secret: ${PORTONE_API_SECRET}
+    store-id: ${PORTONE_STORE_ID}
+  url: "https://api.portone.io"
+
+encryption:
+  secret: ${ENCRYPTION_SECRET}
+
+internal:
+  api-secret: ${INTERNAL_API_SECRET:changeme-local-secret}
+
+services:
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8081}
+    internal-secret: ${INTERNAL_API_SECRET}
+  ticket-service:
+    url: ${TICKET_SERVICE_URL:http://localhost:8086}
+    internal-secret: ${INTERNAL_API_SECRET}

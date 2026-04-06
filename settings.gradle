@@ -1,1 +1,13 @@
 rootProject.name = 'pop-con-backend'
+
+
+include 'auth-service'
+include 'user-service'
+include 'popup-service'
+include 'common'
+include 'auction-service'
+include 'draw-service'
+include 'ticket-service'
+include 'queue-common'
+include 'queue-service'
+include 'queue-worker'
