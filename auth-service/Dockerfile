@@ -7,7 +7,7 @@ RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 COPY auth-service/build/libs/*.jar app.jar
 
 ENV SPRING_PROFILES_ACTIVE=staging
-ENV JAVA_OPTS="-Xms512m -Xmx512m"
+ENV JAVA_OPTS="-XX:InitialRAMPercentage=15.0 -XX:MaxRAMPercentage=75.0"
 
 USER appuser
 
