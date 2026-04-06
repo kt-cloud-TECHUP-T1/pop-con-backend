@@ -7,7 +7,7 @@ RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 COPY queue-service/build/libs/*.jar app.jar
 
 ENV SPRING_PROFILES_ACTIVE=staging
-ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0 -XX:MinRAMPercentage=50.0"
+ENV JAVA_OPTS="-XX:InitialRAMPercentage=75.0 -XX:MaxRAMPercentage=75.0"
 
 USER appuser
 
