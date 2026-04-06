@@ -41,3 +41,11 @@ jwt:
 server:
   port: 8081
   shutdown: graceful
+
+services:
+  draw-service:
+    url: ${DRAW_SERVICE_URL:http://localhost:8084}
+  auction-service:
+    url: ${AUCTION_SERVICE_URL:http://localhost:8083}
+  ticket-service:
+    url: ${TICKET_SERVICE_URL:http://localhost:8086}
