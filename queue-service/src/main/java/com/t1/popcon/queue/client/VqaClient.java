@@ -13,9 +13,15 @@ public interface VqaClient {
     @PostMapping("/api/v1/session/start")
     VqaSessionStartResponse startSession(@RequestBody VqaSessionStartRequest request);
 
-    /** 파이썬 서버 명세에 맞춰 session_id를 쿼리 파라미터로 전달 */
+    /** 
+     * 문제 정보 조회 시 사용자 점수(score)를 함께 전달 
+     * - VQA 서버가 점수를 보고 적절한 레벨의 문제를 주거나 면제 여부 결정
+     */
     @GetMapping("/api/v1/test/next")
-    VqaNextQuestionResponse getNextQuestion(@RequestParam("session_id") Long sessionId);
+    VqaNextQuestionResponse getNextQuestion(
+        @RequestParam("session_id") Long sessionId,
+        @RequestParam("score") Integer score
+    );
 
     @PostMapping("/api/v1/test/submit")
     VqaSubmitResponse submitAnswer(@RequestBody VqaSubmitRequest request);

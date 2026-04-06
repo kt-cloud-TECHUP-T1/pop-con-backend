@@ -31,7 +31,7 @@ public class VqaService {
 
     /**
      * 보안 퀴즈 시작 (원샷 방식)
-     * - 레벨별 분기 구조 적용 (확장성 확보)
+     * - 레벨 0 (면제 대상) 판단 후 퀴즈 세션 초기화
      */
     public VqaStartResponse start(String queueToken) {
         QueueTokenResolver.TokenInfo tokenInfo = tokenResolver.resolve(queueToken);
@@ -41,37 +41,32 @@ public class VqaService {
         int vqaLevel = resolveVqaLevel(totalScore);
         log.info("[VQA] 퀴즈 시작 시도 - userId={}, score={}, level={}", userId, totalScore, vqaLevel);
 
-        // 1. 레벨 1 (0~20점): 면제
-        if (vqaLevel == 1) {
+        // 1. 레벨 0 (0~20점): 면제
+        if (vqaLevel == 0) {
             String quizPassedToken = generateAndSaveQuizPassedToken(tokenInfo);
             log.info("[VQA] 퀴즈 면제 처리 - userId={}", userId);
             return VqaStartResponse.exempt(quizPassedToken);
         }
 
-        // 2. 레벨 2~4: VQA 서버 세션 시작 (향후 레벨별 전용 로직 대응을 위해 분기 처리)
-        VqaSessionStartResponse vqaResponse;
-        if (vqaLevel == 2) {
-            // [Level 2] 향후 전용 로직 추가 가능
-            vqaResponse = vqaClient.startSession(VqaSessionStartRequest.empty());
-        } else if (vqaLevel == 3) {
-            // [Level 3] 향후 전용 로직 추가 가능
-            vqaResponse = vqaClient.startSession(VqaSessionStartRequest.empty());
-        } else {
-            // [Level 4] 향후 전용 로직 추가 가능
-            vqaResponse = vqaClient.startSession(VqaSessionStartRequest.empty());
-        }
-
+        // 2. 레벨 1 이상: VQA 서버 세션 시작
+        VqaSessionStartResponse vqaResponse = vqaClient.startSession(VqaSessionStartRequest.empty());
         Long pythonSessionId = vqaResponse.sessionId();
 
-        // 즉시 첫 번째 문제 조회 (원샷 방식)
-        VqaNextQuestionResponse firstQuestion = vqaClient.getNextQuestion(pythonSessionId);
+        // 즉시 첫 번째 문제 조회 (점수 전달하여 VQA 서버가 레벨 결정)
+        VqaNextQuestionResponse firstQuestion = vqaClient.getNextQuestion(pythonSessionId, totalScore);
 
-        // 우리 플랫폼용 세션 UUID 생성 및 Redis 저장 (시도 횟수 0 초기화)
+        // VQA 서버에서 점수를 보고 면제 결정한 경우
+        if (Boolean.TRUE.equals(firstQuestion.isExempt())) {
+            String quizPassedToken = generateAndSaveQuizPassedToken(tokenInfo);
+            log.info("[VQA] 퀴즈 면제 처리 (VQA 서버 판단) - userId={}", userId);
+            return VqaStartResponse.exempt(quizPassedToken);
+        }
+
+        // 우리 플랫폼용 세션 UUID 생성 및 Redis 저장 (점수 포함)
         String vqaSessionId = UUID.randomUUID().toString();
-        saveVqaSession(vqaSessionId, pythonSessionId, tokenInfo, 0);
+        saveVqaSession(vqaSessionId, pythonSessionId, tokenInfo, 0, totalScore);
 
-        log.info("[VQA] 퀴즈 세션 생성 완료 - userId={}, vqaSessionId={}, level={}", 
-            userId, vqaSessionId, vqaLevel);
+        log.info("[VQA] 퀴즈 세션 생성 완료 - userId={}, vqaSessionId={}", userId, vqaSessionId);
 
         return VqaStartResponse.session(vqaSessionId, firstQuestion);
     }
@@ -80,7 +75,9 @@ public class VqaService {
     public VqaNextQuestionResponse getNextQuestion(String vqaSessionId) {
         String sessionData = getSessionDataOrThrow(vqaSessionId);
         Long pythonSessionId = parsePythonSessionId(sessionData);
-        return vqaClient.getNextQuestion(pythonSessionId);
+        int score = parseScore(sessionData);
+
+        return vqaClient.getNextQuestion(pythonSessionId, score);
     }
 
     /** 답변 제출 (3회 시도 제한 로직 포함) */
@@ -93,6 +90,7 @@ public class VqaService {
         long userId = Long.parseLong(parts[2]);
         long pythonSessionId = Long.parseLong(parts[3]);
         int currentAttempts = Integer.parseInt(parts[4]);
+        int score = Integer.parseInt(parts[5]);
 
         // VQA 서버에 답변 제출
         VqaSubmitResponse response = vqaClient.submitAnswer(new VqaSubmitRequest(
@@ -121,7 +119,7 @@ public class VqaService {
         }
 
         // 시도 횟수 업데이트하여 Redis 저장
-        saveVqaSession(vqaSessionId, pythonSessionId, new QueueTokenResolver.TokenInfo(phaseType, phaseId, userId), nextAttempts);
+        saveVqaSession(vqaSessionId, pythonSessionId, new QueueTokenResolver.TokenInfo(phaseType, phaseId, userId), nextAttempts, score);
         log.info("[VQA] 퀴즈 오답 - userId={}, remain={}", userId, remainAttempts);
         
         return VqaSubmitResult.fail(response.similarityScore(), remainAttempts);
@@ -139,17 +137,19 @@ public class VqaService {
         return Long.parseLong(sessionData.split(":")[3]);
     }
 
-    private int resolveVqaLevel(int score) {
-        if (score <= 20) return 1;
-        if (score <= 50) return 2;
-        if (score <= 80) return 3;
-        return 4;
+    private int parseScore(String sessionData) {
+        return Integer.parseInt(sessionData.split(":")[5]);
     }
 
-    private void saveVqaSession(String vqaSessionId, Long pythonSessionId, QueueTokenResolver.TokenInfo info, int attempts) {
+    private int resolveVqaLevel(int score) {
+        if (score <= 20) return 0; // 0~20점: 레벨 0 (면제)
+        return 1; // 21점 이상: 퀴즈 필요
+    }
+
+    private void saveVqaSession(String vqaSessionId, Long pythonSessionId, QueueTokenResolver.TokenInfo info, int attempts, int score) {
         String key = VQA_SESSION_KEY_PREFIX + vqaSessionId;
-        String value = String.format("%s:%d:%d:%d:%d", 
-            info.phaseType(), info.phaseId(), info.userId(), pythonSessionId, attempts);
+        String value = String.format("%s:%d:%d:%d:%d:%d", 
+            info.phaseType(), info.phaseId(), info.userId(), pythonSessionId, attempts, score);
         redisTemplate.opsForValue().set(key, value, Duration.ofSeconds(VQA_SESSION_TTL_SECONDS));
     }
 
