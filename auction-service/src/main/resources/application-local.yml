@@ -41,3 +41,7 @@ jwt:
 server:
   port: 8083
   shutdown: graceful
+
+services:
+  ticket-service:
+    url: ${TICKET_SERVICE_URL:http://localhost:8086}

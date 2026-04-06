@@ -21,10 +21,10 @@ public class DrawSecurityConfig extends CommonSecurityConfig {
     private final InternalApiAuthFilter internalApiAuthFilter;
 
     public DrawSecurityConfig(
-            JwtFilter jwtFilter,
-            JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
-            JwtAccessDeniedHandler jwtAccessDeniedHandler,
-            InternalApiAuthFilter internalApiAuthFilter
+        JwtFilter jwtFilter,
+        JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
+        JwtAccessDeniedHandler jwtAccessDeniedHandler,
+        InternalApiAuthFilter internalApiAuthFilter
     ) {
         super(jwtFilter, jwtAuthenticationEntryPoint, jwtAccessDeniedHandler);
         this.internalApiAuthFilter = internalApiAuthFilter;
@@ -37,16 +37,15 @@ public class DrawSecurityConfig extends CommonSecurityConfig {
         http.addFilterBefore(internalApiAuthFilter, JwtFilter.class);
 
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                        "/health",
-                        "/v3/api-docs/**",
-                        "/draw/swagger-ui/**",
-                        "/actuator/**",
-                        "/draws/**"
-                ).permitAll()
-                .requestMatchers(HttpMethod.GET, "/draws/**").permitAll()
-                .requestMatchers("/internal/**").permitAll()
-                .anyRequest().authenticated()
+            .requestMatchers(
+                "/health",
+                "/v3/api-docs/**",
+                "/draw/swagger-ui/**",
+                "/actuator/**"
+            ).permitAll()
+            .requestMatchers(HttpMethod.GET, "/draws/**").permitAll()
+            .requestMatchers("/internal/**").hasRole("INTERNAL")
+            .anyRequest().authenticated()
         );
 
         return http.build();

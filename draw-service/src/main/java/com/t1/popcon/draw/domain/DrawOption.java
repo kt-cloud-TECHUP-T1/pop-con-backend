@@ -3,15 +3,21 @@ package com.t1.popcon.draw.domain;
 import com.t1.popcon.common.entity.BaseSoftDeleteEntity;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLRestriction;
-
-import java.time.LocalDate;
-import java.time.LocalTime;
 
 @Getter
 @Entity
@@ -38,6 +44,12 @@ public class DrawOption extends BaseSoftDeleteEntity {
     @Column(nullable = false)
     private LocalTime entryTime;
 
+    @Column(nullable = false)
+    private boolean processed;
+
+    @Column(name = "processed_at")
+    private LocalDateTime processedAt;
+
     @Builder
     public DrawOption(
         Draw draw,
@@ -49,6 +61,14 @@ public class DrawOption extends BaseSoftDeleteEntity {
         this.draw = draw;
         this.entryDate = entryDate;
         this.entryTime = entryTime;
+        this.processed = false;
+    }
+
+    public void markProcessed(LocalDateTime processedAt) {
+        if (!this.processed) {
+            this.processed = true;
+            this.processedAt = processedAt;
+        }
     }
 
     private void validate(
