@@ -10,7 +10,7 @@ public class DrawEntryResponse {
 
     private Long id;
     private Long drawId;
-    private String thumbnailUrl;
+    private String vThumbnailUrl;
     private String title;
     private Long price;
     private LocalDateTime paidAt;

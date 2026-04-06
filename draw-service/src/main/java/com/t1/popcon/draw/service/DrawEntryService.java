@@ -1,5 +1,6 @@
 package com.t1.popcon.draw.service;
 
+import com.t1.popcon.common.encryption.EncryptionService;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.common.response.ApiResponse;
@@ -13,6 +14,7 @@ import com.t1.popcon.draw.domain.DrawEntryStatus;
 import com.t1.popcon.draw.domain.DrawOption;
 import com.t1.popcon.draw.dto.request.DrawEntryRequest;
 import com.t1.popcon.draw.dto.response.DrawEntryResponse;
+import com.t1.popcon.draw.dto.response.DrawEntryResultResponse;
 import com.t1.popcon.draw.repository.DrawEntryRepository;
 import com.t1.popcon.draw.repository.DrawOptionRepository;
 import feign.FeignException;
@@ -46,10 +48,11 @@ public class DrawEntryService {
     private final DrawOptionRepository drawOptionRepository;
     private final PopupServiceClient popupServiceClient;
     private final UserServiceClient userServiceClient;
+    private final EncryptionService encryptionService;
     private final Clock clock;
 
     @Transactional
-    public void applyForDraw(Long userId, Long drawId, Long drawOptionId, DrawEntryRequest request) {
+    public DrawEntryResultResponse applyForDraw(Long userId, Long drawId, Long drawOptionId, DrawEntryRequest request) {
         validateAgreements(request);
 
         DrawOption drawOption = drawOptionRepository.findById(drawOptionId)
@@ -73,13 +76,15 @@ public class DrawEntryService {
             .build();
 
         try {
-            drawEntryRepository.save(entry);
+            drawEntryRepository.saveAndFlush(entry);
         } catch (DataIntegrityViolationException e) {
             if (isDuplicateEntryViolation(e)) {
                 throw new CustomException(ErrorCode.DRAW_ALREADY_APPLIED);
             }
             throw e;
         }
+
+        return buildApplyResult(drawOption, userInfo);
     }
 
     @Transactional(readOnly = true)
@@ -91,6 +96,28 @@ public class DrawEntryService {
             entry,
             popupMap.get(entry.getDrawOption().getDraw().getPopupId())
         ));
+    }
+
+    private DrawEntryResultResponse buildApplyResult(DrawOption drawOption, UserInternalResponse userInfo) {
+        PopupInternalResponse popupInfo = null;
+
+        try {
+            ApiResponse<PopupInternalResponse> popupResponse =
+                popupServiceClient.getPopupDetail(drawOption.getDraw().getPopupId());
+            popupInfo = popupResponse != null ? popupResponse.getData() : null;
+        } catch (Exception e) {
+            log.warn("Draw apply result popup fetch failed - popupId={}", drawOption.getDraw().getPopupId(), e);
+        }
+
+        return DrawEntryResultResponse.builder()
+            .vThumbnailUrl(popupInfo != null ? popupInfo.vThumbnailUrl() : null)
+            .popupTitle(popupInfo != null ? popupInfo.title() : UNKNOWN_POPUP_TITLE)
+            .popupAddress(popupInfo != null ? popupInfo.location() : null)
+            .entryDate(drawOption.getEntryDate())
+            .entryTime(drawOption.getEntryTime())
+            .userName(encryptionService.decrypt(userInfo.encryptedName()))
+            .userPhoneNumber(encryptionService.decrypt(userInfo.encryptedPhoneNumber()))
+            .build();
     }
 
     private void validateAgreements(DrawEntryRequest request) {
@@ -181,7 +208,7 @@ public class DrawEntryService {
         return DrawEntryResponse.builder()
             .id(entry.getId())
             .drawId(draw.getId())
-            .thumbnailUrl(popupInfo != null ? popupInfo.vThumbnailUrl() : null)
+            .vThumbnailUrl(popupInfo != null ? popupInfo.vThumbnailUrl() : null)
             .title(popupInfo != null ? popupInfo.title() : UNKNOWN_POPUP_TITLE)
             .price(DEFAULT_PRICE)
             .paidAt(entry.getPaidAt())
