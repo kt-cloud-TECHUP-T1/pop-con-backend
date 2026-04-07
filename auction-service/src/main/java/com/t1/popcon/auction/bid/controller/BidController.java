@@ -41,8 +41,12 @@ public class BidController {
 
 		BidResponse response = bidService.attemptBid(authUser.id(), request);
 
-		// 정상 완료 후 대기열 슬롯 반납
-		cleanupRepository.cleanupUserData(tokenInfo.phaseType(), tokenInfo.phaseId(), authUser.id(), null);
+		// 정상 완료 후 대기열 슬롯 반납 (실패해도 비즈니스 로직에 영향을 주지 않도록 예외 처리)
+		try {
+			cleanupRepository.cleanupUserData(tokenInfo.phaseType(), tokenInfo.phaseId(), authUser.id(), null);
+		} catch (Exception e) {
+			log.error(">>>> [Cleanup Error] 대기열 슬롯 반납 중 오류 발생 - userId={}, error={}", authUser.id(), e.getMessage());
+		}
 
 		return ResponseEntity.ok(ApiResponse.ok(response));
 	}
@@ -50,11 +54,8 @@ public class BidController {
 	@GetMapping("/reservations/{reservationNo}")
 	public ResponseEntity<ApiResponse<ReservationDetailResponse>> getReservationDetail(
 		@AuthenticationPrincipal AuthUser authUser,
-		@RequestAttribute(QUIZ_PASSED_TOKEN_INFO_ATTRIBUTE) QuizPassedTokenInfo tokenInfo,
 		@PathVariable String reservationNo
 	) {
-		Long auctionId = bidService.getAuctionIdByReservationNo(reservationNo);
-		validateQuizToken(authUser, tokenInfo, auctionId);
 		log.info(">>>> [Reservation Detail Request] Member ID: {}, Reservation No: {}", authUser.id(), reservationNo);
 
 		ReservationDetailResponse response = bidService.getReservationDetail(authUser.id(), reservationNo);

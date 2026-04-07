@@ -13,6 +13,8 @@ import com.t1.popcon.draw.service.DrawResultService;
 import com.t1.popcon.queue.common.redis.QueueCleanupRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import static com.t1.popcon.common.queue.QuizPassedTokenFilter.QUIZ_PASSED_TOKEN_INFO_ATTRIBUTE;
 
+@Slf4j
 @RestController
 @RequestMapping("/draws")
 @RequiredArgsConstructor
@@ -44,8 +47,12 @@ public class DrawEntryController {
 		validateQuizToken(authUser, tokenInfo, drawId);
 		DrawEntryResultResponse response = drawEntryService.applyForDraw(authUser.id(), drawId, optionId, request);
 
-		// 정상 완료 후 대기열 슬롯 반납
-		cleanupRepository.cleanupUserData(tokenInfo.phaseType(), tokenInfo.phaseId(), authUser.id(), null);
+		// 정상 완료 후 대기열 슬롯 반납 (실패해도 비즈니스 로직에 영향을 주지 않도록 예외 처리)
+		try {
+			cleanupRepository.cleanupUserData(tokenInfo.phaseType(), tokenInfo.phaseId(), authUser.id(), null);
+		} catch (Exception e) {
+			log.error(">>>> [Cleanup Error] 대기열 슬롯 반납 중 오류 발생 - userId={}, error={}", authUser.id(), e.getMessage());
+		}
 
 		return ApiResponse.ok("드로우 응모가 완료되었습니다.", response);
 	}

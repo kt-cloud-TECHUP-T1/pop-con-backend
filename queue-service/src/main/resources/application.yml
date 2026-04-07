@@ -1,4 +1,14 @@
 spring:
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connectTimeout: 5000
+            readTimeout: 30000
+          vqa-client:
+            connectTimeout: 5000
+            readTimeout: 30000
   # 기본 활성 프로파일
 #  profiles:
 #    active: local
@@ -27,14 +37,3 @@ queue:
 vqa:
   server:
     url: ${VQA_SERVER_URL}
-
-# Feign 클라이언트 설정
-feign:
-  client:
-    config:
-      default:
-        connectTimeout: 5000
-        readTimeout: 30000
-      vqa-client:
-        connectTimeout: 5000
-        readTimeout: 30000
