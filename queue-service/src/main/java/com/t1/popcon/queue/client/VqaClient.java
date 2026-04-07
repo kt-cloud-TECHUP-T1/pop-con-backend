@@ -20,7 +20,7 @@ public interface VqaClient {
     @GetMapping("/api/v1/test/next")
     VqaNextQuestionResponse getNextQuestion(
         @RequestParam("session_id") Long sessionId,
-        @RequestParam("score") Integer score
+        @RequestParam("anti_macro_score") Integer score
     );
 
     @PostMapping("/api/v1/test/submit")
