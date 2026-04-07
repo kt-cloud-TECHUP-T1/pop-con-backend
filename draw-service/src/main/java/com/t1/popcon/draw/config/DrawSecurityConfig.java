@@ -55,6 +55,8 @@ public class DrawSecurityConfig extends CommonSecurityConfig {
 
                 // 1. 상세 조회 제외
                 if (method.equals("GET") && path.matches("^/draws/\\d+$")) return true;
+                // 1-1. 응모 완료 후 결과 확인은 퀴즈 토큰 정리 이후에 호출된다.
+                if (method.equals("POST") && path.matches("^/draws/entries/\\d+/confirm-result$")) return true;
                 // 2. 공용 및 내부 API 제외
                 if (path.startsWith("/internal/") || path.equals("/health") || path.startsWith("/actuator/")) return true;
                 // 3. API 문서 제외
