@@ -29,7 +29,10 @@ public class RedisConfig {
 			.registerModule(new JavaTimeModule())
 			.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 			.activateDefaultTyping(
-				BasicPolymorphicTypeValidator.builder().allowIfBaseType(Object.class).build(),
+				BasicPolymorphicTypeValidator.builder()
+					.allowIfSubType("com.t1.popcon")
+					.allowIfSubType("java.util")
+					.build(),
 				ObjectMapper.DefaultTyping.NON_FINAL
 			);
 
