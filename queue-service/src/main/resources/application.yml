@@ -1,4 +1,14 @@
 spring:
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connectTimeout: 5000
+            readTimeout: 30000
+          vqa-client:
+            connectTimeout: 5000
+            readTimeout: 30000
   # 기본 활성 프로파일
 #  profiles:
 #    active: local
@@ -22,3 +32,8 @@ queue:
   active-ttl:
     draw-seconds: 900
     auction-seconds: 3600
+
+# VQA 서버 설정
+vqa:
+  server:
+    url: ${VQA_SERVER_URL}
