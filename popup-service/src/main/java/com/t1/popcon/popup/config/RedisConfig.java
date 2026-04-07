@@ -9,13 +9,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 @Configuration
@@ -24,24 +25,21 @@ public class RedisConfig {
 
 	@Bean
 	public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-		// 1. ObjectMapper 설정 (클래스 타입 정보 포함, 시간 타입 지원)
+		// WRAPPER_ARRAY 방식: ["className", {...}] 형태로 타입 정보 저장
+		// EVERYTHING: record(암묵적 final) 포함 모든 타입에 타입 정보 적용
 		ObjectMapper objectMapper = new ObjectMapper()
 			.registerModule(new JavaTimeModule())
 			.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 			.activateDefaultTyping(
-				BasicPolymorphicTypeValidator.builder()
-					.allowIfSubType("com.t1.popcon")
-					.allowIfSubType("java.util")
-					.build(),
-				ObjectMapper.DefaultTyping.NON_FINAL
+					LaissezFaireSubTypeValidator.instance,
+					ObjectMapper.DefaultTyping.EVERYTHING,
+					JsonTypeInfo.As.WRAPPER_ARRAY
 			);
 
-		// 2. 시리얼라이저 생성
-		Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(objectMapper, Object.class);
+		GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
 
-		// 3. 캐시 설정
 		RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
-			.entryTtl(Duration.ofMinutes(10)) // 랭킹 캐시 수명 10분
+			.entryTtl(Duration.ofMinutes(10))
 			.serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
 			.serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer));
 
