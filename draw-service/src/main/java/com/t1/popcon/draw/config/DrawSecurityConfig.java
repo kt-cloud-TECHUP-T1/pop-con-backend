@@ -50,6 +50,7 @@ public class DrawSecurityConfig extends CommonSecurityConfig {
         QuizPassedTokenFilter quizFilter = new QuizPassedTokenFilter(quizPassedTokenValidator, objectMapper) {
             @Override
             protected boolean shouldNotFilter(jakarta.servlet.http.HttpServletRequest request) {
+                if (super.shouldNotFilter(request)) return true;
                 String path = request.getRequestURI();
                 String method = request.getMethod();
 

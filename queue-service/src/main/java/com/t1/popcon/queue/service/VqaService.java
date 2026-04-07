@@ -39,14 +39,16 @@ public class VqaService {
     private static final String VQA_SESSION_KEY_PREFIX = "vqa:session:";
     private static final String VQA_USER_SESSION_KEY_PREFIX = "vqa:session:user:";
     private static final String VQA_GLOBAL_ATTEMPTS_PREFIX = "vqa:attempts:global:";
-    private static final String VQA_LOCK_PREFIX = "lock:vqa:submit:";
+    private static final String VQA_LOCK_SUBMIT_PREFIX = "lock:vqa:submit:";
+    private static final String VQA_LOCK_START_PREFIX = "lock:vqa:start:";
+    
     private static final long VQA_SESSION_TTL_SECONDS = 600; // 10분
     private static final long VQA_GLOBAL_LOCKOUT_TTL_SECONDS = 1800; // 30분
     private static final int MAX_ATTEMPTS = 3;
 
     /**
      * 보안 퀴즈 시작 (원샷 방식)
-     * - 중복 호출 방지 및 세션 재사용 로직 포함
+     * - 분산 락을 통해 동일 사용자의 중복 세션 생성 방지
      */
     public VqaStartResponse start(String queueToken) {
         QueueTokenResolver.TokenInfo tokenInfo = tokenResolver.resolve(queueToken);
@@ -54,71 +56,78 @@ public class VqaService {
         String phaseType = tokenInfo.phaseType();
         long phaseId = tokenInfo.phaseId();
 
-        // 사용자가 현재 대기열 ACTIVE 상태이며 만료되지 않았는지 검증
-        long now = Instant.now().toEpochMilli();
-        activeRepository.getActiveExpireAt(phaseType, phaseId, userId)
-                .filter(expireAt -> expireAt > now)
-                .orElseThrow(() -> new CustomException(ErrorCode.QUEUE_NOT_ACTIVE));
-
-        // 1. 이미 통과했는지 확인 (중복 발급 방지)
-        Map<Object, Object> userHash = activeRepository.getUserHash(phaseType, phaseId, userId);
-        if (userHash.containsKey(QueueRedisKeys.FIELD_QUIZ_PASSED_TOKEN)) {
-            log.warn("[VQA] 이미 퀴즈를 통과한 사용자 - userId={}", userId);
-            throw new CustomException(ErrorCode.QUIZ_ALREADY_PASSED);
-        }
-
-        // 2. 글로벌 시도 횟수 체크 (최종 실패 여부)
-        String globalKey = getGlobalAttemptsKey(userId, phaseType, phaseId);
-        String attemptsStr = redisTemplate.opsForValue().get(globalKey);
-        int globalAttempts = (attemptsStr != null) ? Integer.parseInt(attemptsStr) : 0;
-
-        if (globalAttempts >= MAX_ATTEMPTS) {
-            log.warn("[VQA] 글로벌 시도 횟수 초과 차단 - userId={}, attempts={}", userId, globalAttempts);
-            throw new CustomException(ErrorCode.QUIZ_ATTEMPTS_EXCEEDED);
-        }
-
-        // 3. 기존 진행 중인 세션이 있는지 확인 (세션 재사용)
-        String userSessionKey = getUserSessionKey(userId, phaseType, phaseId);
-        String existingVqaSessionId = redisTemplate.opsForValue().get(userSessionKey);
-
-        if (existingVqaSessionId != null) {
-            String sessionData = redisTemplate.opsForValue().get(VQA_SESSION_KEY_PREFIX + existingVqaSessionId);
-            if (sessionData != null) {
-                log.info("[VQA] 기존 세션 재사용 - userId={}, vqaSessionId={}", userId, existingVqaSessionId);
-                VqaNextQuestionResponse nextQuestion = getNextQuestion(existingVqaSessionId);
-                return VqaStartResponse.session(existingVqaSessionId, nextQuestion);
+        RLock lock = redissonClient.getLock(VQA_LOCK_START_PREFIX + userId + ":" + phaseId);
+        try {
+            if (!lock.tryLock(5, TimeUnit.SECONDS)) {
+                throw new CustomException(ErrorCode.ERROR_SYSTEM, "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.");
             }
+
+            // 0. ACTIVE 상태 검증
+            long now = Instant.now().toEpochMilli();
+            activeRepository.getActiveExpireAt(phaseType, phaseId, userId)
+                    .filter(expireAt -> expireAt > now)
+                    .orElseThrow(() -> new CustomException(ErrorCode.QUEUE_NOT_ACTIVE));
+
+            // 1. 이미 통과했는지 확인
+            Map<Object, Object> userHash = activeRepository.getUserHash(phaseType, phaseId, userId);
+            if (userHash.containsKey(QueueRedisKeys.FIELD_QUIZ_PASSED_TOKEN)) {
+                throw new CustomException(ErrorCode.QUIZ_ALREADY_PASSED);
+            }
+
+            // 2. 글로벌 시도 횟수 체크
+            String globalKey = getGlobalAttemptsKey(userId, phaseType, phaseId);
+            String attemptsStr = redisTemplate.opsForValue().get(globalKey);
+            int globalAttempts = (attemptsStr != null) ? Integer.parseInt(attemptsStr) : 0;
+
+            if (globalAttempts >= MAX_ATTEMPTS) {
+                throw new CustomException(ErrorCode.QUIZ_ATTEMPTS_EXCEEDED);
+            }
+
+            // 3. 기존 세션 재사용 확인
+            String userSessionKey = getUserSessionKey(userId, phaseType, phaseId);
+            String existingVqaSessionId = redisTemplate.opsForValue().get(userSessionKey);
+
+            if (existingVqaSessionId != null) {
+                String sessionData = redisTemplate.opsForValue().get(VQA_SESSION_KEY_PREFIX + existingVqaSessionId);
+                if (sessionData != null) {
+                    log.info("[VQA] 기존 세션 재사용 - userId={}, vqaSessionId={}", userId, existingVqaSessionId);
+                    VqaNextQuestionResponse nextQuestion = getNextQuestion(existingVqaSessionId);
+                    return VqaStartResponse.session(existingVqaSessionId, nextQuestion);
+                }
+            }
+
+            int totalScore = antiMacroScoreRepository.getTotalScore(userId);
+
+            // 4. 레벨 0 (0~20점): 면제
+            if (totalScore <= 20) {
+                String quizPassedToken = generateAndSaveQuizPassedToken(tokenInfo);
+                return VqaStartResponse.exempt(quizPassedToken);
+            }
+
+            // 5. 레벨 1 이상: VQA 서버 세션 시작
+            VqaSessionStartResponse vqaResponse = vqaClient.startSession(VqaSessionStartRequest.empty());
+            Long pythonSessionId = vqaResponse.sessionId();
+            VqaNextQuestionResponse firstQuestion = vqaClient.getNextQuestion(pythonSessionId, totalScore);
+
+            if (Boolean.TRUE.equals(firstQuestion.isExempt())) {
+                String quizPassedToken = generateAndSaveQuizPassedToken(tokenInfo);
+                return VqaStartResponse.exempt(quizPassedToken);
+            }
+
+            String vqaSessionId = UUID.randomUUID().toString();
+            saveVqaSession(vqaSessionId, pythonSessionId, tokenInfo, globalAttempts, totalScore);
+            
+            redisTemplate.opsForValue().set(userSessionKey, vqaSessionId, Duration.ofSeconds(VQA_SESSION_TTL_SECONDS));
+
+            log.info("[VQA] 퀴즈 세션 생성 완료 - userId={}, vqaSessionId={}", userId, vqaSessionId);
+            return VqaStartResponse.session(vqaSessionId, firstQuestion);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new CustomException(ErrorCode.ERROR_SYSTEM, "인증 시작 중 오류가 발생했습니다.");
+        } finally {
+            if (lock.isHeldByCurrentThread()) lock.unlock();
         }
-
-        int totalScore = antiMacroScoreRepository.getTotalScore(userId);
-        log.info("[VQA] 퀴즈 시작 시도 - userId={}, score={}, globalAttempts={}", userId, totalScore, globalAttempts);
-
-        // 4. 레벨 0 (0~20점): 면제
-        if (totalScore <= 20) {
-            String quizPassedToken = generateAndSaveQuizPassedToken(tokenInfo);
-            log.info("[VQA] 퀴즈 면제 처리 - userId={}", userId);
-            return VqaStartResponse.exempt(quizPassedToken);
-        }
-
-        // 5. 레벨 1 이상: VQA 서버 세션 시작
-        VqaSessionStartResponse vqaResponse = vqaClient.startSession(VqaSessionStartRequest.empty());
-        Long pythonSessionId = vqaResponse.sessionId();
-
-        VqaNextQuestionResponse firstQuestion = vqaClient.getNextQuestion(pythonSessionId, totalScore);
-
-        if (Boolean.TRUE.equals(firstQuestion.isExempt())) {
-            String quizPassedToken = generateAndSaveQuizPassedToken(tokenInfo);
-            log.info("[VQA] 퀴즈 면제 처리 (VQA 서버 판단) - userId={}", userId);
-            return VqaStartResponse.exempt(quizPassedToken);
-        }
-
-        String vqaSessionId = UUID.randomUUID().toString();
-        saveVqaSession(vqaSessionId, pythonSessionId, tokenInfo, globalAttempts, totalScore);
-        
-        redisTemplate.opsForValue().set(userSessionKey, vqaSessionId, Duration.ofSeconds(VQA_SESSION_TTL_SECONDS));
-
-        log.info("[VQA] 퀴즈 세션 생성 완료 - userId={}, vqaSessionId={}", userId, vqaSessionId);
-        return VqaStartResponse.session(vqaSessionId, firstQuestion);
     }
 
     /** 다음 문제 정보 조회 */
@@ -132,23 +141,26 @@ public class VqaService {
 
     /** 답변 제출 (분산 락을 통한 원자성 보장) */
     public VqaSubmitResult submit(String vqaSessionId, Long videoId, Long questionId, String answer, Double time) {
-        RLock lock = redissonClient.getLock(VQA_LOCK_PREFIX + vqaSessionId);
+        RLock lock = redissonClient.getLock(VQA_LOCK_SUBMIT_PREFIX + vqaSessionId);
         
         try {
-            // 5초 대기, 10초 점유
-            if (!lock.tryLock(5, 10, TimeUnit.SECONDS)) {
+            // leaseTime 제거하여 Redisson Watchdog 활성화 (안전한 락 유지)
+            if (!lock.tryLock(5, TimeUnit.SECONDS)) {
                 throw new CustomException(ErrorCode.ERROR_SYSTEM, "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.");
             }
 
-            // 1. 락 획득 후 최신 세션 데이터 조회
+            // 1. 최신 세션 데이터 조회 및 파싱 검증
             String sessionData = getSessionDataOrThrow(vqaSessionId);
             String[] parts = sessionData.split(":");
+            if (parts.length < 6) {
+                throw new CustomException(ErrorCode.VQA_SESSION_EXPIRED, "세션 데이터 형식이 올바르지 않습니다.");
+            }
             
             String phaseType = parts[0];
-            long phaseId = Long.parseLong(parts[1]);
-            long userId = Long.parseLong(parts[2]);
-            long pythonSessionId = Long.parseLong(parts[3]);
-            int score = Integer.parseInt(parts[5]);
+            long phaseId = parseNumeric(parts[1], "phaseId");
+            long userId = parseNumeric(parts[2], "userId");
+            long pythonSessionId = parseNumeric(parts[3], "pythonSessionId");
+            int score = (int) parseNumeric(parts[5], "score");
 
             // 2. VQA 서버에 답변 제출
             VqaSubmitResponse response = vqaClient.submitAnswer(new VqaSubmitRequest(
@@ -161,7 +173,6 @@ public class VqaService {
                 String quizPassedToken = generateAndSaveQuizPassedToken(tokenInfo);
                 
                 clearVqaSession(vqaSessionId, userId, phaseType, phaseId);
-                
                 log.info("[VQA] 퀴즈 통과 - userId={}", userId);
                 return VqaSubmitResult.success(response.similarityScore(), quizPassedToken);
             }
@@ -191,9 +202,7 @@ public class VqaService {
             Thread.currentThread().interrupt();
             throw new CustomException(ErrorCode.ERROR_SYSTEM, "인증 처리 중 오류가 발생했습니다.");
         } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
+            if (lock.isHeldByCurrentThread()) lock.unlock();
         }
     }
 
@@ -219,18 +228,18 @@ public class VqaService {
     }
 
     private Long parsePythonSessionId(String sessionData) {
-        try {
-            return Long.parseLong(sessionData.split(":")[3]);
-        } catch (Exception e) {
-            throw new CustomException(ErrorCode.VQA_SESSION_EXPIRED, "세션 데이터 파싱 오류");
-        }
+        return parseNumeric(sessionData.split(":")[3], "pythonSessionId");
     }
 
     private int parseScore(String sessionData) {
+        return (int) parseNumeric(sessionData.split(":")[5], "score");
+    }
+
+    private long parseNumeric(String val, String fieldName) {
         try {
-            return Integer.parseInt(sessionData.split(":")[5]);
+            return Long.parseLong(val);
         } catch (Exception e) {
-            throw new CustomException(ErrorCode.VQA_SESSION_EXPIRED, "점수 파싱 오류");
+            throw new CustomException(ErrorCode.VQA_SESSION_EXPIRED, fieldName + " 파싱 오류");
         }
     }
 
@@ -239,6 +248,9 @@ public class VqaService {
         String value = String.format("%s:%d:%d:%d:%d:%d", 
             info.phaseType(), info.phaseId(), info.userId(), pythonSessionId, attempts, score);
         redisTemplate.opsForValue().set(key, value, Duration.ofSeconds(VQA_SESSION_TTL_SECONDS));
+        
+        // 사용자 매핑 키 TTL도 함께 연장하여 동기화
+        redisTemplate.expire(getUserSessionKey(info.userId(), info.phaseType(), info.phaseId()), Duration.ofSeconds(VQA_SESSION_TTL_SECONDS));
     }
 
     private String generateAndSaveQuizPassedToken(QueueTokenResolver.TokenInfo tokenInfo) {
@@ -249,6 +261,12 @@ public class VqaService {
                 .orElseThrow(() -> new CustomException(ErrorCode.QUEUE_NOT_ACTIVE));
 
         long remainSeconds = (expireAt - now) / 1000;
+        
+        // 최소 1초의 TTL 보장 (즉시 만료 방지)
+        if (remainSeconds <= 0) {
+            throw new CustomException(ErrorCode.QUEUE_NOT_ACTIVE);
+        }
+
         activeRepository.saveQuizPassedToken(token, tokenInfo.phaseType(), tokenInfo.phaseId(), tokenInfo.userId(), remainSeconds);
         activeRepository.saveQuizPassedTokenToUserHash(tokenInfo.phaseType(), tokenInfo.phaseId(), tokenInfo.userId(), token);
         return token;

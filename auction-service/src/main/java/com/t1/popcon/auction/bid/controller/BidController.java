@@ -32,7 +32,7 @@ public class BidController {
 	@PostMapping("/bids")
 	public ResponseEntity<ApiResponse<BidResponse>> attemptBid(
 		@AuthenticationPrincipal AuthUser authUser,
-		@RequestAttribute(QUIZ_PASSED_TOKEN_INFO_ATTRIBUTE) QuizPassedTokenInfo tokenInfo,
+		@RequestAttribute(value = QUIZ_PASSED_TOKEN_INFO_ATTRIBUTE, required = false) QuizPassedTokenInfo tokenInfo,
 		@Valid @RequestBody BidRequest request
 	) {
 		Long auctionId = bidService.getAuctionIdByOptionId(request.auctionOptionId());
@@ -73,7 +73,7 @@ public class BidController {
 		if (!"auction".equals(tokenInfo.phaseType())) {
 			throw new CustomException(ErrorCode.QUIZ_PASSED_TOKEN_INVALID, "경매 전용 퀴즈 토큰이 아닙니다.");
 		}
-		if (auctionId != null && !auctionId.equals(tokenInfo.phaseId())) {
+		if (!auctionId.equals(tokenInfo.phaseId())) {
 			throw new CustomException(ErrorCode.QUIZ_PASSED_TOKEN_INVALID, "해당 경매에 유효한 퀴즈 토큰이 아닙니다.");
 		}
 	}
