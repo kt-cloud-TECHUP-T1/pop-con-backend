@@ -38,11 +38,10 @@ public class VqaService {
         long userId = tokenInfo.userId();
 
         int totalScore = antiMacroScoreRepository.getTotalScore(userId);
-        int vqaLevel = resolveVqaLevel(totalScore);
-        log.info("[VQA] 퀴즈 시작 시도 - userId={}, score={}, level={}", userId, totalScore, vqaLevel);
+        log.info("[VQA] 퀴즈 시작 시도 - userId={}, score={}", userId, totalScore);
 
         // 1. 레벨 0 (0~20점): 면제
-        if (vqaLevel == 0) {
+        if (totalScore <= 20) {
             String quizPassedToken = generateAndSaveQuizPassedToken(tokenInfo);
             log.info("[VQA] 퀴즈 면제 처리 - userId={}", userId);
             return VqaStartResponse.exempt(quizPassedToken);
@@ -139,11 +138,6 @@ public class VqaService {
 
     private int parseScore(String sessionData) {
         return Integer.parseInt(sessionData.split(":")[5]);
-    }
-
-    private int resolveVqaLevel(int score) {
-        if (score <= 20) return 0; // 0~20점: 레벨 0 (면제)
-        return 1; // 21점 이상: 퀴즈 필요
     }
 
     private void saveVqaSession(String vqaSessionId, Long pythonSessionId, QueueTokenResolver.TokenInfo info, int attempts, int score) {
