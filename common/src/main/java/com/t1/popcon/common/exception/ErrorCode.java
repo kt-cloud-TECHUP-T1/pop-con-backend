@@ -93,7 +93,10 @@ public enum ErrorCode {
 
     // Quiz
     QUIZ_PASSED_TOKEN_MISSING("QZ001", HttpStatus.UNAUTHORIZED, "퀴즈 통과 토큰이 필요합니다."),
-    QUIZ_PASSED_TOKEN_INVALID("QZ002", HttpStatus.UNAUTHORIZED, "유효하지 않은 퀴즈 통과 토큰입니다.");
+    QUIZ_PASSED_TOKEN_INVALID("QZ002", HttpStatus.UNAUTHORIZED, "유효하지 않은 퀴즈 통과 토큰입니다."),
+    VQA_SESSION_EXPIRED("QZ003", HttpStatus.NOT_FOUND, "유효하지 않거나 만료된 보안 퀴즈 세션입니다."),
+    QUIZ_ATTEMPTS_EXCEEDED("QZ004", HttpStatus.FORBIDDEN, "보안 퀴즈 시도 횟수를 초과했습니다."),
+    QUIZ_ALREADY_PASSED("QZ005", HttpStatus.BAD_REQUEST, "이미 보안 퀴즈를 통과했습니다.");
 
     private final String code;
     private final HttpStatus status;

@@ -46,13 +46,19 @@ public class DrawSecurityConfig extends CommonSecurityConfig {
         http.addFilterBefore(internalApiAuthFilter, JwtFilter.class);
 
         // 퀴즈 통과 토큰 검증 필터 추가
-        // - 상세 조회(GET /draws/{id})는 제외하고, 날짜/옵션 조회 및 응모 시에만 작동하도록 설정
+        // - 상세 조회(GET /draws/{id}), 공용 API, 내부 호출은 제외
         QuizPassedTokenFilter quizFilter = new QuizPassedTokenFilter(quizPassedTokenValidator, objectMapper) {
             @Override
             protected boolean shouldNotFilter(jakarta.servlet.http.HttpServletRequest request) {
                 String path = request.getRequestURI();
                 String method = request.getMethod();
-                return method.equals("GET") && path.matches("^/draws/\\d+$");
+
+                // 1. 상세 조회 제외
+                if (method.equals("GET") && path.matches("^/draws/\\d+$")) return true;
+                // 2. 공용 및 내부 API 제외
+                if (path.startsWith("/internal/") || path.equals("/health") || path.startsWith("/actuator/")) return true;
+                // 3. API 문서 제외
+                return path.startsWith("/v3/api-docs") || path.startsWith("/draw/swagger-ui");
             }
         };
         http.addFilterAfter(quizFilter, JwtFilter.class);

@@ -9,6 +9,7 @@ import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.common.queue.QuizPassedTokenInfo;
 import com.t1.popcon.common.response.ApiResponse;
+import com.t1.popcon.queue.common.redis.QueueCleanupRepository;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ import static com.t1.popcon.common.queue.QuizPassedTokenFilter.QUIZ_PASSED_TOKEN
 public class BidController {
 
 	private final BidService bidService;
+	private final QueueCleanupRepository cleanupRepository;
 
 	@PostMapping("/bids")
 	public ResponseEntity<ApiResponse<BidResponse>> attemptBid(
@@ -33,10 +35,14 @@ public class BidController {
 		@RequestAttribute(QUIZ_PASSED_TOKEN_INFO_ATTRIBUTE) QuizPassedTokenInfo tokenInfo,
 		@Valid @RequestBody BidRequest request
 	) {
-		validateQuizToken(authUser, tokenInfo);
+		Long auctionId = bidService.getAuctionIdByOptionId(request.auctionOptionId());
+		validateQuizToken(authUser, tokenInfo, auctionId);
 		log.info(">>>> [Bid Request] Member ID: {}, Option ID: {}", authUser.id(), request.auctionOptionId());
 
 		BidResponse response = bidService.attemptBid(authUser.id(), request);
+
+		// 정상 완료 후 대기열 슬롯 반납
+		cleanupRepository.cleanupUserData(tokenInfo.phaseType(), tokenInfo.phaseId(), authUser.id(), null);
 
 		return ResponseEntity.ok(ApiResponse.ok(response));
 	}
@@ -47,7 +53,8 @@ public class BidController {
 		@RequestAttribute(QUIZ_PASSED_TOKEN_INFO_ATTRIBUTE) QuizPassedTokenInfo tokenInfo,
 		@PathVariable String reservationNo
 	) {
-		validateQuizToken(authUser, tokenInfo);
+		Long auctionId = bidService.getAuctionIdByReservationNo(reservationNo);
+		validateQuizToken(authUser, tokenInfo, auctionId);
 		log.info(">>>> [Reservation Detail Request] Member ID: {}, Reservation No: {}", authUser.id(), reservationNo);
 
 		ReservationDetailResponse response = bidService.getReservationDetail(authUser.id(), reservationNo);
@@ -55,7 +62,7 @@ public class BidController {
 		return ResponseEntity.ok(ApiResponse.ok(response));
 	}
 
-	private void validateQuizToken(AuthUser authUser, QuizPassedTokenInfo tokenInfo) {
+	private void validateQuizToken(AuthUser authUser, QuizPassedTokenInfo tokenInfo, Long auctionId) {
 		if (authUser == null || tokenInfo == null) {
 			throw new CustomException(ErrorCode.QUIZ_PASSED_TOKEN_MISSING);
 		}
@@ -64,6 +71,9 @@ public class BidController {
 		}
 		if (!"auction".equals(tokenInfo.phaseType())) {
 			throw new CustomException(ErrorCode.QUIZ_PASSED_TOKEN_INVALID, "경매 전용 퀴즈 토큰이 아닙니다.");
+		}
+		if (auctionId != null && !auctionId.equals(tokenInfo.phaseId())) {
+			throw new CustomException(ErrorCode.QUIZ_PASSED_TOKEN_INVALID, "해당 경매에 유효한 퀴즈 토큰이 아닙니다.");
 		}
 	}
 }

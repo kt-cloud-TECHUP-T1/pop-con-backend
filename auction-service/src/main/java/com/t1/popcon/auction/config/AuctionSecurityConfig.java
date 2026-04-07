@@ -37,13 +37,20 @@ public class AuctionSecurityConfig extends CommonSecurityConfig {
     public SecurityFilterChain auctionSecurityFilterChain(HttpSecurity http) throws Exception {
         super.configureCommonSettings(http);
 
-        // 퀴즈 통과 토큰 검증 필터 추가 (상세 조회는 제외)
+        // 퀴즈 통과 토큰 검증 필터 추가
+        // - 어드민, 내부 호출, 상세 조회(GET)는 퀴즈 검증 제외
         QuizPassedTokenFilter quizFilter = new QuizPassedTokenFilter(quizPassedTokenValidator, objectMapper) {
             @Override
             protected boolean shouldNotFilter(jakarta.servlet.http.HttpServletRequest request) {
                 String path = request.getRequestURI();
                 String method = request.getMethod();
-                return method.equals("GET") && path.matches("^/auctions/\\d+$");
+
+                // 1. 상세 조회 제외
+                if (method.equals("GET") && path.matches("^/auctions/\\d+$")) return true;
+                // 2. 어드민 및 내부 API 제외
+                if (path.startsWith("/admin/") || path.startsWith("/internal/")) return true;
+                // 3. 헬스체크 등 공용 API 제외
+                return path.equals("/health") || path.startsWith("/actuator/");
             }
         };
 

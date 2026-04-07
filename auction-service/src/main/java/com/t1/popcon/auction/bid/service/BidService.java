@@ -54,6 +54,18 @@ public class BidService {
     private final TicketServiceClient ticketServiceClient;
     private final ReservationNoGenerator reservationNoGenerator;
 
+    public Long getAuctionIdByOptionId(Long optionId) {
+        return auctionOptionRepository.findByIdWithAuction(optionId)
+            .map(option -> option.getAuction().getId())
+            .orElseThrow(() -> new CustomException(ErrorCode.AUCTION_OPTION_NOT_FOUND));
+    }
+
+    public Long getAuctionIdByReservationNo(String reservationNo) {
+        return bidRepository.findByReservationNo(reservationNo)
+            .map(Bid::getAuctionId)
+            .orElseThrow(() -> new CustomException(ErrorCode.BID_NOT_FOUND));
+    }
+
     public List<BidHistoryResponse> getBidHistory(Long userId) {
         List<Bid> bids = bidRepository.findAllByUserIdAndStatusOrderByCreatedAtDesc(userId, BidStatus.SUCCESS);
 

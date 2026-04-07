@@ -10,6 +10,7 @@ import com.t1.popcon.draw.dto.response.DrawEntryResultResponse;
 import com.t1.popcon.draw.dto.response.DrawResultConfirmResponse;
 import com.t1.popcon.draw.service.DrawEntryService;
 import com.t1.popcon.draw.service.DrawResultService;
+import com.t1.popcon.queue.common.redis.QueueCleanupRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -28,7 +29,8 @@ import static com.t1.popcon.common.queue.QuizPassedTokenFilter.QUIZ_PASSED_TOKEN
 public class DrawEntryController {
 
 	private final DrawEntryService drawEntryService;
-  private final DrawResultService drawResultService;
+	private final DrawResultService drawResultService;
+	private final QueueCleanupRepository cleanupRepository;
 
 	@PostMapping("/{drawId}/options/{optionId}/entries")
 	public ApiResponse<DrawEntryResultResponse> applyForDraw(
@@ -36,12 +38,14 @@ public class DrawEntryController {
 		@PathVariable Long optionId,
 		@Valid @RequestBody DrawEntryRequest request,
 		@AuthenticationPrincipal AuthUser authUser,
-		@RequestAttribute(QUIZ_PASSED_TOKEN_INFO_ATTRIBUTE) QuizPassedTokenInfo tokenInfo
+		@RequestAttribute(value = QUIZ_PASSED_TOKEN_INFO_ATTRIBUTE, required = false) QuizPassedTokenInfo tokenInfo
 	) {
 
 		validateQuizToken(authUser, tokenInfo, drawId);
 		DrawEntryResultResponse response = drawEntryService.applyForDraw(authUser.id(), drawId, optionId, request);
 
+		// 정상 완료 후 대기열 슬롯 반납
+		cleanupRepository.cleanupUserData(tokenInfo.phaseType(), tokenInfo.phaseId(), authUser.id(), null);
 
 		return ApiResponse.ok("드로우 응모가 완료되었습니다.", response);
 	}

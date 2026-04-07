@@ -14,7 +14,6 @@ public record VqaNextQuestionResponse(
 
     public record QuestionInfo(
         @JsonProperty("id") Long id,
-        @JsonProperty("text") String text,
-        @JsonProperty("correct_answer") String correctAnswer
+        @JsonProperty("text") String text
     ) {}
 }

@@ -23,3 +23,7 @@ server:
 logging:
   level:
     com.t1.popcon.queue: debug
+
+vqa:
+  server:
+    url: ${VQA_SERVER_URL:http://localhost:8000}

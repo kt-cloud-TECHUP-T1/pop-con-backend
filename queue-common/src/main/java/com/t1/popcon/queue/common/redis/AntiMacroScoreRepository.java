@@ -33,14 +33,16 @@ public class AntiMacroScoreRepository {
             return 0;
         }
 
-        return scores.values().stream()
-                .mapToInt(val -> {
+        double totalScore = scores.values().stream()
+                .mapToDouble(val -> {
                     try {
-                        return Integer.parseInt(val.toString());
+                        return Double.parseDouble(val.toString());
                     } catch (NumberFormatException e) {
-                        return 0;
+                        return 0.0;
                     }
                 })
                 .sum();
+
+        return (int) Math.round(totalScore);
     }
 }

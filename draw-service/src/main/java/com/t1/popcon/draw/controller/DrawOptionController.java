@@ -29,7 +29,7 @@ public class DrawOptionController {
     public ApiResponse<List<DrawAvailableDateResponse>> getAvailableDates(
             @PathVariable Long drawId,
             @AuthenticationPrincipal AuthUser authUser,
-            @RequestAttribute(QUIZ_PASSED_TOKEN_INFO_ATTRIBUTE) QuizPassedTokenInfo tokenInfo
+            @RequestAttribute(value = QUIZ_PASSED_TOKEN_INFO_ATTRIBUTE, required = false) QuizPassedTokenInfo tokenInfo
     ) {
         validateQuizToken(authUser, tokenInfo, drawId);
         List<DrawAvailableDateResponse> data = drawOptionService.getAvailableDates(drawId);
@@ -41,7 +41,7 @@ public class DrawOptionController {
         @PathVariable Long drawId,
         @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate entryDate,
         @AuthenticationPrincipal AuthUser authUser,
-        @RequestAttribute(QUIZ_PASSED_TOKEN_INFO_ATTRIBUTE) QuizPassedTokenInfo tokenInfo
+        @RequestAttribute(value = QUIZ_PASSED_TOKEN_INFO_ATTRIBUTE, required = false) QuizPassedTokenInfo tokenInfo
     ) {
         validateQuizToken(authUser, tokenInfo, drawId);
         List<DrawOptionResponse> data = drawOptionService.getOptionsByDate(drawId, entryDate);
