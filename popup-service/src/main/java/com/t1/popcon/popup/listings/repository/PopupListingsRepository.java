@@ -38,6 +38,7 @@ public interface PopupListingsRepository extends JpaRepository<Popup, Long> {
     /**
      * 드로우 목록 조회
      * - 경매 쿼리와 동일한 구조, 드로우 시간 필드 기준
+     * - 드로우 오픈 예정(UPCOMING): 경매가 이미 종료된 경우에만 포함
      */
     @Query("""
         select p
@@ -46,7 +47,8 @@ public interface PopupListingsRepository extends JpaRepository<Popup, Long> {
                  and p.drawOpenAt <= :now
                  and :now < p.drawCloseAt)
            or (:upcomingEnabled = true
-                 and :now < p.drawOpenAt)
+                 and :now < p.drawOpenAt
+                 and p.auctionCloseAt <= :now)
            or (:closedEnabled = true
                  and p.drawCloseAt <= :now)
         order by p.drawOpenAt asc, p.id desc

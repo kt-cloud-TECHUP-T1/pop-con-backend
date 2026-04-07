@@ -15,6 +15,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 @Configuration
@@ -23,10 +24,17 @@ public class RedisConfig {
 
 	@Bean
 	public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-		// 1. ObjectMapper 설정 (클래스 정보 제외, 시간 타입 지원)
+		// 1. ObjectMapper 설정 (클래스 타입 정보 포함, 시간 타입 지원)
 		ObjectMapper objectMapper = new ObjectMapper()
 			.registerModule(new JavaTimeModule())
-			.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+			.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+			.activateDefaultTyping(
+				BasicPolymorphicTypeValidator.builder()
+					.allowIfSubType("com.t1.popcon")
+					.allowIfSubType("java.util")
+					.build(),
+				ObjectMapper.DefaultTyping.NON_FINAL
+			);
 
 		// 2. 시리얼라이저 생성
 		Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(objectMapper, Object.class);
