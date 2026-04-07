@@ -2,7 +2,7 @@ name: CI(PR) - Test + Docs + Docker Build
 
 on:
   pull_request:
-    branches: ["staging"]
+    branches: ["main"]
 
 permissions:
   contents: read
