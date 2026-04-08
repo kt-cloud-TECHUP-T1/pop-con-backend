@@ -12,6 +12,7 @@ import com.t1.popcon.popup.dto.section.PopupSectionResponse;
 import com.t1.popcon.popup.dto.section.SectionKey;
 import com.t1.popcon.popup.listings.repository.PopupListingsRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PopupListingsService {
@@ -55,8 +57,9 @@ public class PopupListingsService {
         boolean upcomingEnabled = statuses.contains(PhaseStatus.UPCOMING);
         boolean closedEnabled   = statuses.contains(PhaseStatus.CLOSED);
 
-        // 디버깅 로그
-        System.out.println("[DEBUG] phaseType=" + phaseType + ", statuses=" + statuses + ", openEnabled=" + openEnabled + ", now=" + now);
+        // 드로우 조회 디버깅 로그
+        log.debug("[DRAW_LISTINGS] phaseType={}, statuses={}, openEnabled={}, upcomingEnabled={}, closedEnabled={}, now={}, limit={}",
+                phaseType, statuses, openEnabled, upcomingEnabled, closedEnabled, now, limit);
 
         // phaseType에 따라 경매 또는 드로우 쿼리 분기
         List<Popup> popups;
@@ -70,6 +73,12 @@ public class PopupListingsService {
                 now, openEnabled, upcomingEnabled, closedEnabled,
                 PageRequest.of(0, limit)
             );
+        }
+
+        log.debug("[DRAW_LISTINGS] 조회 결과: {} 건", popups.size());
+        if (!popups.isEmpty()) {
+            popups.forEach(p -> log.debug("[DRAW_LISTINGS] id={}, drawOpenAt={}, drawCloseAt={}, deleted={}",
+                    p.getId(), p.getDrawOpenAt(), p.getDrawCloseAt(), p.isDeleted()));
         }
 
         List<PopupCardDto> items = popups.stream()
