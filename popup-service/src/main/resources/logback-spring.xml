@@ -15,7 +15,14 @@
     <logger name="org.springframework" level="WARN"/>
     <logger name="org.hibernate" level="WARN"/>
 
-    <root level="INFO">
+    <!-- Hibernate SQL/Bind 로깅 -->
+    <logger name="org.hibernate.SQL" level="DEBUG"/>
+    <logger name="org.hibernate.orm.jdbc.bind" level="TRACE"/>
+
+    <!-- 드로우 목록 조회 디버깅 -->
+    <logger name="com.t1.popcon.popup.listings.service.PopupListingsService" level="DEBUG"/>
+
+    <root level="DEBUG">
         <appender-ref ref="JSON"/>
     </root>
 
