@@ -10,6 +10,7 @@ import com.t1.popcon.common.queue.QuizPassedTokenValidator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -58,7 +59,7 @@ public class AuctionSecurityConfig extends CommonSecurityConfig {
           .securityMatcher("/auctions/**", "/bids/**", "/admin/auctions/**", "/internal/**")
           .authorizeHttpRequests(auth -> auth
             .requestMatchers("/internal/**").permitAll()
-            .requestMatchers("/auctions/\\d+").authenticated() // 상세 조회는 인증만
+            .requestMatchers(HttpMethod.GET,"/auctions/{auctionId}").permitAll()
             .requestMatchers("/auctions/**", "/bids/**").authenticated() // 나머지는 퀴즈 토큰 필요
             .anyRequest().authenticated()
           )
