@@ -8,6 +8,9 @@ public class PopupMapper {
 
 	private static final ZoneId TIME_ZONE = ZoneId.of("Asia/Seoul");
 
+	private PopupMapper() {
+	}
+
 	public static PopupCardDto toCardDto(Popup popup, Integer rank, boolean liked) {
 		LocalDateTime now = LocalDateTime.now(TIME_ZONE);
 		PhaseType type;

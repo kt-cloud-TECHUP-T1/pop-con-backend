@@ -7,6 +7,7 @@ import com.t1.popcon.popup.detail.entity.PopupLike;
 import com.t1.popcon.popup.detail.repository.PopupRepository;
 import com.t1.popcon.popup.likes.repository.PopupLikeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,8 +29,12 @@ public class PopupLikeCommandService {
             return;
         }
 
-        popupLikeRepository.save(PopupLike.create(popup, userId));
-        popup.increaseLikeCount();
+        try {
+            popupLikeRepository.save(PopupLike.create(popup, userId));
+            popup.increaseLikeCount();
+        } catch (DataIntegrityViolationException e) {
+            // Unique constraint race: another request created the like first.
+        }
     }
 
     public void unlikePopup(Long popupId, Long userId) {

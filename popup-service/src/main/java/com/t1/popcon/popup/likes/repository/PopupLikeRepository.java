@@ -9,6 +9,7 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface PopupLikeRepository extends JpaRepository<PopupLike, Long> {
 
@@ -25,5 +26,5 @@ public interface PopupLikeRepository extends JpaRepository<PopupLike, Long> {
         where pl.userId = :userId
           and pl.popup.id in :popupIds
     """)
-    Set<Long> findLikedPopupIds(Long userId, Collection<Long> popupIds);
+    Set<Long> findLikedPopupIds(@Param("userId") Long userId, @Param("popupIds") Collection<Long> popupIds);
 }
