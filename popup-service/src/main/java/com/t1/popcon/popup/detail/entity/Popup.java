@@ -94,4 +94,19 @@ public class Popup extends BaseSoftDeleteEntity {
 
     @Column(name = "review_count", nullable = false)
     private Long reviewCount;
+
+    public void increaseLikeCount() {
+        if (likeCount == null) {
+            likeCount = 0L;
+        }
+        likeCount++;
+    }
+
+    public void decreaseLikeCount() {
+        if (likeCount == null || likeCount <= 0) {
+            likeCount = 0L;
+            return;
+        }
+        likeCount--;
+    }
 }
