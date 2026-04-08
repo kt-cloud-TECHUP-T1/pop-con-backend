@@ -33,7 +33,7 @@ public abstract class CommonSecurityConfig {
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
 
-		configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "https://staging.popcon.store"));
+		configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "https://staging.popcon.store", "https://popcon.store"));
 		configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 		configuration.setAllowedHeaders(Arrays.asList("*")); // 모든 헤더 허용
 		configuration.setAllowCredentials(true); // 쿠키/인증정보 포함 허용
