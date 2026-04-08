@@ -74,7 +74,7 @@ public class DrawSecurityConfig extends CommonSecurityConfig {
                         "/actuator/**"
                 ).permitAll()
                 .requestMatchers("/internal/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/draws/{drawId}").authenticated()
+                .requestMatchers(HttpMethod.GET, "/draws/{drawId}").permitAll()
                 .requestMatchers("/draws/**").authenticated()
                 .anyRequest().authenticated()
         );
