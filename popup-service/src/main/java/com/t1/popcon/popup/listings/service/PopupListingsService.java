@@ -57,10 +57,6 @@ public class PopupListingsService {
         boolean upcomingEnabled = statuses.contains(PhaseStatus.UPCOMING);
         boolean closedEnabled   = statuses.contains(PhaseStatus.CLOSED);
 
-        // 드로우 조회 디버깅 로그
-        log.debug("[DRAW_LISTINGS] phaseType={}, statuses={}, openEnabled={}, upcomingEnabled={}, closedEnabled={}, now={}, limit={}",
-                phaseType, statuses, openEnabled, upcomingEnabled, closedEnabled, now, limit);
-
         // phaseType에 따라 경매 또는 드로우 쿼리 분기
         List<Popup> popups;
         if (phaseType == PhaseType.AUCTION) {
@@ -73,12 +69,7 @@ public class PopupListingsService {
                 now, openEnabled, upcomingEnabled, closedEnabled,
                 PageRequest.of(0, limit)
             );
-        }
-
-        log.debug("[DRAW_LISTINGS] 조회 결과: {} 건", popups.size());
-        if (!popups.isEmpty()) {
-            popups.forEach(p -> log.debug("[DRAW_LISTINGS] id={}, drawOpenAt={}, drawCloseAt={}, deleted={}",
-                    p.getId(), p.getDrawOpenAt(), p.getDrawCloseAt(), p.isDeleted()));
+            log.info("[DRAW_LISTINGS] statuses={}, now={}, 조회 결과={}건", statuses, now, popups.size());
         }
 
         List<PopupCardDto> items = popups.stream()
