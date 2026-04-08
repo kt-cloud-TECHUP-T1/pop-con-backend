@@ -10,16 +10,17 @@ import com.t1.popcon.popup.dto.card.PopupCardDto;
 import com.t1.popcon.popup.dto.card.PopupSort;
 import com.t1.popcon.popup.dto.section.PopupSectionResponse;
 import com.t1.popcon.popup.dto.section.SectionKey;
+import com.t1.popcon.popup.likes.service.PopupLikeReadService;
 import com.t1.popcon.popup.listings.repository.PopupListingsRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -28,8 +29,10 @@ public class PopupListingsService {
     private static final ZoneId KST_ZONE = ZoneId.of("Asia/Seoul");
 
     private final PopupListingsRepository popupListingsRepository;
+    private final PopupLikeReadService popupLikeReadService;
 
     public PopupSectionResponse<PopupCardDto> getPopups(
+        Long userId,
         PhaseType phaseType,
         List<PhaseStatus> statuses,
         PopupSort sort,
@@ -46,16 +49,12 @@ public class PopupListingsService {
         }
 
         SectionKey sectionKey = resolveSectionKey(phaseType, statuses);
-
-        // 현재 시각 기준으로 status 비교 (요청 단위로 1회 고정)
         LocalDateTime now = LocalDateTime.now(KST_ZONE);
 
-        // phaseStatus 목록을 boolean 플래그로 변환 → JPQL OR 조건에 전달
-        boolean openEnabled     = statuses.contains(PhaseStatus.OPEN);
+        boolean openEnabled = statuses.contains(PhaseStatus.OPEN);
         boolean upcomingEnabled = statuses.contains(PhaseStatus.UPCOMING);
-        boolean closedEnabled   = statuses.contains(PhaseStatus.CLOSED);
+        boolean closedEnabled = statuses.contains(PhaseStatus.CLOSED);
 
-        // phaseType에 따라 경매 또는 드로우 쿼리 분기
         List<Popup> popups;
         if (phaseType == PhaseType.AUCTION) {
             popups = popupListingsRepository.findAuctionPopups(
@@ -69,15 +68,16 @@ public class PopupListingsService {
             );
         }
 
+        Set<Long> likedPopupIds = popupLikeReadService.getLikedPopupIds(
+            userId,
+            popups.stream().map(Popup::getId).toList()
+        );
+
         List<PopupCardDto> items = popups.stream()
-            .map(p -> toPopupCardDto(p, phaseType, now))
+            .map(p -> toPopupCardDto(p, phaseType, now, likedPopupIds.contains(p.getId())))
             .toList();
 
-        return new PopupSectionResponse<>(
-            sectionKey,
-            items.size(),
-            items
-        );
+        return new PopupSectionResponse<>(sectionKey, items.size(), items);
     }
 
     public String getMessage(PhaseType type, List<PhaseStatus> statuses) {
@@ -86,7 +86,7 @@ public class PopupListingsService {
         }
 
         if (type == PhaseType.AUCTION) {
-            return "더치 경매 섹션 조회를 성공했습니다.";
+            return "경매 섹션 조회를 성공했습니다.";
         }
 
         if (statuses.size() == 1 && statuses.contains(PhaseStatus.OPEN)) {
@@ -116,19 +116,15 @@ public class PopupListingsService {
         throw new CustomException(ErrorCode.INVALID_INPUT);
     }
 
-    /**
-     * Popup 엔티티를 카드 DTO로 변환
-     * - phaseType이 명시되므로 경매/드로우 시간 필드를 직접 선택
-     */
-    private PopupCardDto toPopupCardDto(Popup popup, PhaseType phaseType, LocalDateTime now) {
+    private PopupCardDto toPopupCardDto(Popup popup, PhaseType phaseType, LocalDateTime now, boolean liked) {
         LocalDateTime openAt;
         LocalDateTime closeAt;
 
         if (phaseType == PhaseType.AUCTION) {
-            openAt  = popup.getAuctionOpenAt();
+            openAt = popup.getAuctionOpenAt();
             closeAt = popup.getAuctionCloseAt();
         } else {
-            openAt  = popup.getDrawOpenAt();
+            openAt = popup.getDrawOpenAt();
             closeAt = popup.getDrawCloseAt();
         }
 
@@ -141,7 +137,7 @@ public class PopupListingsService {
                 popup.getSubText() != null ? popup.getSubText() : popup.getLocation(),
                 popup.getCaption(),
                 phaseType == PhaseType.AUCTION ? popup.getHThumbUrl() : popup.getVThumbUrl(),
-                false,
+                liked,
                 new PopupCardDto.StatsDto(popup.getLikeCount(), popup.getViewCount()),
                 resolveOverlay(phaseType, status),
                 new PopupCardDto.PhaseDto(
@@ -153,25 +149,15 @@ public class PopupListingsService {
         );
     }
 
-    /**
-     * 현재 시각 기준으로 phase 상태 계산
-     */
     private PhaseStatus calculatePhaseStatus(LocalDateTime openAt, LocalDateTime closeAt, LocalDateTime now) {
-        if (now.isBefore(openAt))   return PhaseStatus.UPCOMING;
+        if (now.isBefore(openAt)) return PhaseStatus.UPCOMING;
         if (!now.isBefore(closeAt)) return PhaseStatus.CLOSED;
         return PhaseStatus.OPEN;
     }
 
-    /**
-     * phase 타입 및 상태에 따른 오버레이 결정
-     * - 경매 진행 중 → AUCTION_IN_PROGRESS
-     * - 경매 오픈 예정 → AUCTION_OPEN_AT
-     * - 드로우 오픈 예정 → DRAW_OPEN_AT
-     * - 드로우 진행 중 / 종료 → 오버레이 없음
-     */
     private PopupCardDto.OverlayDto resolveOverlay(PhaseType phaseType, PhaseStatus status) {
         if (phaseType == PhaseType.AUCTION) {
-            if (status == PhaseStatus.OPEN)     return new PopupCardDto.OverlayDto(OverlayType.AUCTION_IN_PROGRESS, null);
+            if (status == PhaseStatus.OPEN) return new PopupCardDto.OverlayDto(OverlayType.AUCTION_IN_PROGRESS, null);
             if (status == PhaseStatus.UPCOMING) return new PopupCardDto.OverlayDto(OverlayType.AUCTION_OPEN_AT, null);
         }
         if (phaseType == PhaseType.DRAW && status == PhaseStatus.UPCOMING) {

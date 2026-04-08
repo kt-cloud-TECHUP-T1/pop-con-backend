@@ -10,16 +10,17 @@ import com.t1.popcon.popup.dto.card.PhaseType;
 import com.t1.popcon.popup.dto.card.PopupCardDto;
 import com.t1.popcon.popup.dto.section.PopupSectionResponse;
 import com.t1.popcon.popup.dto.section.SectionKey;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import com.t1.popcon.popup.likes.service.PopupLikeReadService;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -28,10 +29,10 @@ public class PopupBannersService {
     private static final ZoneId KST_ZONE = ZoneId.of("Asia/Seoul");
 
     private final BannerRepository bannerRepository;
+    private final PopupLikeReadService popupLikeReadService;
 
     @Transactional(readOnly = true)
-    public PopupSectionResponse<PopupCardDto> getBanners(int limit) {
-        // 유효성 검사 로직
+    public PopupSectionResponse<PopupCardDto> getBanners(Long userId, int limit) {
         if (limit < 1 || limit > 5) {
             Map<String, Object> errors = new LinkedHashMap<>();
             errors.put("limit", "limit는 1 이상 5 이하여야 합니다.");
@@ -39,26 +40,27 @@ public class PopupBannersService {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
 
-        List<PopupCardDto> items = bannerRepository.findActiveBannersWithPopup(PageRequest.of(0, limit))
-                .stream()
-                .map(this::toPopupCardDto)
+        List<Banner> banners = bannerRepository.findActiveBannersWithPopup(PageRequest.of(0, limit));
+        Set<Long> likedPopupIds = popupLikeReadService.getLikedPopupIds(
+                userId,
+                banners.stream().map(banner -> banner.getPopup().getId()).toList()
+        );
+
+        List<PopupCardDto> items = banners.stream()
+                .map(banner -> toPopupCardDto(banner, likedPopupIds.contains(banner.getPopup().getId())))
                 .toList();
 
         return new PopupSectionResponse<>(SectionKey.BANNERS, items.size(), items);
     }
 
-    private PopupCardDto toPopupCardDto(Banner banner) {
+    private PopupCardDto toPopupCardDto(Banner banner, boolean liked) {
         Popup popup = banner.getPopup();
         LocalDateTime now = LocalDateTime.now(KST_ZONE);
 
-        // 페이즈 타입 결정
         PhaseType phaseType = determinePhaseType(popup, now);
-
-        // 결정된 타입에 따른 시간 설정
         LocalDateTime openAt = (phaseType == PhaseType.AUCTION) ? popup.getAuctionOpenAt() : popup.getDrawOpenAt();
         LocalDateTime closeAt = (phaseType == PhaseType.AUCTION) ? popup.getAuctionCloseAt() : popup.getDrawCloseAt();
 
-        // 팝업 카드 DTO 생성 (생성자 파라미터 순서 및 타입 주의)
         return new PopupCardDto(
                 popup.getId(),
                 popup.getTitle(),
@@ -66,9 +68,9 @@ public class PopupBannersService {
                 popup.getSubText(),
                 popup.getCaption(),
                 popup.getVThumbUrl(),
-                false, // isLiked 기본값
+                liked,
                 new PopupCardDto.StatsDto(popup.getLikeCount(), popup.getViewCount()),
-                null,  // location 등 추가 필드
+                null,
                 new PopupCardDto.PhaseDto(
                         phaseType,
                         calculatePhaseStatus(openAt, closeAt, now),
@@ -82,25 +84,18 @@ public class PopupBannersService {
         PhaseStatus auctionStatus = calculatePhaseStatus(popup.getAuctionOpenAt(), popup.getAuctionCloseAt(), now);
         PhaseStatus drawStatus = calculatePhaseStatus(popup.getDrawOpenAt(), popup.getDrawCloseAt(), now);
 
-        // 1. 진행 중인 것 우선
         if (auctionStatus == PhaseStatus.OPEN) return PhaseType.AUCTION;
         if (drawStatus == PhaseStatus.OPEN) return PhaseType.DRAW;
-
-        // 2. 오픈 예정인 것 우선
         if (auctionStatus == PhaseStatus.UPCOMING && drawStatus != PhaseStatus.UPCOMING) return PhaseType.AUCTION;
         if (drawStatus == PhaseStatus.UPCOMING && auctionStatus != PhaseStatus.UPCOMING) return PhaseType.DRAW;
-
-        // 3. 둘 다 예정이면 더 빨리 열리는 것
         if (auctionStatus == PhaseStatus.UPCOMING) {
             return popup.getAuctionOpenAt().isBefore(popup.getDrawOpenAt()) ? PhaseType.AUCTION : PhaseType.DRAW;
         }
-
-        // 4. 둘 다 종료면 더 나중에 닫힌 것
         return popup.getAuctionCloseAt().isAfter(popup.getDrawCloseAt()) ? PhaseType.AUCTION : PhaseType.DRAW;
     }
 
     private PhaseStatus calculatePhaseStatus(LocalDateTime openAt, LocalDateTime closeAt, LocalDateTime now) {
-        if (openAt == null || closeAt == null) return PhaseStatus.CLOSED; // null 방어 코드
+        if (openAt == null || closeAt == null) return PhaseStatus.CLOSED;
         if (now.isBefore(openAt)) return PhaseStatus.UPCOMING;
         if (now.isAfter(closeAt)) return PhaseStatus.CLOSED;
         return PhaseStatus.OPEN;
