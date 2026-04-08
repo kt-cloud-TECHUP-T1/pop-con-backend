@@ -55,6 +55,9 @@ public class PopupListingsService {
         boolean upcomingEnabled = statuses.contains(PhaseStatus.UPCOMING);
         boolean closedEnabled   = statuses.contains(PhaseStatus.CLOSED);
 
+        // 디버깅 로그
+        System.out.println("[DEBUG] phaseType=" + phaseType + ", statuses=" + statuses + ", openEnabled=" + openEnabled + ", now=" + now);
+
         // phaseType에 따라 경매 또는 드로우 쿼리 분기
         List<Popup> popups;
         if (phaseType == PhaseType.AUCTION) {
