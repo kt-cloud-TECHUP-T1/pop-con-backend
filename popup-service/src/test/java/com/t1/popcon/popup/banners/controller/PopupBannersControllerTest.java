@@ -1,5 +1,6 @@
 package com.t1.popcon.popup.banners.controller;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -58,7 +59,7 @@ class PopupBannersControllerTest extends AbstractRestDocsTest {
             ApiResponse<PopupSectionResponse<PopupCardDto>> expectedResponse =
                 ApiResponse.ok("배너 섹션 조회를 성공했습니다.", responseDto);
 
-            given(popupBannersService.getBanners(anyInt()))
+            given(popupBannersService.getBanners(any(), anyInt()))
                 .willReturn(responseDto);
 
             performGet(SUCCESS_URL)
@@ -82,7 +83,7 @@ class PopupBannersControllerTest extends AbstractRestDocsTest {
             ApiResponse<?> expectedResponse =
                 invalidInput("limit", "limit는 1 이상 5 이하여야 합니다.");
 
-            given(popupBannersService.getBanners(anyInt()))
+            given(popupBannersService.getBanners(any(), anyInt()))
                 .willThrow(new CustomException(
                     ErrorCode.INVALID_INPUT,
                     Map.of("limit", "limit는 1 이상 5 이하여야 합니다.")
@@ -106,7 +107,7 @@ class PopupBannersControllerTest extends AbstractRestDocsTest {
         void 실패_서버_오류() throws Exception {
             ApiResponse<Void> expectedResponse = systemError();
 
-            given(popupBannersService.getBanners(anyInt()))
+            given(popupBannersService.getBanners(any(), anyInt()))
                 .willThrow(new RuntimeException("Internal Server Error"));
 
             performGet(DEFAULT_URL)
