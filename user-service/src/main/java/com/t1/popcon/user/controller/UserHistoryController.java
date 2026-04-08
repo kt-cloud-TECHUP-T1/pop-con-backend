@@ -4,6 +4,7 @@ import com.t1.popcon.common.auth.domain.AuthUser;
 import com.t1.popcon.common.response.ApiResponse;
 import com.t1.popcon.user.dto.history.AuctionHistoryResponse;
 import com.t1.popcon.user.dto.history.DrawHistoryResponse;
+import com.t1.popcon.user.dto.history.PopupLikeHistoryResponse;
 import com.t1.popcon.user.dto.history.SliceResponse;
 import com.t1.popcon.user.dto.history.TicketHistoryResponse;
 import com.t1.popcon.user.service.UserHistoryService;
@@ -52,5 +53,15 @@ public class UserHistoryController {
     ) {
         TicketHistoryResponse response = userHistoryService.getTicketByReservationNo(authUser.id(), reservationNo);
         return ApiResponse.ok("티켓 상세 조회를 성공했습니다.", response);
+    }
+
+    @GetMapping("/likes")
+    public ApiResponse<SliceResponse<PopupLikeHistoryResponse>> getLikedPopups(
+        @AuthenticationPrincipal AuthUser authUser,
+        @RequestParam(value = "page", defaultValue = "0") int page,
+        @RequestParam(value = "size", defaultValue = "12") int size
+    ) {
+        SliceResponse<PopupLikeHistoryResponse> response = userHistoryService.getLikedPopups(authUser.id(), page, size);
+        return ApiResponse.ok("찜한 팝업스토어 목록 조회를 성공했습니다.", response);
     }
 }
