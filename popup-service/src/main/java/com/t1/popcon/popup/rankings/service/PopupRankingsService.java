@@ -28,10 +28,12 @@ public class PopupRankingsService {
 
 	public PopupSectionResponse<PopupCardDto> getPopularRankings(Long userId) {
 		PopupSectionResponse<PopupCardDto> cachedResponse = getCachedPopularRankings();
-		Set<Long> likedPopupIds = popupLikeReadService.getLikedPopupIds(
-			userId,
-			cachedResponse.items().stream().map(PopupCardDto::popupId).toList()
-		);
+		Set<Long> likedPopupIds = userId == null || cachedResponse.items().isEmpty()
+			? Set.of()
+			: popupLikeReadService.getLikedPopupIds(
+				userId,
+				cachedResponse.items().stream().map(PopupCardDto::popupId).toList()
+			);
 
 		if (likedPopupIds.isEmpty()) {
 			return cachedResponse;
@@ -71,10 +73,12 @@ public class PopupRankingsService {
 		}
 
 		var popups = popupRankingsRepository.findPopupsByWeightedScore(currentDate, PageRequest.of(0, 10));
-		Set<Long> likedPopupIds = popupLikeReadService.getLikedPopupIds(
-			null,
-			popups.stream().map(p -> p.getId()).toList()
-		);
+		Set<Long> likedPopupIds = popups.isEmpty()
+			? Set.of()
+			: popupLikeReadService.getLikedPopupIds(
+				null,
+				popups.stream().map(p -> p.getId()).toList()
+			);
 
 		List<PopupCardDto> rankingItems = IntStream.range(0, popups.size())
 			.mapToObj(i -> PopupMapper.toCardDto(popups.get(i), i + 1, likedPopupIds.contains(popups.get(i).getId())))
