@@ -12,6 +12,11 @@ import com.t1.popcon.popup.dto.section.PopupSectionResponse;
 import com.t1.popcon.popup.dto.section.SectionKey;
 import com.t1.popcon.popup.likes.service.PopupLikeReadService;
 import com.t1.popcon.popup.listings.repository.PopupListingsRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.LinkedHashMap;
@@ -22,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PopupListingsService {
@@ -66,6 +72,7 @@ public class PopupListingsService {
                 now, openEnabled, upcomingEnabled, closedEnabled,
                 PageRequest.of(0, limit)
             );
+            log.info("[DRAW_LISTINGS] statuses={}, now={}, 조회 결과={}건", statuses, now, popups.size());
         }
 
         Set<Long> likedPopupIds = popupLikeReadService.getLikedPopupIds(
@@ -86,7 +93,7 @@ public class PopupListingsService {
         }
 
         if (type == PhaseType.AUCTION) {
-            return "경매 섹션 조회를 성공했습니다.";
+            return "더치 경매 섹션 조회를 성공했습니다.";
         }
 
         if (statuses.size() == 1 && statuses.contains(PhaseStatus.OPEN)) {

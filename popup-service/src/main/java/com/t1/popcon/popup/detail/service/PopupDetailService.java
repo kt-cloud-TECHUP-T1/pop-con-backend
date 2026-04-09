@@ -14,10 +14,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.List;
+
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class PopupDetailService {
+
+    private static final ZoneId KST_ZONE = ZoneId.of("Asia/Seoul");
 
     private final PopupRepository popupRepository;
     private final PopupLikeReadService popupLikeReadService;
@@ -26,8 +32,8 @@ public class PopupDetailService {
         Popup popup = popupRepository.findById(popupId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POPUP_NOT_FOUND));
 
-        PhaseType phaseType = resolvePhaseType(popup, LocalDateTime.now());
         boolean liked = popupLikeReadService.isLiked(popupId, userId);
+        PhaseType phaseType = resolvePhaseType(popup, LocalDateTime.now(KST_ZONE));
 
         return PopupDetailResponse.builder()
                 .phaseType(phaseType)

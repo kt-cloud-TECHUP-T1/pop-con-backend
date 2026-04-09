@@ -21,6 +21,8 @@ spring:
     properties:
       hibernate:
         format_sql: false
+        jdbc:
+          time_zone: Asia/Seoul
     show-sql: false
 
   data:
@@ -39,10 +41,11 @@ server:
 
 logging:
   level:
-    root: info
+    root: debug
     org.hibernate: warn
-    org.hibernate.SQL: off
-    org.hibernate.orm.jdbc.bind: off
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
+    com.t1.popcon.popup.listings.service.PopupListingsService: debug
 
 jwt:
   secret: ${JWT_SECRET}
