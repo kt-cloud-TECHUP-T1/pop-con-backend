@@ -9,14 +9,12 @@ import com.t1.popcon.popup.detail.repository.PopupRepository;
 import com.t1.popcon.popup.dto.card.PhaseType;
 import com.t1.popcon.popup.dto.card.PopupMapper;
 import com.t1.popcon.popup.likes.service.PopupLikeReadService;
-import com.t1.popcon.popup.dto.card.PopupMapper;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
