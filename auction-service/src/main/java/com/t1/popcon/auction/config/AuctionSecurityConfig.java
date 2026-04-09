@@ -48,6 +48,7 @@ public class AuctionSecurityConfig extends CommonSecurityConfig {
 
                 // 1. 상세 조회 제외
                 if (method.equals("GET") && path.matches("^/auctions/\\d+$")) return true;
+                if (method.equals("GET") && path.matches("^/auctions/\\d+/stream$")) return true;
                 // 2. 어드민 및 내부 API 제외
                 if (path.startsWith("/admin/") || path.startsWith("/internal/")) return true;
                 // 3. 헬스체크 등 공용 API 제외
@@ -60,6 +61,7 @@ public class AuctionSecurityConfig extends CommonSecurityConfig {
           .authorizeHttpRequests(auth -> auth
             .requestMatchers("/internal/**").permitAll()
             .requestMatchers(HttpMethod.GET,"/auctions/{auctionId}").permitAll()
+            .requestMatchers(HttpMethod.GET,"/auctions/{auctionId}/stream").permitAll()
             .requestMatchers("/auctions/**", "/bids/**").authenticated() // 나머지는 퀴즈 토큰 필요
             .anyRequest().authenticated()
           )
