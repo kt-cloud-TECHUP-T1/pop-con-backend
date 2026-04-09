@@ -35,6 +35,7 @@ public class PopupBannersService {
         if (limit < 1 || limit > 5) {
             Map<String, Object> errors = new LinkedHashMap<>();
             errors.put("limit", "limit는 1 이상 5 이하여야 합니다.");
+            // CustomException이 Map을 인자로 받지 못하는 경우를 대비해 ErrorCode만 넘기거나 확인 필요
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
 
@@ -55,6 +56,11 @@ public class PopupBannersService {
         Popup popup = banner.getPopup();
         PopupMapper.PhaseInfo phaseInfo = PopupMapper.resolvePhase(popup, LocalDateTime.now(KST_ZONE));
 
+        LocalDateTime now = LocalDateTime.now(KST_ZONE);
+
+        PopupMapper.PhaseInfo phaseInfo = PopupMapper.resolvePhase(popup, now);
+
+        // 팝업 카드 DTO 생성 (생성자 파라미터 순서 및 타입 주의)
         return new PopupCardDto(
             popup.getId(),
             popup.getTitle(),
@@ -71,6 +77,21 @@ public class PopupBannersService {
                 phaseInfo.openAt().atZone(KST_ZONE).toOffsetDateTime(),
                 phaseInfo.closeAt().atZone(KST_ZONE).toOffsetDateTime()
             )
+                popup.getId(),
+                popup.getTitle(),
+                banner.getSupportingText(),
+                popup.getSubText(),
+                popup.getCaption(),
+                popup.getVThumbUrl(),
+                false, // isLiked 기본값
+                new PopupCardDto.StatsDto(popup.getLikeCount(), popup.getViewCount()),
+                null,  // location 등 추가 필드
+                new PopupCardDto.PhaseDto(
+                        phaseInfo.type(),
+                        phaseInfo.status(),
+                        phaseInfo.openAt().atZone(KST_ZONE).toOffsetDateTime(),
+                        phaseInfo.closeAt().atZone(KST_ZONE).toOffsetDateTime()
+                )
         );
     }
 }

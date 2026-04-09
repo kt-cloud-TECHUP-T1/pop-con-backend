@@ -10,6 +10,37 @@ public class PopupMapper {
 
     private PopupMapper() {
     }
+	public record PhaseInfo(
+		PhaseType type,
+		PhaseStatus status,
+		LocalDateTime openAt,
+		LocalDateTime closeAt
+	) {
+	}
+
+	public static PhaseInfo resolvePhase(Popup popup, LocalDateTime now) {
+		if (now.isBefore(popup.getAuctionCloseAt())) {
+			PhaseStatus status = now.isBefore(popup.getAuctionOpenAt()) ? PhaseStatus.UPCOMING : PhaseStatus.OPEN;
+			return new PhaseInfo(PhaseType.AUCTION, status, popup.getAuctionOpenAt(), popup.getAuctionCloseAt());
+		} else {
+			PhaseStatus status;
+			if (now.isBefore(popup.getDrawOpenAt())) {
+				status = PhaseStatus.UPCOMING;
+			} else if (now.isBefore(popup.getDrawCloseAt())) {
+				status = PhaseStatus.OPEN;
+			} else {
+				status = PhaseStatus.CLOSED;
+			}
+			return new PhaseInfo(PhaseType.DRAW, status, popup.getDrawOpenAt(), popup.getDrawCloseAt());
+		}
+	}
+
+	public static PopupCardDto toCardDto(Popup popup, Integer rank) {
+		LocalDateTime now = LocalDateTime.now(TIME_ZONE);
+		PhaseType type;
+		PhaseStatus status;
+		LocalDateTime openAt;
+		LocalDateTime closeAt;
 
     public record PhaseInfo(
         PhaseType type,

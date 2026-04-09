@@ -42,6 +42,28 @@ public class PopupFeaturedService {
         return new PopupSectionResponse<>(SectionKey.FEATURED, items.size(), items);
     }
 
+    private PopupCardDto toPopupCardDto(Popup popup) {
+        PopupMapper.PhaseInfo phaseInfo = PopupMapper.resolvePhase(popup, LocalDateTime.now(KST_ZONE));
+
+        return new PopupCardDto(
+                popup.getId(),
+                popup.getTitle(),
+                popup.getSubtitle(),
+                popup.getSubText() != null ? popup.getSubText() : popup.getLocation(),
+                popup.getCaption(),
+                popup.getVThumbUrl(),
+                false,
+                new PopupCardDto.StatsDto(
+                        popup.getLikeCount(),
+                        popup.getViewCount()
+                ),
+                null,
+                new PopupCardDto.PhaseDto(
+                        phaseInfo.type(),
+                        phaseInfo.status(),
+                        phaseInfo.openAt().atZone(KST_ZONE).toOffsetDateTime(),
+                        phaseInfo.closeAt().atZone(KST_ZONE).toOffsetDateTime()
+                )
     private PopupCardDto toPopupCardDto(Popup popup, boolean liked) {
         PopupMapper.PhaseInfo phaseInfo = PopupMapper.resolvePhase(popup, LocalDateTime.now(KST_ZONE));
         return PopupMapper.toCardDto(
