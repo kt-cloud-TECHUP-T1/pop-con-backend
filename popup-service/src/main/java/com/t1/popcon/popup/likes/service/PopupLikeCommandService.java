@@ -7,6 +7,8 @@ import com.t1.popcon.popup.detail.entity.PopupLike;
 import com.t1.popcon.popup.detail.repository.PopupRepository;
 import com.t1.popcon.popup.likes.repository.PopupLikeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +20,7 @@ public class PopupLikeCommandService {
 
     private final PopupRepository popupRepository;
     private final PopupLikeRepository popupLikeRepository;
+    private final CacheManager cacheManager;
 
     public void likePopup(Long popupId, Long userId) {
         validateUserId(userId);
@@ -33,6 +36,7 @@ public class PopupLikeCommandService {
         try {
             popupLikeRepository.save(PopupLike.create(popup, userId));
             popupRepository.incrementLikeCountById(popupId);
+            evictPopularRankingsCache();
         } catch (DataIntegrityViolationException e) {
             // Unique constraint race: another request created the like first.
         }
@@ -49,6 +53,7 @@ public class PopupLikeCommandService {
             .ifPresent(popupLike -> {
                 popupLikeRepository.delete(popupLike);
                 popupRepository.decrementLikeCountById(popupId);
+                evictPopularRankingsCache();
             });
     }
 
@@ -61,6 +66,13 @@ public class PopupLikeCommandService {
     private void validatePopupId(Long popupId) {
         if (popupId == null) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+    }
+
+    private void evictPopularRankingsCache() {
+        Cache cache = cacheManager.getCache("popularRankings");
+        if (cache != null) {
+            cache.clear();
         }
     }
 }

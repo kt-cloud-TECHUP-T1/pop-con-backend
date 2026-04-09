@@ -60,7 +60,8 @@ public class PopupRankingsService {
 	}
 
 	private PopupSectionResponse<PopupCardDto> getCachedPopularRankings() {
-		String cacheKey = LocalDate.now(TIME_ZONE).toString();
+		LocalDate currentDate = LocalDate.now(TIME_ZONE);
+		String cacheKey = currentDate.toString();
 		Cache cache = cacheManager.getCache("popularRankings");
 		if (cache != null) {
 			PopupSectionResponse<PopupCardDto> cached = cache.get(cacheKey, PopupSectionResponse.class);
@@ -69,7 +70,7 @@ public class PopupRankingsService {
 			}
 		}
 
-		var popups = popupRankingsRepository.findPopupsByWeightedScore(LocalDate.now(TIME_ZONE), PageRequest.of(0, 10));
+		var popups = popupRankingsRepository.findPopupsByWeightedScore(currentDate, PageRequest.of(0, 10));
 		Set<Long> likedPopupIds = popupLikeReadService.getLikedPopupIds(
 			null,
 			popups.stream().map(p -> p.getId()).toList()
