@@ -115,6 +115,22 @@ public class AuctionPriceBroadcastScheduler {
                     buttonStatus
             );
 
+            boolean isAtMinimumPrice = currentPrice != null && currentPrice.equals(auction.getMinimumPrice());
+            log.info(
+                    "auction-price SSE send - auctionId={}, status={}, serverTime={}, currentPrice={}, minimumPrice={}, nextPrice={}, secondsUntilNextDrop={}, displaySecondsUntilNextDrop={}, remainingUntilCloseSeconds={}, isAtMinimumPrice={}, hasAvailableStock={}",
+                    auction.getId(),
+                    calculatedStatus,
+                    now,
+                    currentPrice,
+                    auction.getMinimumPrice(),
+                    nextPrice,
+                    secondsUntilNextDrop,
+                    displaySecondsUntilNextDrop,
+                    remainingUntilCloseSeconds,
+                    isAtMinimumPrice,
+                    hasAvailableStock
+            );
+
             auctionSseService.send(auction.getId(), response);
         }
     }
