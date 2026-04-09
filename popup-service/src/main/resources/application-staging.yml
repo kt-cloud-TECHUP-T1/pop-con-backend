@@ -41,11 +41,8 @@ server:
 
 logging:
   level:
-    root: debug
+    root: info
     org.hibernate: warn
-    org.hibernate.SQL: debug
-    org.hibernate.orm.jdbc.bind: trace
-    com.t1.popcon.popup.listings.service.PopupListingsService: debug
 
 jwt:
   secret: ${JWT_SECRET}
