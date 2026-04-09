@@ -7,6 +7,7 @@ import com.t1.popcon.popup.detail.dto.PopupDetailResponse;
 import com.t1.popcon.popup.detail.entity.Popup;
 import com.t1.popcon.popup.detail.repository.PopupRepository;
 import com.t1.popcon.popup.dto.card.PhaseType;
+import com.t1.popcon.popup.dto.card.PopupMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,7 +29,7 @@ public class PopupDetailService {
         Popup popup = popupRepository.findById(popupId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POPUP_NOT_FOUND));
 
-        PhaseType phaseType = resolvePhaseType(popup, LocalDateTime.now(KST_ZONE));
+        PhaseType phaseType = PopupMapper.resolvePhase(popup, LocalDateTime.now(KST_ZONE)).type();
 
         return PopupDetailResponse.builder()
                 .phaseType(phaseType)
@@ -75,29 +76,5 @@ public class PopupDetailService {
                         .vThumbnailUrl(popup.getVThumbUrl())
                         .build())
                 .toList();
-    }
-
-    private PhaseType resolvePhaseType(Popup popup, LocalDateTime now) {
-        boolean auctionActive = popup.getAuctionId() != null
-                && popup.getAuctionOpenAt() != null
-                && popup.getAuctionCloseAt() != null
-                && !now.isBefore(popup.getAuctionOpenAt())
-                && now.isBefore(popup.getAuctionCloseAt());
-
-        boolean drawActive = popup.getDrawId() != null
-                && popup.getDrawOpenAt() != null
-                && popup.getDrawCloseAt() != null
-                && !now.isBefore(popup.getDrawOpenAt())
-                && now.isBefore(popup.getDrawCloseAt());
-
-        if (auctionActive) {
-            return PhaseType.AUCTION;
-        }
-
-        if (drawActive) {
-            return PhaseType.DRAW;
-        }
-
-        return null;
     }
 }
