@@ -1,4 +1,7 @@
 spring:
+  mvc:
+    async:
+      request-timeout: 3600000
   datasource:
     url: jdbc:h2:mem:popcon
     driver-class-name: org.h2.Driver

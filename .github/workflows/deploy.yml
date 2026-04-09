@@ -56,6 +56,7 @@ jobs:
             auction-service:
               - 'auction-service/**'
               - 'common/**'
+              - 'queue-common/**'
               - 'build.gradle'
               - 'settings.gradle'
               - 'gradle/**'
@@ -63,6 +64,7 @@ jobs:
             draw-service:
               - 'draw-service/**'
               - 'common/**'
+              - 'queue-common/**'
               - 'build.gradle'
               - 'settings.gradle'
               - 'gradle/**'
