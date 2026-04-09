@@ -21,6 +21,7 @@ public class PopupLikeCommandService {
 
     public void likePopup(Long popupId, Long userId) {
         validateUserId(userId);
+        validatePopupId(popupId);
 
         Popup popup = popupRepository.findById(popupId)
             .orElseThrow(() -> new CustomException(ErrorCode.POPUP_NOT_FOUND));
@@ -31,7 +32,7 @@ public class PopupLikeCommandService {
 
         try {
             popupLikeRepository.save(PopupLike.create(popup, userId));
-            popup.increaseLikeCount();
+            popupRepository.incrementLikeCountById(popupId);
         } catch (DataIntegrityViolationException e) {
             // Unique constraint race: another request created the like first.
         }
@@ -39,6 +40,7 @@ public class PopupLikeCommandService {
 
     public void unlikePopup(Long popupId, Long userId) {
         validateUserId(userId);
+        validatePopupId(popupId);
 
         popupRepository.findById(popupId)
             .orElseThrow(() -> new CustomException(ErrorCode.POPUP_NOT_FOUND));
@@ -46,12 +48,18 @@ public class PopupLikeCommandService {
         popupLikeRepository.findByPopup_IdAndUserId(popupId, userId)
             .ifPresent(popupLike -> {
                 popupLikeRepository.delete(popupLike);
-                popupLike.getPopup().decreaseLikeCount();
+                popupRepository.decrementLikeCountById(popupId);
             });
     }
 
     private void validateUserId(Long userId) {
         if (userId == null) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+    }
+
+    private void validatePopupId(Long popupId) {
+        if (popupId == null) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
     }

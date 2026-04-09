@@ -26,6 +26,7 @@ public class PopupLikeQueryService {
     private static final ZoneId KST_ZONE = ZoneId.of("Asia/Seoul");
     private static final int DEFAULT_PAGE = 0;
     private static final int DEFAULT_SIZE = 12;
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final PopupLikeRepository popupLikeRepository;
 
@@ -48,14 +49,24 @@ public class PopupLikeQueryService {
     }
 
     private void validatePageRequest(int page, int size) {
-        if (page < 0 || size < 1) {
+        if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
     }
 
     private PopupCardDto toPopupCardDto(Popup popup) {
         PhaseInfo phaseInfo = resolvePhaseInfo(popup);
-        PhaseStatus status = calculatePhaseStatus(phaseInfo.openAt(), phaseInfo.closeAt());
+        PhaseStatus status = phaseInfo == null
+            ? PhaseStatus.CLOSED
+            : calculatePhaseStatus(phaseInfo.openAt(), phaseInfo.closeAt());
+        PopupCardDto.PhaseDto phaseDto = phaseInfo == null
+            ? null
+            : new PopupCardDto.PhaseDto(
+                phaseInfo.phaseType(),
+                status,
+                toOffsetDateTime(phaseInfo.openAt()),
+                toOffsetDateTime(phaseInfo.closeAt())
+            );
 
         return new PopupCardDto(
             popup.getId(),
@@ -63,16 +74,11 @@ public class PopupLikeQueryService {
             popup.getSubtitle(),
             popup.getSubText() != null ? popup.getSubText() : popup.getLocation(),
             popup.getCaption(),
-            phaseInfo.phaseType() == PhaseType.AUCTION ? popup.getHThumbUrl() : popup.getVThumbUrl(),
+            phaseInfo != null && phaseInfo.phaseType() == PhaseType.AUCTION ? popup.getHThumbUrl() : popup.getVThumbUrl(),
             true,
             new PopupCardDto.StatsDto(popup.getLikeCount(), popup.getViewCount()),
-            resolveOverlay(phaseInfo.phaseType(), status),
-            new PopupCardDto.PhaseDto(
-                phaseInfo.phaseType(),
-                status,
-                phaseInfo.openAt().atZone(KST_ZONE).toOffsetDateTime(),
-                phaseInfo.closeAt().atZone(KST_ZONE).toOffsetDateTime()
-            )
+            phaseInfo == null ? null : resolveOverlay(phaseInfo.phaseType(), status),
+            phaseDto
         );
     }
 
@@ -102,6 +108,18 @@ public class PopupLikeQueryService {
             return auctionFirst
                 ? new PhaseInfo(PhaseType.AUCTION, popup.getAuctionOpenAt(), popup.getAuctionCloseAt())
                 : new PhaseInfo(PhaseType.DRAW, popup.getDrawOpenAt(), popup.getDrawCloseAt());
+        }
+
+        if (popup.getAuctionCloseAt() == null && popup.getDrawCloseAt() == null) {
+            return null;
+        }
+
+        if (popup.getAuctionCloseAt() == null) {
+            return new PhaseInfo(PhaseType.DRAW, popup.getDrawOpenAt(), popup.getDrawCloseAt());
+        }
+
+        if (popup.getDrawCloseAt() == null) {
+            return new PhaseInfo(PhaseType.AUCTION, popup.getAuctionOpenAt(), popup.getAuctionCloseAt());
         }
 
         boolean auctionLast = popup.getAuctionCloseAt().isAfter(popup.getDrawCloseAt());
@@ -142,6 +160,10 @@ public class PopupLikeQueryService {
         }
 
         return null;
+    }
+
+    private java.time.OffsetDateTime toOffsetDateTime(LocalDateTime dateTime) {
+        return dateTime == null ? null : dateTime.atZone(KST_ZONE).toOffsetDateTime();
     }
 
     private record PhaseInfo(

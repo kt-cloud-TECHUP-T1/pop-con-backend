@@ -40,19 +40,67 @@ public class PopupMapper {
 			closeAt = popup.getDrawCloseAt();
 		}
 
+		return toCardDto(
+			popup,
+			popup.getSubtitle(),
+			popup.getSubText() != null ? popup.getSubText() : popup.getLocation(),
+			popup.getVThumbUrl(),
+			liked,
+			rank != null ? new PopupCardDto.OverlayDto(OverlayType.RANK, rank) : null,
+			type,
+			status,
+			openAt,
+			closeAt
+		);
+	}
+
+	public static PopupCardDto toCardDto(
+		Popup popup,
+		boolean liked,
+		PhaseType phaseType,
+		PhaseStatus phaseStatus,
+		LocalDateTime openAt,
+		LocalDateTime closeAt
+	) {
+		return toCardDto(
+			popup,
+			popup.getSubtitle(),
+			popup.getSubText() != null ? popup.getSubText() : popup.getLocation(),
+			popup.getVThumbUrl(),
+			liked,
+			null,
+			phaseType,
+			phaseStatus,
+			openAt,
+			closeAt
+		);
+	}
+
+	private static PopupCardDto toCardDto(
+		Popup popup,
+		String supportingText,
+		String subText,
+		String thumbnailUrl,
+		boolean liked,
+		PopupCardDto.OverlayDto overlay,
+		PhaseType phaseType,
+		PhaseStatus phaseStatus,
+		LocalDateTime openAt,
+		LocalDateTime closeAt
+	) {
 		return new PopupCardDto(
 			popup.getId(),
 			popup.getTitle(),
-			null,
-			popup.getSubText(),
+			supportingText,
+			subText,
 			popup.getCaption(),
-			popup.getVThumbUrl(),
+			thumbnailUrl,
 			liked,
 			new PopupCardDto.StatsDto(popup.getLikeCount(), popup.getViewCount()),
-			rank != null ? new PopupCardDto.OverlayDto(OverlayType.RANK, rank) : null,
+			overlay,
 			new PopupCardDto.PhaseDto(
-				type,
-				status,
+				phaseType,
+				phaseStatus,
 				openAt.atZone(TIME_ZONE).toOffsetDateTime(),
 				closeAt.atZone(TIME_ZONE).toOffsetDateTime()
 			)

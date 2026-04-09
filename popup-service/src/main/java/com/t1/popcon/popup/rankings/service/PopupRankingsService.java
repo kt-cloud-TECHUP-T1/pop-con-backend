@@ -12,7 +12,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
@@ -22,16 +23,55 @@ public class PopupRankingsService {
 
 	private final PopupRankingsRepository popupRankingsRepository;
 	private final PopupLikeReadService popupLikeReadService;
+	private final CacheManager cacheManager;
 	private static final ZoneId TIME_ZONE = ZoneId.of("Asia/Seoul");
 
-	@Cacheable(
-		value = "popularRankings",
-		key = "T(java.time.LocalDate).now(T(java.time.ZoneId).of('Asia/Seoul')).toString() + ':' + (#userId == null ? 'guest' : #userId)"
-	)
 	public PopupSectionResponse<PopupCardDto> getPopularRankings(Long userId) {
-		var popups = popupRankingsRepository.findPopupsByWeightedScore(LocalDate.now(TIME_ZONE), PageRequest.of(0, 10));
+		PopupSectionResponse<PopupCardDto> cachedResponse = getCachedPopularRankings();
 		Set<Long> likedPopupIds = popupLikeReadService.getLikedPopupIds(
 			userId,
+			cachedResponse.items().stream().map(PopupCardDto::popupId).toList()
+		);
+
+		if (likedPopupIds.isEmpty()) {
+			return cachedResponse;
+		}
+
+		List<PopupCardDto> rankingItems = cachedResponse.items().stream()
+			.map(item -> new PopupCardDto(
+				item.popupId(),
+				item.title(),
+				item.supportingText(),
+				item.subText(),
+				item.caption(),
+				item.thumbnailUrl(),
+				likedPopupIds.contains(item.popupId()),
+				item.stats(),
+				item.overlay(),
+				item.phase()
+			))
+			.toList();
+
+		return new PopupSectionResponse<>(
+			cachedResponse.sectionKey(),
+			cachedResponse.itemCount(),
+			rankingItems
+		);
+	}
+
+	private PopupSectionResponse<PopupCardDto> getCachedPopularRankings() {
+		String cacheKey = LocalDate.now(TIME_ZONE).toString();
+		Cache cache = cacheManager.getCache("popularRankings");
+		if (cache != null) {
+			PopupSectionResponse<PopupCardDto> cached = cache.get(cacheKey, PopupSectionResponse.class);
+			if (cached != null) {
+				return cached;
+			}
+		}
+
+		var popups = popupRankingsRepository.findPopupsByWeightedScore(LocalDate.now(TIME_ZONE), PageRequest.of(0, 10));
+		Set<Long> likedPopupIds = popupLikeReadService.getLikedPopupIds(
+			null,
 			popups.stream().map(p -> p.getId()).toList()
 		);
 
@@ -39,10 +79,14 @@ public class PopupRankingsService {
 			.mapToObj(i -> PopupMapper.toCardDto(popups.get(i), i + 1, likedPopupIds.contains(popups.get(i).getId())))
 			.toList();
 
-		return new PopupSectionResponse<>(
+		PopupSectionResponse<PopupCardDto> response = new PopupSectionResponse<>(
 			SectionKey.RANKINGS_WEEKLY,
 			rankingItems.size(),
 			rankingItems
 		);
+		if (cache != null) {
+			cache.put(cacheKey, response);
+		}
+		return response;
 	}
 }

@@ -4,6 +4,7 @@ import com.t1.popcon.popup.detail.entity.Popup;
 import com.t1.popcon.popup.dto.card.PhaseStatus;
 import com.t1.popcon.popup.dto.card.PhaseType;
 import com.t1.popcon.popup.dto.card.PopupCardDto;
+import com.t1.popcon.popup.dto.card.PopupMapper;
 import com.t1.popcon.popup.dto.section.PopupSectionResponse;
 import com.t1.popcon.popup.dto.section.SectionKey;
 import com.t1.popcon.popup.featured.repository.PopupFeaturedRepository;
@@ -42,26 +43,13 @@ public class PopupFeaturedService {
 
     private PopupCardDto toPopupCardDto(Popup popup, boolean liked) {
         PhaseInfo phaseInfo = resolvePhaseInfo(popup);
-
-        return new PopupCardDto(
-                popup.getId(),
-                popup.getTitle(),
-                popup.getSubtitle(),
-                popup.getSubText() != null ? popup.getSubText() : popup.getLocation(),
-                popup.getCaption(),
-                popup.getVThumbUrl(),
+        return PopupMapper.toCardDto(
+                popup,
                 liked,
-                new PopupCardDto.StatsDto(
-                        popup.getLikeCount(),
-                        popup.getViewCount()
-                ),
-                null,
-                new PopupCardDto.PhaseDto(
-                        phaseInfo.phaseType(),
-                        calculatePhaseStatus(phaseInfo.openAt(), phaseInfo.closeAt()),
-                        phaseInfo.openAt().atZone(KST_ZONE).toOffsetDateTime(),
-                        phaseInfo.closeAt().atZone(KST_ZONE).toOffsetDateTime()
-                )
+                phaseInfo.phaseType(),
+                calculatePhaseStatus(phaseInfo.openAt(), phaseInfo.closeAt()),
+                phaseInfo.openAt(),
+                phaseInfo.closeAt()
         );
     }
 
