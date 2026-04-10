@@ -140,6 +140,11 @@ public class VqaService {
     public VqaNextQuestionResponse getNextQuestion(String vqaSessionId, Long currentUserId) {
         String sessionData = getSessionDataOrThrow(vqaSessionId);
         String[] parts = sessionData.split(":");
+
+        if (parts.length < 6) {
+            throw new CustomException(ErrorCode.VQA_SESSION_EXPIRED, "세션 데이터 형식이 올바르지 않습니다.");
+        }
+
         long userId = parseNumeric(parts[2], "userId");
 
         // 사용자 일치 검증
@@ -148,7 +153,7 @@ public class VqaService {
             throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
 
-        Long pythonSessionId = parseNumeric(parts[3], "pythonSessionId");
+        long pythonSessionId = parseNumeric(parts[3], "pythonSessionId");
         int score = (int) parseNumeric(parts[5], "score");
 
         return vqaClient.getNextQuestion(pythonSessionId, score);
