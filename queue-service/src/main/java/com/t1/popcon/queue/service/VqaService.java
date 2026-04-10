@@ -50,11 +50,17 @@ public class VqaService {
      * 보안 퀴즈 시작 (원샷 방식)
      * - 분산 락을 통해 동일 사용자의 중복 세션 생성 방지
      */
-    public VqaStartResponse start(String queueToken) {
+    public VqaStartResponse start(String queueToken, Long currentUserId) {
         QueueTokenResolver.TokenInfo tokenInfo = tokenResolver.resolve(queueToken);
         long userId = tokenInfo.userId();
         String phaseType = tokenInfo.phaseType();
         long phaseId = tokenInfo.phaseId();
+
+        // 0. 사용자 일치 검증
+        if (userId != currentUserId) {
+            log.warn("[VQA] 대기열 토큰 사용자 불일치 - tokenUserId={}, currentUserId={}", userId, currentUserId);
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        }
 
         RLock lock = redissonClient.getLock(VQA_LOCK_START_PREFIX + userId + ":" + phaseId);
         try {
@@ -91,7 +97,7 @@ public class VqaService {
                 String sessionData = redisTemplate.opsForValue().get(VQA_SESSION_KEY_PREFIX + existingVqaSessionId);
                 if (sessionData != null) {
                     log.info("[VQA] 기존 세션 재사용 - userId={}, vqaSessionId={}", userId, existingVqaSessionId);
-                    VqaNextQuestionResponse nextQuestion = getNextQuestion(existingVqaSessionId);
+                    VqaNextQuestionResponse nextQuestion = getNextQuestion(existingVqaSessionId, currentUserId);
                     return VqaStartResponse.session(existingVqaSessionId, nextQuestion);
                 }
             }
@@ -131,16 +137,25 @@ public class VqaService {
     }
 
     /** 다음 문제 정보 조회 */
-    public VqaNextQuestionResponse getNextQuestion(String vqaSessionId) {
+    public VqaNextQuestionResponse getNextQuestion(String vqaSessionId, Long currentUserId) {
         String sessionData = getSessionDataOrThrow(vqaSessionId);
-        Long pythonSessionId = parsePythonSessionId(sessionData);
-        int score = parseScore(sessionData);
+        String[] parts = sessionData.split(":");
+        long userId = parseNumeric(parts[2], "userId");
+
+        // 사용자 일치 검증
+        if (userId != currentUserId) {
+            log.warn("[VQA] 세션 사용자 불일치 - sessionUserId={}, currentUserId={}", userId, currentUserId);
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        }
+
+        Long pythonSessionId = parseNumeric(parts[3], "pythonSessionId");
+        int score = (int) parseNumeric(parts[5], "score");
 
         return vqaClient.getNextQuestion(pythonSessionId, score);
     }
 
     /** 답변 제출 (분산 락을 통한 원자성 보장) */
-    public VqaSubmitResult submit(String vqaSessionId, Long videoId, Long questionId, String answer, Double time) {
+    public VqaSubmitResult submit(String vqaSessionId, Long videoId, Long questionId, String answer, Double time, Long currentUserId) {
         RLock lock = redissonClient.getLock(VQA_LOCK_SUBMIT_PREFIX + vqaSessionId);
         
         try {
@@ -159,6 +174,13 @@ public class VqaService {
             String phaseType = parts[0];
             long phaseId = parseNumeric(parts[1], "phaseId");
             long userId = parseNumeric(parts[2], "userId");
+
+            // 사용자 일치 검증
+            if (userId != currentUserId) {
+                log.warn("[VQA] 제출 세션 사용자 불일치 - sessionUserId={}, currentUserId={}", userId, currentUserId);
+                throw new CustomException(ErrorCode.ACCESS_DENIED);
+            }
+
             long pythonSessionId = parseNumeric(parts[3], "pythonSessionId");
             int score = (int) parseNumeric(parts[5], "score");
 
