@@ -108,7 +108,7 @@ jobs:
 
       - name: Test + Docs
         if: matrix.service != 'anti-macro-service'
-        run: ./gradlew --no-daemon :${{ matrix.service }}:clean :${{ matrix.service }}:test :${{ matrix.service }}:bootJar copyOasToSwagger
+        run: ./gradlew --no-daemon :${{ matrix.service }}:clean :${{ matrix.service }}:test :${{ matrix.service }}:bootJar
 
       - name: Upload test report
         if: failure() && matrix.service != 'anti-macro-service'
