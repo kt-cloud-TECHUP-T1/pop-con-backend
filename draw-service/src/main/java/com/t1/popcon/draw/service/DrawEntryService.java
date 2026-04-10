@@ -13,6 +13,7 @@ import com.t1.popcon.draw.domain.DrawEntry;
 import com.t1.popcon.draw.domain.DrawEntryStatus;
 import com.t1.popcon.draw.domain.DrawOption;
 import com.t1.popcon.draw.dto.request.DrawEntryRequest;
+import com.t1.popcon.draw.dto.response.DrawEntryDetailResponse;
 import com.t1.popcon.draw.dto.response.DrawEntryResponse;
 import com.t1.popcon.draw.dto.response.DrawEntryResultResponse;
 import com.t1.popcon.draw.repository.DrawEntryRepository;
@@ -96,6 +97,36 @@ public class DrawEntryService {
             entry,
             popupMap.get(entry.getDrawOption().getDraw().getPopupId())
         ));
+    }
+
+    @Transactional(readOnly = true)
+    public DrawEntryDetailResponse getEntryDetail(Long userId, Long drawEntryId) {
+        DrawEntry entry = drawEntryRepository.findByIdAndUserId(drawEntryId, userId)
+            .orElseThrow(() -> new CustomException(ErrorCode.DRAW_ENTRY_NOT_FOUND));
+
+        PopupInternalResponse popupInfo = null;
+        try {
+            ApiResponse<PopupInternalResponse> popupResponse =
+                popupServiceClient.getPopupDetail(entry.getDrawOption().getDraw().getPopupId());
+            popupInfo = popupResponse != null ? popupResponse.getData() : null;
+        } catch (Exception e) {
+            log.warn("Draw entry detail popup fetch failed - drawEntryId={}", drawEntryId, e);
+        }
+
+        return DrawEntryDetailResponse.builder()
+            .drawEntryId(entry.getId())
+            .drawId(entry.getDrawOption().getDraw().getId())
+            .popupTitle(popupInfo != null ? popupInfo.title() : UNKNOWN_POPUP_TITLE)
+            .popupAddress(popupInfo != null ? popupInfo.location() : null)
+            .popupThumbnail(popupInfo != null ? popupInfo.vThumbnailUrl() : null)
+            .entryDate(entry.getDrawOption().getEntryDate())
+            .entryTime(entry.getDrawOption().getEntryTime())
+            .userName(encryptionService.decrypt(entry.getEncryptedName()))
+            .userPhoneNumber(encryptionService.decrypt(entry.getEncryptedPhoneNumber()))
+            .paidAt(entry.getPaidAt())
+            .status(entry.getStatus().name())
+            .ticketIssuedAt(entry.getTicketIssuedAt())
+            .build();
     }
 
     private DrawEntryResultResponse buildApplyResult(DrawOption drawOption, UserInternalResponse userInfo) {

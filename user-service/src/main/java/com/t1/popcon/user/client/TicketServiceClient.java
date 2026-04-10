@@ -28,4 +28,10 @@ public interface TicketServiceClient {
         @PathVariable("reservationNo") String reservationNo,
         @RequestParam("userId") Long userId
     );
+
+    @GetMapping("/internal/tickets/{ticketId}")
+    ApiResponse<TicketHistoryResponse> getTicketById(
+        @PathVariable("ticketId") Long ticketId,
+        @RequestParam("userId") Long userId
+    );
 }

@@ -76,4 +76,19 @@ public class TicketIssueService {
             .orElseThrow(() -> new CustomException(ErrorCode.TICKET_NOT_FOUND));
         return TicketDetailResponse.from(ticket);
     }
+
+    @Transactional(readOnly = true)
+    public TicketDetailResponse getTicketById(Long ticketId, Long userId) {
+        if (ticketId == null || ticketId <= 0) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+
+        if (userId == null || userId <= 0) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+
+        Ticket ticket = ticketRepository.findByIdAndUserId(ticketId, userId)
+            .orElseThrow(() -> new CustomException(ErrorCode.TICKET_NOT_FOUND));
+        return TicketDetailResponse.from(ticket);
+    }
 }

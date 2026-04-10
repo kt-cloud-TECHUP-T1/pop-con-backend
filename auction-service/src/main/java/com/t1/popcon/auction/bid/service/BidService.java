@@ -104,6 +104,28 @@ public class BidService {
             .build();
     }
 
+    public ReservationDetailResponse getBidDetail(Long userId, Long bidId) {
+        Bid bid = bidRepository.findByIdAndUserId(bidId, userId)
+            .orElseThrow(() -> new CustomException(ErrorCode.BID_NOT_FOUND));
+
+        Integer startPrice = bid.getStartPrice() != null ? bid.getStartPrice() : 0;
+        Integer bidPrice = bid.getBidPrice();
+        Integer discountAmount = Math.max(0, startPrice - bidPrice);
+
+        return ReservationDetailResponse.builder()
+            .reservationNo(bid.getReservationNo())
+            .popupTitle(bid.getPopupTitle())
+            .popupAddress(bid.getPopupAddress())
+            .popupThumbnail(bid.getThumbnailUrl())
+            .entryDate(bid.getEntryDate())
+            .entryTime(bid.getEntryTime())
+            .startPrice(startPrice)
+            .discountAmount(discountAmount)
+            .finalPrice(bidPrice)
+            .paidAt(bid.getPaidAt())
+            .build();
+    }
+
     private BidHistoryResponse convertToHistoryResponse(Bid bid) {
         return BidHistoryResponse.builder()
             .id(bid.getId())

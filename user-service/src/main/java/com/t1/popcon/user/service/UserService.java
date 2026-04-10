@@ -1,8 +1,10 @@
 package com.t1.popcon.user.service;
 
+import com.t1.popcon.common.encryption.EncryptionService;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.user.domain.User;
+import com.t1.popcon.user.dto.history.TicketPurchaserProfileResponse;
 import com.t1.popcon.user.dto.UserLookupResponse;
 import com.t1.popcon.user.dto.UserInternalResponse;
 import com.t1.popcon.user.repository.UserRepository;
@@ -28,6 +30,7 @@ public class UserService {
     private static final String NICKNAME_CONSTRAINT = "uk_users_nickname";
     
     private final UserRepository userRepository;
+    private final EncryptionService encryptionService;
 
     @Value("${user.nickname.prefix:User}")
     private String nicknamePrefix;
@@ -42,6 +45,17 @@ public class UserService {
                 user.getId(),
                 user.getEncryptedName(),
                 user.getEncryptedPhoneNumber()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public TicketPurchaserProfileResponse getTicketPurchaserProfile(Long userId) {
+        User user = getUserOrThrow(userId);
+        return new TicketPurchaserProfileResponse(
+            user.getId(),
+            encryptionService.decrypt(user.getEncryptedName()),
+            encryptionService.decrypt(user.getEncryptedPhoneNumber()),
+            user.getEmail()
         );
     }
 
