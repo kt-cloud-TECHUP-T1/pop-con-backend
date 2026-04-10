@@ -70,6 +70,10 @@ public class User extends BaseSoftDeleteEntity {
     @Column(name = "email", length = 255)
     private String email;
 
+    /** 사용자가 직접 등록한 프로필 이미지 URL */
+    @Column(name = "profile_image_url", length = 512)
+    private String profileImageUrl;
+
     @Column(name = "kakao_user_id", length = 128)
     private String kakaoUserId;
 
