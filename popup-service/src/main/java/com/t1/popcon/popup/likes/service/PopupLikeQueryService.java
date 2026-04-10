@@ -4,7 +4,6 @@ import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.popup.detail.entity.Popup;
 import com.t1.popcon.popup.detail.entity.PopupLike;
-import com.t1.popcon.popup.dto.card.OverlayType;
 import com.t1.popcon.popup.dto.card.PhaseStatus;
 import com.t1.popcon.popup.dto.card.PhaseType;
 import com.t1.popcon.popup.dto.card.PopupCardDto;
@@ -77,7 +76,7 @@ public class PopupLikeQueryService {
             phaseInfo != null && phaseInfo.phaseType() == PhaseType.AUCTION ? popup.getHThumbUrl() : popup.getVThumbUrl(),
             true,
             new PopupCardDto.StatsDto(popup.getLikeCount(), popup.getViewCount()),
-            phaseInfo == null ? null : resolveOverlay(phaseInfo.phaseType(), status),
+            null,
             phaseDto
         );
     }
@@ -143,23 +142,6 @@ public class PopupLikeQueryService {
             return PhaseStatus.CLOSED;
         }
         return PhaseStatus.OPEN;
-    }
-
-    private PopupCardDto.OverlayDto resolveOverlay(PhaseType phaseType, PhaseStatus status) {
-        if (phaseType == PhaseType.AUCTION) {
-            if (status == PhaseStatus.OPEN) {
-                return new PopupCardDto.OverlayDto(OverlayType.AUCTION_IN_PROGRESS, null);
-            }
-            if (status == PhaseStatus.UPCOMING) {
-                return new PopupCardDto.OverlayDto(OverlayType.AUCTION_OPEN_AT, null);
-            }
-        }
-
-        if (phaseType == PhaseType.DRAW && status == PhaseStatus.UPCOMING) {
-            return new PopupCardDto.OverlayDto(OverlayType.DRAW_OPEN_AT, null);
-        }
-
-        return null;
     }
 
     private java.time.OffsetDateTime toOffsetDateTime(LocalDateTime dateTime) {
