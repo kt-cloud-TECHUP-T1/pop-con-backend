@@ -1,0 +1,78 @@
+package com.t1.popcon.popup.likes.service;
+
+import com.t1.popcon.common.exception.CustomException;
+import com.t1.popcon.common.exception.ErrorCode;
+import com.t1.popcon.popup.detail.entity.Popup;
+import com.t1.popcon.popup.detail.entity.PopupLike;
+import com.t1.popcon.popup.detail.repository.PopupRepository;
+import com.t1.popcon.popup.likes.repository.PopupLikeRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class PopupLikeCommandService {
+
+    private final PopupRepository popupRepository;
+    private final PopupLikeRepository popupLikeRepository;
+    private final CacheManager cacheManager;
+
+    public void likePopup(Long popupId, Long userId) {
+        validateUserId(userId);
+        validatePopupId(popupId);
+
+        Popup popup = popupRepository.findById(popupId)
+            .orElseThrow(() -> new CustomException(ErrorCode.POPUP_NOT_FOUND));
+
+        if (popupLikeRepository.existsByPopup_IdAndUserId(popupId, userId)) {
+            return;
+        }
+
+        try {
+            popupLikeRepository.save(PopupLike.create(popup, userId));
+            popupRepository.incrementLikeCountById(popupId);
+            evictPopularRankingsCache();
+        } catch (DataIntegrityViolationException e) {
+            // Unique constraint race: another request created the like first.
+        }
+    }
+
+    public void unlikePopup(Long popupId, Long userId) {
+        validateUserId(userId);
+        validatePopupId(popupId);
+
+        popupRepository.findById(popupId)
+            .orElseThrow(() -> new CustomException(ErrorCode.POPUP_NOT_FOUND));
+
+        popupLikeRepository.findByPopup_IdAndUserId(popupId, userId)
+            .ifPresent(popupLike -> {
+                popupLikeRepository.delete(popupLike);
+                popupRepository.decrementLikeCountById(popupId);
+                evictPopularRankingsCache();
+            });
+    }
+
+    private void validateUserId(Long userId) {
+        if (userId == null) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+    }
+
+    private void validatePopupId(Long popupId) {
+        if (popupId == null) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+    }
+
+    private void evictPopularRankingsCache() {
+        Cache cache = cacheManager.getCache("popularRankings");
+        if (cache != null) {
+            cache.clear();
+        }
+    }
+}
