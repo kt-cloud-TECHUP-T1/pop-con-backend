@@ -26,7 +26,7 @@ public record UserProfileResponse(
                 user.getNickname(),
                 user.getEmail(),
                 phone,
-                birthDate != null ? LocalDate.parse(birthDate) : null,
+                (birthDate != null && !birthDate.isBlank()) ? LocalDate.parse(birthDate.trim()) : null,
                 gender,
                 user.getProfileImageUrl(),
                 user.getCreatedAt() != null ? user.getCreatedAt().toLocalDate() : null
