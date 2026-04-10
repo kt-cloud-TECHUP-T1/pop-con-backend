@@ -24,6 +24,7 @@ import static net.logstash.logback.argument.StructuredArguments.kv;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    // CustomException 처리
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<ApiResponse<?>> handleCustom(CustomException e, HttpServletRequest request) {
         ErrorCode ec = e.getErrorCode();
@@ -44,6 +45,7 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.fail(ec));
     }
 
+    // DTO 검증 실패 처리
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<?>> handleMethodArgumentNotValid(
             MethodArgumentNotValidException e,
@@ -70,6 +72,7 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.fail(ec, fieldErrors));
     }
 
+    // 파라미터 타입 불일치 처리
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<?>> handleTypeMismatch(
             MethodArgumentTypeMismatchException e,
@@ -83,6 +86,7 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.fail(ec));
     }
 
+    // 파라미터 검증 실패 처리
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiResponse<?>> handleConstraintViolation(
             ConstraintViolationException e,
@@ -95,6 +99,7 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.fail(ec));
     }
 
+    // 허용되지 않는 HTTP 메서드 처리
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ApiResponse<?>> handleMethodNotSupported(
             HttpRequestMethodNotSupportedException e,
@@ -118,6 +123,7 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.fail(ec));
     }
 
+    // 비동기 요청 타임아웃 처리
     @ExceptionHandler(AsyncRequestTimeoutException.class)
     public void handleAsyncRequestTimeout(
             AsyncRequestTimeoutException e,
@@ -136,6 +142,7 @@ public class GlobalExceptionHandler {
         }
     }
 
+    // 기타 서버 오류 처리
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleException(Exception e, HttpServletRequest request) {
         ErrorCode ec = ErrorCode.ERROR_SYSTEM;

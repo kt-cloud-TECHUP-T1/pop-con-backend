@@ -33,15 +33,13 @@ public class QueueSecurityConfig extends CommonSecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         super.configureCommonSettings(http);
 
-        // TODO: 운영 배포 전 아래 인증 설정으로 복구
-        // http.authorizeHttpRequests(auth -> auth
-        //         .requestMatchers("/health", "/actuator/**").permitAll()
-        //         .requestMatchers(HttpMethod.GET, "/queues/status").permitAll()
-        //         .requestMatchers(HttpMethod.DELETE, "/queues").permitAll()
-        //         .requestMatchers(HttpMethod.POST, "/queues/**").authenticated()
-        //         .anyRequest().authenticated()
-        // );
-        http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+        http.authorizeHttpRequests(auth -> auth
+                .requestMatchers("/health", "/actuator/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/queues/status").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/queues").authenticated()
+                .requestMatchers(HttpMethod.POST, "/queues/**").authenticated()
+                .anyRequest().authenticated()
+        );
 
         return http.build();
     }
