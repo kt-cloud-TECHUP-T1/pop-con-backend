@@ -8,13 +8,13 @@ import com.t1.popcon.popup.detail.entity.Popup;
 import com.t1.popcon.popup.detail.repository.PopupRepository;
 import com.t1.popcon.popup.dto.card.PhaseType;
 import com.t1.popcon.popup.dto.card.PopupMapper;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import com.t1.popcon.popup.likes.service.PopupLikeReadService;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
@@ -24,57 +24,58 @@ public class PopupDetailService {
     private static final ZoneId KST_ZONE = ZoneId.of("Asia/Seoul");
 
     private final PopupRepository popupRepository;
+    private final PopupLikeReadService popupLikeReadService;
 
-    public PopupDetailResponse getPopupDetail(Long popupId) {
+    public PopupDetailResponse getPopupDetail(Long popupId, Long userId) {
         Popup popup = popupRepository.findById(popupId)
-                .orElseThrow(() -> new CustomException(ErrorCode.POPUP_NOT_FOUND));
+            .orElseThrow(() -> new CustomException(ErrorCode.POPUP_NOT_FOUND));
 
+        boolean liked = popupLikeReadService.isLiked(popupId, userId);
         PhaseType phaseType = PopupMapper.resolvePhase(popup, LocalDateTime.now(KST_ZONE)).type();
 
         return PopupDetailResponse.builder()
-                .phaseType(phaseType)
-                .auctionId(popup.getAuctionId())
-                .drawId(popup.getDrawId())
-                .popupId(popup.getId())
-                // TODO: popup_like 서비스/레포지토리 구현 후 현재 사용자 기준 좋아요 여부로 교체 필요
-                .liked(false)
-                .thumbnailUrl(phaseType == PhaseType.AUCTION ? popup.getHThumbUrl() : popup.getVThumbUrl())
-                .title(popup.getTitle())
-                .subtitle(popup.getSubtitle())
-                .viewCount(popup.getViewCount())
-                .likeCount(popup.getLikeCount())
-                .description(popup.getDescription())
-                .location(popup.getLocation())
-                .reviewCount(popup.getReviewCount())
-                .openAt(popup.getOpenAt())
-                .closeAt(popup.getCloseAt())
-                .weekdayOpen(popup.getWeekdayOpen())
-                .weekdayClose(popup.getWeekdayClose())
-                .weekendOpen(popup.getWeekendOpen())
-                .weekendClose(popup.getWeekendClose())
-                .build();
+            .phaseType(phaseType)
+            .auctionId(popup.getAuctionId())
+            .drawId(popup.getDrawId())
+            .popupId(popup.getId())
+            .liked(liked)
+            .thumbnailUrl(phaseType == PhaseType.AUCTION ? popup.getHThumbUrl() : popup.getVThumbUrl())
+            .title(popup.getTitle())
+            .subtitle(popup.getSubtitle())
+            .viewCount(popup.getViewCount())
+            .likeCount(popup.getLikeCount())
+            .description(popup.getDescription())
+            .location(popup.getLocation())
+            .reviewCount(popup.getReviewCount())
+            .openAt(popup.getOpenAt())
+            .closeAt(popup.getCloseAt())
+            .weekdayOpen(popup.getWeekdayOpen())
+            .weekdayClose(popup.getWeekdayClose())
+            .weekendOpen(popup.getWeekendOpen())
+            .weekendClose(popup.getWeekendClose())
+            .build();
     }
 
     public InternalPopupResponse getPopupInternal(Long popupId) {
         Popup popup = popupRepository.findById(popupId)
-                .orElseThrow(() -> new CustomException(ErrorCode.POPUP_NOT_FOUND));
+            .orElseThrow(() -> new CustomException(ErrorCode.POPUP_NOT_FOUND));
 
         return InternalPopupResponse.builder()
-                .popupId(popup.getId())
-                .title(popup.getTitle())
-                .location(popup.getLocation())
-                .vThumbnailUrl(popup.getVThumbUrl())
-                .build();
+            .popupId(popup.getId())
+            .title(popup.getTitle())
+            .location(popup.getLocation())
+            .vThumbnailUrl(popup.getVThumbUrl())
+            .build();
     }
 
     public List<InternalPopupResponse> getPopupsByBulkIds(List<Long> popupIds) {
         return popupRepository.findAllById(popupIds).stream()
-                .map(popup -> InternalPopupResponse.builder()
-                        .popupId(popup.getId())
-                        .title(popup.getTitle())
-                        .location(popup.getLocation())
-                        .vThumbnailUrl(popup.getVThumbUrl())
-                        .build())
-                .toList();
+            .map(popup -> InternalPopupResponse.builder()
+                .popupId(popup.getId())
+                .title(popup.getTitle())
+                .location(popup.getLocation())
+                .vThumbnailUrl(popup.getVThumbUrl())
+                .build())
+            .toList();
     }
 }

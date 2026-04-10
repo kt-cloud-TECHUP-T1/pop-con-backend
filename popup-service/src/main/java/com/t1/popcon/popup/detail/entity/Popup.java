@@ -94,4 +94,5 @@ public class Popup extends BaseSoftDeleteEntity {
 
     @Column(name = "review_count", nullable = false)
     private Long reviewCount;
+
 }

@@ -1,5 +1,6 @@
 package com.t1.popcon.popup.detail.controller;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -77,7 +78,7 @@ class PopupDetailControllerTest extends AbstractRestDocsTest {
             ApiResponse<PopupDetailResponse> expectedResponse =
                     ApiResponse.ok("팝업스토어 조회를 성공했습니다.", responseDto);
 
-            given(popupDetailService.getPopupDetail(anyLong())).willReturn(responseDto);
+            given(popupDetailService.getPopupDetail(anyLong(), any())).willReturn(responseDto);
 
             // when & then
             mockMvc.perform(
@@ -108,7 +109,7 @@ class PopupDetailControllerTest extends AbstractRestDocsTest {
             Long popupId = 1L;
             ApiResponse<Void> expectedResponse = ApiResponse.fail(ErrorCode.ERROR_SYSTEM);
 
-            given(popupDetailService.getPopupDetail(anyLong()))
+            given(popupDetailService.getPopupDetail(anyLong(), any()))
                     .willThrow(new RuntimeException("Internal Server Error"));
 
             // when & then

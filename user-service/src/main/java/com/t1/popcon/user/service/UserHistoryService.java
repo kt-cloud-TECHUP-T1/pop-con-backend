@@ -5,9 +5,11 @@ import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.common.response.ApiResponse;
 import com.t1.popcon.user.client.AuctionServiceClient;
 import com.t1.popcon.user.client.DrawServiceClient;
+import com.t1.popcon.user.client.PopupServiceClient;
 import com.t1.popcon.user.client.TicketServiceClient;
 import com.t1.popcon.user.dto.history.AuctionHistoryResponse;
 import com.t1.popcon.user.dto.history.DrawHistoryResponse;
+import com.t1.popcon.user.dto.history.PopupLikeHistoryResponse;
 import com.t1.popcon.user.dto.history.SliceResponse;
 import com.t1.popcon.user.dto.history.TicketHistoryResponse;
 import java.util.ArrayList;
@@ -27,6 +29,7 @@ public class UserHistoryService {
     private final DrawServiceClient drawServiceClient;
     private final AuctionServiceClient auctionServiceClient;
     private final TicketServiceClient ticketServiceClient;
+    private final PopupServiceClient popupServiceClient;
 
     public List<DrawHistoryResponse> getDrawHistory(Long userId) {
         try {
@@ -100,6 +103,20 @@ public class UserHistoryService {
             throw e;
         } catch (Exception e) {
             log.error(">>>> [Ticket-Service 연동 실패] userId={}, reservationNo={}, Error: {}", userId, reservationNo, e.getMessage());
+            throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+        }
+    }
+
+    public SliceResponse<PopupLikeHistoryResponse> getLikedPopups(Long userId, int page, int size) {
+        try {
+            ApiResponse<SliceResponse<PopupLikeHistoryResponse>> response =
+                popupServiceClient.getLikedPopups(userId, page, size);
+            if (response == null || response.getData() == null) {
+                throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+            }
+            return response.getData();
+        } catch (Exception e) {
+            log.error(">>>> [Popup-Service 연동 실패] User ID: {}, Error: {}", userId, e.getMessage());
             throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
         }
     }

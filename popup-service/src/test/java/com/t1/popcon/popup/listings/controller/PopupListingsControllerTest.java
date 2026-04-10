@@ -83,7 +83,7 @@ class PopupListingsControllerTest extends AbstractRestDocsTest {
             ApiResponse<PopupSectionResponse<PopupCardDto>> expectedResponse =
                 ApiResponse.ok("더치 경매 섹션 조회를 성공했습니다.", responseDto);
 
-            given(popupListingsService.getPopups(any(), any(), any(), anyInt()))
+            given(popupListingsService.getPopups(any(), any(), any(), any(), anyInt()))
                 .willReturn(responseDto);
 
             given(popupListingsService.getMessage(any(), any()))
@@ -119,7 +119,7 @@ class PopupListingsControllerTest extends AbstractRestDocsTest {
             ApiResponse<PopupSectionResponse<PopupCardDto>> expectedResponse =
                 ApiResponse.ok("진행 중 드로우 섹션 조회를 성공했습니다.", responseDto);
 
-            given(popupListingsService.getPopups(any(), any(), any(), anyInt()))
+            given(popupListingsService.getPopups(any(), any(), any(), any(), anyInt()))
                 .willReturn(responseDto);
 
             given(popupListingsService.getMessage(any(), any()))
@@ -155,7 +155,7 @@ class PopupListingsControllerTest extends AbstractRestDocsTest {
             ApiResponse<PopupSectionResponse<PopupCardDto>> expectedResponse =
                 ApiResponse.ok("오픈 예정 드로우 섹션 조회를 성공했습니다.", responseDto);
 
-            given(popupListingsService.getPopups(any(), any(), any(), anyInt()))
+            given(popupListingsService.getPopups(any(), any(), any(), any(), anyInt()))
                 .willReturn(responseDto);
 
             given(popupListingsService.getMessage(any(), any()))
@@ -183,7 +183,7 @@ class PopupListingsControllerTest extends AbstractRestDocsTest {
             ApiResponse<Void> expectedResponse =
                 ApiResponse.fail(ErrorCode.INVALID_INPUT);
 
-            given(popupListingsService.getPopups(any(), any(), any(), anyInt()))
+            given(popupListingsService.getPopups(any(), any(), any(), any(), anyInt()))
                 .willThrow(new CustomException(ErrorCode.INVALID_INPUT));
 
             mockMvc.perform(
@@ -212,7 +212,7 @@ class PopupListingsControllerTest extends AbstractRestDocsTest {
             ApiResponse<?> expectedResponse =
                 invalidInput("limit", "limit는 1 이상이어야 합니다.");
 
-            given(popupListingsService.getPopups(any(), any(), any(), anyInt()))
+            given(popupListingsService.getPopups(any(), any(), any(), any(), anyInt()))
                 .willThrow(new CustomException(
                     ErrorCode.INVALID_INPUT,
                     Map.of("limit", "limit는 1 이상이어야 합니다.")
@@ -293,7 +293,7 @@ class PopupListingsControllerTest extends AbstractRestDocsTest {
         void 실패_서버_오류() throws Exception {
             ApiResponse<Void> expectedResponse = systemError();
 
-            given(popupListingsService.getPopups(any(), any(), any(), anyInt()))
+            given(popupListingsService.getPopups(any(), any(), any(), any(), anyInt()))
                 .willThrow(new RuntimeException("Internal Server Error"));
 
             performGet(AUCTION_URL)

@@ -6,6 +6,7 @@ import com.t1.popcon.common.auth.handler.JwtAccessDeniedHandler;
 import com.t1.popcon.common.auth.handler.JwtAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -37,10 +38,10 @@ public class PopupSecurityConfig extends CommonSecurityConfig {
 				"/v3/api-docs/**",
 				"/popup/swagger-ui/**",
 				"/actuator/**",
-				"/popups/**",
 				"/internal/**",
 				"/magazines"
 			).permitAll()
+			.requestMatchers(HttpMethod.GET, "/popups/**").permitAll()
 			.anyRequest().authenticated()
 		)
 		.addFilterBefore(internalApiAuthFilter, UsernamePasswordAuthenticationFilter.class);
