@@ -113,7 +113,7 @@ public class BidServiceTest {
 		PortOnePaymentResponse paymentResponse = new PortOnePaymentResponse(paymentDetail);
 		given(portOneClient.executePayment(anyString(), anyString(), anyInt(), anyString())).willReturn(paymentResponse);
 
-		PopupInternalResponse popupInfo = new PopupInternalResponse(1L, "Pop-up Title", "Location", "thumbnail.url");
+		PopupInternalResponse popupInfo = new PopupInternalResponse(1L, "Pop-up Title", "Location", "h_thumbnail.url", "v_thumbnail.url");
 		given(auction.getPopupId()).willReturn(1L);
 		given(popupServiceClient.getPopupDetail(anyLong())).willReturn(ApiResponse.ok(popupInfo));
 		given(option.getEntryDate()).willReturn(LocalDate.now());
@@ -146,7 +146,7 @@ public class BidServiceTest {
 			eq("TKT123456789012"),
 			eq("Pop-up Title"),
 			eq("Location"),
-			eq("thumbnail.url"),
+			eq("v_thumbnail.url"),
 			any(LocalDate.class),
 			any(LocalTime.class),
 			eq(10000)
