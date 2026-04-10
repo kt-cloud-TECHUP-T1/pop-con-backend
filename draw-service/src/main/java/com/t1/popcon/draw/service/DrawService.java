@@ -11,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -25,7 +24,7 @@ public class DrawService {
         Draw draw = drawRepository.findById(drawId)
                 .orElseThrow(() -> new CustomException(ErrorCode.DRAW_NOT_FOUND));
 
-        LocalDateTime serverTime = LocalDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS); // 밀리초 제거
+        LocalDateTime serverTime = LocalDateTime.now(clock);
 
         boolean participatable =
                 !serverTime.isBefore(draw.getDrawOpenAt()) &&
