@@ -21,14 +21,13 @@ public class UserController {
     /**
      * 내 프로필 조회
      * GET /users/me
-     *
-     * @param authUser JWT에서 추출된 인증 사용자
-     * @return 사용자 프로필 정보
      */
     @GetMapping("/me")
     public ApiResponse<UserProfileResponse> getMyProfile(@AuthenticationPrincipal AuthUser authUser) {
         UserProfileResponse response = userService.getUserProfile(authUser.id());
         return ApiResponse.ok("프로필 조회를 완료했습니다.", response);
+    }
+
     @GetMapping("/me/id")
     public ApiResponse<UserIdResponse> getMyId(
       @AuthenticationPrincipal AuthUser authUser
