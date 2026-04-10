@@ -94,6 +94,7 @@ public class BidService {
             .reservationNo(bid.getReservationNo())
             .popupTitle(bid.getPopupTitle())
             .popupAddress(bid.getPopupAddress())
+            .popupThumbnail(bid.getThumbnailUrl())
             .entryDate(bid.getEntryDate())
             .entryTime(bid.getEntryTime())
             .startPrice(startPrice)
@@ -193,7 +194,7 @@ public class BidService {
                     PopupInternalResponse popupInfo = popupResponse.getData();
                     popupTitle = popupInfo.title();
                     popupAddress = popupInfo.location();
-                    thumbnailUrl = popupInfo.thumbnailUrl();
+                    thumbnailUrl = popupInfo.vThumbnailUrl();
                 } else {
                     log.warn(">>>> [팝업 정보 조회 실패] 응답이 비어있음 popupId={}", option.getAuction().getPopupId());
                 }

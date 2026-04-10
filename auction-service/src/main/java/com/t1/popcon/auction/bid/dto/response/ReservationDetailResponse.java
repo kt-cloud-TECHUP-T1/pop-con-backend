@@ -10,6 +10,7 @@ public record ReservationDetailResponse(
     String reservationNo,
     String popupTitle,
     String popupAddress,
+    String popupThumbnail,
     LocalDate entryDate,
     LocalTime entryTime,
     Integer startPrice,
