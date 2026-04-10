@@ -13,8 +13,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Category extends BaseAuditEntity {
 
-    // 아이콘 이미지 URL
-    @Column(nullable = false, length = 512)
+    // 아이콘 이미지 URL (없으면 null, 프론트에서 기본 이미지 대체)
+    @Column(nullable = true, length = 512)
     private String iconUrl;
 
     // 아이콘 이름 (카테고리 라벨)
