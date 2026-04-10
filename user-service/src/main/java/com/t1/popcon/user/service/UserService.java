@@ -1,10 +1,12 @@
 package com.t1.popcon.user.service;
 
+import com.t1.popcon.common.encryption.EncryptionService;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.user.domain.User;
 import com.t1.popcon.user.dto.UserLookupResponse;
 import com.t1.popcon.user.dto.UserInternalResponse;
+import com.t1.popcon.user.dto.UserProfileResponse;
 import com.t1.popcon.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,11 +28,28 @@ public class UserService {
 
     private static final int MAX_NICKNAME_RETRIES = 5;
     private static final String NICKNAME_CONSTRAINT = "uk_users_nickname";
-    
+
     private final UserRepository userRepository;
+    private final EncryptionService encryptionService;
 
     @Value("${user.nickname.prefix:User}")
     private String nicknamePrefix;
+
+    /**
+     * 사용자 프로필 조회 (GET /users/me)
+     * 암호화된 민감정보를 복호화하여 반환
+     */
+    @Transactional(readOnly = true)
+    public UserProfileResponse getUserProfile(Long userId) {
+        User user = getUserOrThrow(userId);
+        return UserProfileResponse.of(
+                user,
+                encryptionService.decrypt(user.getEncryptedName()),
+                encryptionService.decrypt(user.getEncryptedPhoneNumber()),
+                encryptionService.decrypt(user.getEncryptedBirthDate()),
+                encryptionService.decrypt(user.getEncryptedGender())
+        );
+    }
 
     /**
      * 사용자 상세 정보 조회 (내부 서비스용)
