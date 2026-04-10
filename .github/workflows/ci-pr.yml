@@ -8,57 +8,135 @@ permissions:
   contents: read
 
 jobs:
+  # ── 변경된 서비스 감지 ─────────────────────────────────────────────────────
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      changes: ${{ steps.filter.outputs.changes }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Filter changed services
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            auth-service:
+              - 'auth-service/**'
+              - 'common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
+            user-service:
+              - 'user-service/**'
+              - 'common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
+            popup-service:
+              - 'popup-service/**'
+              - 'common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
+            auction-service:
+              - 'auction-service/**'
+              - 'common/**'
+              - 'queue-common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
+            draw-service:
+              - 'draw-service/**'
+              - 'common/**'
+              - 'queue-common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
+            queue-service:
+              - 'queue-service/**'
+              - 'common/**'
+              - 'queue-common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
+            queue-worker:
+              - 'queue-worker/**'
+              - 'common/**'
+              - 'queue-common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
+            anti-macro-service:
+              - 'anti-macro-service/**'
+
+  # ── 테스트 + Docs ─────────────────────────────────────────────────────────
   test-and-docs:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.changes != '[]'
     runs-on: ubuntu-latest
     env:
       SPRING_PROFILES_ACTIVE: test
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.changes) }}
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Java 서비스 ──────────────────────────────────────────────────────
+      - uses: actions/setup-java@v4
+        if: matrix.service != 'anti-macro-service'
         with:
           distribution: temurin
           java-version: "21"
           cache: gradle
 
       - name: Grant execute permission for gradlew
+        if: matrix.service != 'anti-macro-service'
         run: chmod +x ./gradlew
 
-      - name: Test + Docs (OpenAPI copy)
-        run: ./gradlew --no-daemon clean test :auth-service:bootJar :user-service:bootJar :popup-service:bootJar :auction-service:bootJar :draw-service:bootJar :queue-service:bootJar :queue-worker:bootJar copyOasToSwagger
+      - name: Test + Docs
+        if: matrix.service != 'anti-macro-service'
+        run: ./gradlew --no-daemon :${{ matrix.service }}:clean :${{ matrix.service }}:test :${{ matrix.service }}:bootJar
 
       - name: Upload test report
-        if: failure()
+        if: failure() && matrix.service != 'anti-macro-service'
         uses: actions/upload-artifact@v4
         with:
-          name: test-report
-          path: |
-            auth-service/build/reports/tests/test
-            user-service/build/reports/tests/test
-            popup-service/build/reports/tests/test
-            auction-service/build/reports/tests/test
-            draw-service/build/reports/tests/test
-            queue-common/build/reports/tests/test
-            queue-service/build/reports/tests/test
-            queue-worker/build/reports/tests/test
-
+          name: test-report-${{ matrix.service }}
+          path: ${{ matrix.service }}/build/reports/tests/test
           if-no-files-found: warn
 
       - name: Upload swagger-ui artifact
+        if: matrix.service != 'anti-macro-service'
         uses: actions/upload-artifact@v4
         with:
-          name: swagger-ui
-          path: |
-            auth-service/src/main/resources/static/swagger-ui
-            popup-service/src/main/resources/static/swagger-ui
-            user-service/src/main/resources/static/swagger-ui
-            auction-service/src/main/resources/static/swagger-ui
-            draw-service/src/main/resources/static/swagger-ui
-            queue-service/src/main/resources/static/swagger-ui
+          name: swagger-ui-${{ matrix.service }}
+          path: ${{ matrix.service }}/src/main/resources/static/swagger-ui
           if-no-files-found: warn
+
+      # ── anti-macro-service (Node.js) ─────────────────────────────────────
+      - uses: actions/setup-node@v4
+        if: matrix.service == 'anti-macro-service'
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: anti-macro-service/package-lock.json
+
+      - name: Install & Build (Node)
+        if: matrix.service == 'anti-macro-service'
+        run: cd anti-macro-service && npm ci && npm run build
 
       - name: Notify Discord (Test & Docs)
         if: always()
@@ -67,43 +145,56 @@ jobs:
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK_PR_CI }}
           content: |
-            🧪 PR 검사 결과(테스트/문서): **${{ job.status }}**
+            🧪 PR 검사 결과 - **${{ matrix.service }}**: **${{ job.status }}**
             - 레포: ${{ github.repository }}
             - PR: <${{ github.event.pull_request.html_url }}>
             - 실행 로그: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
+  # ── Docker 빌드 ────────────────────────────────────────────────────────────
   docker-build:
+    needs: [detect-changes, test-and-docs]
+    if: needs.detect-changes.outputs.changes != '[]'
     runs-on: ubuntu-latest
-    needs: test-and-docs
 
     strategy:
+      fail-fast: false
       matrix:
-        service:
-          - auth-service
-          - user-service
-          - popup-service
-          - auction-service
-          - draw-service
-          - queue-service
-          - queue-worker
+        service: ${{ fromJson(needs.detect-changes.outputs.changes) }}
 
     steps:
+      # ── Java 서비스 ──────────────────────────────────────────────────────
       - uses: actions/checkout@v4
+        if: matrix.service != 'anti-macro-service'
 
       - uses: actions/setup-java@v4
+        if: matrix.service != 'anti-macro-service'
         with:
           distribution: temurin
           java-version: "21"
           cache: gradle
 
-      - run: chmod +x ./gradlew
-
       - name: Build jar
-        run: ./gradlew :${{ matrix.service }}:bootJar
+        if: matrix.service != 'anti-macro-service'
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon :${{ matrix.service }}:bootJar
 
-      - name: Check jars
-        run: ls -al ${{ matrix.service }}/build/libs
+      # ── anti-macro-service (Node.js) ─────────────────────────────────────
+      - uses: actions/checkout@v4
+        if: matrix.service == 'anti-macro-service'
 
+      - uses: actions/setup-node@v4
+        if: matrix.service == 'anti-macro-service'
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: anti-macro-service/package-lock.json
+
+      - name: Install & Build (Node)
+        if: matrix.service == 'anti-macro-service'
+        run: cd anti-macro-service && npm ci && npm run build
+
+      # ── 공통: Docker 빌드 ────────────────────────────────────────────────
       - uses: docker/setup-buildx-action@v3
 
       - uses: docker/build-push-action@v5
@@ -112,32 +203,3 @@ jobs:
           file: ./${{ matrix.service }}/Dockerfile
           push: false
           tags: pr-check:${{ matrix.service }}
-
-  docker-build-anti-macro:
-    runs-on: ubuntu-latest
-    needs: test-and-docs
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: anti-macro-service/package-lock.json
-
-      - name: Install dependencies
-        run: cd anti-macro-service && npm ci
-
-      - name: Build
-        run: cd anti-macro-service && npm run build
-
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./anti-macro-service/Dockerfile
-          push: false
-          tags: pr-check:anti-macro-service
