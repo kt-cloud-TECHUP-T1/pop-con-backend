@@ -1,8 +1,11 @@
 package com.t1.popcon.popup.categories.dto;
 
-// 카테고리 아이콘 DTO - 아이콘 이미지, 이름, 연결된 팝업 ID만 포함
+import com.t1.popcon.popup.dto.card.PopupCardDto;
+
+// 카테고리 아이콘 DTO
 public record CategoryIconDto(
     String iconUrl,
     String iconName,
-    Long popupId
+    Long popupId,
+    PopupCardDto.PhaseDto phase
 ) {}
