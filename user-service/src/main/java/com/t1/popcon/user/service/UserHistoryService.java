@@ -73,7 +73,7 @@ public class UserHistoryService {
 
             return histories;
         } catch (Exception e) {
-            log.error(">>>> [Draw-Service 연동 실패] User ID: {}, Error: {}", userId, e.getMessage());
+            log.error("Draw service integration failed. userId={}, error={}", userId, e.getMessage());
             throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
         }
     }
@@ -86,7 +86,7 @@ public class UserHistoryService {
             }
             return response.getData();
         } catch (Exception e) {
-            log.error(">>>> [Auction-Service 연동 실패] User ID: {}, Error: {}", userId, e.getMessage());
+            log.error("Auction service integration failed. userId={}, error={}", userId, e.getMessage());
             throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
         }
     }
@@ -116,7 +116,7 @@ public class UserHistoryService {
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            log.error(">>>> [Ticket-Service 연동 실패] User ID: {}, Error: {}", userId, e.getMessage());
+            log.error("Ticket service integration failed. userId={}, error={}", userId, e.getMessage());
             throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
         }
     }
@@ -154,7 +154,7 @@ public class UserHistoryService {
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            log.error(">>>> [Ticket Detail 조회 실패] userId={}, ticketId={}, error={}", userId, ticketId, e.getMessage());
+            log.error("Ticket detail lookup failed. userId={}, ticketId={}, error={}", userId, ticketId, e.getMessage());
             throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
         }
     }
@@ -172,7 +172,7 @@ public class UserHistoryService {
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            log.error(">>>> [Ticket-Service 연동 실패] userId={}, reservationNo={}, Error: {}", userId, reservationNo, e.getMessage());
+            log.error("Ticket service integration failed. userId={}, reservationNo={}, error={}", userId, reservationNo, e.getMessage());
             throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
         }
     }
@@ -186,7 +186,7 @@ public class UserHistoryService {
             }
             return response.getData();
         } catch (Exception e) {
-            log.error(">>>> [Popup-Service 연동 실패] User ID: {}, Error: {}", userId, e.getMessage());
+            log.error("Popup service integration failed. userId={}, error={}", userId, e.getMessage());
             throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
         }
     }
@@ -310,7 +310,7 @@ public class UserHistoryService {
         try {
             return fetchPopup(popupId);
         } catch (Exception e) {
-            log.warn(">>>> [Popup fallback fetch failed] popupId={}, error={}", popupId, e.getMessage());
+            log.warn("Popup fallback fetch failed. popupId={}, error={}", popupId, e.getMessage());
             return null;
         }
     }
@@ -339,7 +339,7 @@ public class UserHistoryService {
         if (!isBlank(displayStatus)) {
             return displayStatus;
         }
-        if (status == null || status.isBlank()) {
+        if (isBlank(status)) {
             return null;
         }
 

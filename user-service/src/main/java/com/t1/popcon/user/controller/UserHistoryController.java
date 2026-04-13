@@ -72,6 +72,6 @@ public class UserHistoryController {
         @RequestParam(value = "size", defaultValue = "12") int size
     ) {
         SliceResponse<PopupLikeHistoryResponse> response = userHistoryService.getLikedPopups(authUser.id(), page, size);
-        return ApiResponse.ok("좋아요 팝업 목록 조회 성공", response);
+        return ApiResponse.ok("좋아요한 팝업 목록 조회 성공", response);
     }
 }

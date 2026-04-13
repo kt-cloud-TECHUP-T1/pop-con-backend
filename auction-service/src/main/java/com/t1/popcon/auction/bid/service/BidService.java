@@ -84,10 +84,14 @@ public class BidService {
 
         Integer startPrice = bid.getStartPrice() != null ? bid.getStartPrice() : 0;
         Integer bidPrice = bid.getBidPrice() != null ? bid.getBidPrice() : 0;
+        if (bid.getBidPrice() == null) {
+            log.warn("Bid price is null for reservationNo={}, bidId={}, startPrice={}",
+                reservationNo, bid.getId(), bid.getStartPrice());
+        }
 
         Integer discountAmount = Math.max(0, startPrice - bidPrice);
         if (bid.getStartPrice() == null) {
-            log.warn(">>>> [데이터 정합성 경고] reservationNo={} 의 startPrice가 null입니다.", reservationNo);
+            log.warn("Start price is null for reservationNo={}", reservationNo);
         }
 
         return buildReservationDetailResponse(bid, startPrice, discountAmount, bidPrice);
@@ -98,14 +102,14 @@ public class BidService {
             .orElseThrow(() -> new CustomException(ErrorCode.BID_NOT_FOUND));
 
         if (bid.getStartPrice() == null) {
-            log.warn(">>>> [데이터 정합성 경고] bidId={}, userId={}, reservationNo={} 의 startPrice가 null입니다.",
+            log.warn("Start price is null for bidId={}, userId={}, reservationNo={}",
                 bidId, userId, bid.getReservationNo());
         }
 
         Integer startPrice = bid.getStartPrice() != null ? bid.getStartPrice() : 0;
         Integer bidPrice = bid.getBidPrice() != null ? bid.getBidPrice() : 0;
         if (bid.getBidPrice() == null) {
-            log.warn(">>>> [?곗씠???뺥빀??寃쎄퀬] bidId={}, startPrice={} ??bidPrice媛 null?낅땲??",
+            log.warn("Bid price is null for bidId={}, startPrice={}",
                 bid.getId(), bid.getStartPrice());
         }
         Integer discountAmount = Math.max(0, startPrice - bidPrice);
@@ -197,17 +201,17 @@ public class BidService {
                 billingKey,
                 bid.getMerchantUid(),
                 bid.getBidPrice(),
-                "입장권 낙찰"
+                "입장권 응찰"
             );
 
             if (!paymentResponse.isPaid()) {
-                log.error(">>>> [결제 실패] 결제 완료 시각이 없습니다. merchantUid={}", bid.getMerchantUid());
+                log.error("Payment execution failed because paidAt is missing. merchantUid={}", bid.getMerchantUid());
                 throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제가 완료되지 않았습니다.");
             }
 
             String pgTxId = paymentResponse.getPgTxId();
             if (pgTxId == null || pgTxId.isBlank()) {
-                log.error(">>>> [결제 응답 오류] pgTxId 누락 merchantUid={}", bid.getMerchantUid());
+                log.error("Payment response is missing pgTxId. merchantUid={}", bid.getMerchantUid());
                 throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 트랜잭션 ID가 누락되었습니다.");
             }
 
@@ -225,10 +229,10 @@ public class BidService {
                     popupAddress = popupInfo.location();
                     thumbnailUrl = popupInfo.vThumbnailUrl();
                 } else {
-                    log.warn(">>>> [팝업 정보 조회 실패] 응답이 비어있음 popupId={}", option.getAuction().getPopupId());
+                    log.warn("Popup detail response is empty. popupId={}", option.getAuction().getPopupId());
                 }
             } catch (Exception e) {
-                log.error(">>>> [팝업 정보 조회 오류] 외부 서비스 호출 중 예외 발생 popupId={}, error={}",
+                log.error("Popup detail lookup failed. popupId={}, error={}",
                     option.getAuction().getPopupId(), e.getMessage());
             }
 
@@ -255,7 +259,7 @@ public class BidService {
                     break;
                 } catch (DataIntegrityViolationException e) {
                     retryCount++;
-                    log.warn(">>>> [예약번호 충돌] 재시도 중.. retryCount={}, merchantUid={}", retryCount, bid.getMerchantUid());
+                    log.warn("Reservation number collision detected. retryCount={}, merchantUid={}", retryCount, bid.getMerchantUid());
                     if (retryCount >= maxRetries) {
                         throw e;
                     }
@@ -269,10 +273,10 @@ public class BidService {
             }
 
             issueAuctionWinTicket(bid, option, reservationNo);
-            return new BidResponse(bid.getId(), BidStatus.SUCCESS, "낙찰이 완료되었습니다.", reservationNo);
+            return new BidResponse(bid.getId(), BidStatus.SUCCESS, "응찰이 완료되었습니다.", reservationNo);
 
         } catch (Exception e) {
-            log.error(">>>> 낙찰 처리 중 오류 userId={}, optionId={}, error={}", userId, option.getId(), e.getMessage());
+            log.error("Bid processing failed. userId={}, optionId={}, error={}", userId, option.getId(), e.getMessage());
 
             if (!paymentAttempted) {
                 bidRedisRepository.incrementAvailableStock(option.getId(), 1L);
@@ -294,14 +298,14 @@ public class BidService {
                 if (cancelResponse.isSucceeded()) {
                     bidRedisRepository.addPendingRestock(option.getId(), 1L);
                     cancelConfirmed = true;
-                    log.info(">>>> [보상 완료] 결제 취소 완료 merchantUid={}", merchantUid);
+                    log.info("Compensation completed. Payment cancel succeeded. merchantUid={}", merchantUid);
                 } else if (cancelResponse.isRequested()) {
-                    log.warn(">>>> [보상 보류] 결제 취소 요청만 접수 merchantUid={}", merchantUid);
+                    log.warn("Compensation pending. Payment cancel request accepted. merchantUid={}", merchantUid);
                 } else {
-                    log.error("!!!! [보상 실패] 결제 취소 실패 merchantUid={}, reason={}", merchantUid, cancelResponse.reason());
+                    log.error("Compensation failed. Payment cancel failed. merchantUid={}, reason={}", merchantUid, cancelResponse.reason());
                 }
             } catch (Exception cancelEx) {
-                log.error("!!!! [긴급] 결제 취소 API 호출 실패 merchantUid={}", merchantUid, cancelEx);
+                log.error("Critical error while calling payment cancel API. merchantUid={}", merchantUid, cancelEx);
             }
 
             if (cancelConfirmed && bid != null) {
@@ -309,7 +313,7 @@ public class BidService {
             }
 
             if (!cancelConfirmed) {
-                throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 취소가 확정되지 않아 재고 복구를 보류합니다.");
+                throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 취소가 확정되지 않아 복구를 보류합니다.");
             }
 
             if (e instanceof CustomException customException) {
@@ -338,7 +342,7 @@ public class BidService {
         try {
             return OffsetDateTime.parse(paidAtStr).toLocalDateTime();
         } catch (Exception e) {
-            log.warn(">>>> [paidAt 파싱 실패] {}", paidAtStr, e);
+            log.warn("Failed to parse paidAt value: {}", paidAtStr, e);
             throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "결제 완료 시각 파싱에 실패했습니다.");
         }
     }
@@ -352,7 +356,7 @@ public class BidService {
                 throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
             }
         } catch (Exception e) {
-            log.error(">>>> [Ticket-Service 연동 실패] bidId={}, optionId={}, error={}",
+            log.error("Ticket service integration failed. bidId={}, optionId={}, error={}",
                 bid.getId(), option.getId(), e.getMessage());
             // TODO: Introduce async compensation/retry flow if ticket issuance must be recovered separately.
             if (e instanceof CustomException customException) {

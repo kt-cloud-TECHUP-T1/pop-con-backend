@@ -40,7 +40,7 @@ public class DrawEntryService {
 
     private static final String UNKNOWN_POPUP_TITLE = "알 수 없는 팝업";
     private static final long DEFAULT_PRICE = 0L;
-    private static final String DISPLAY_IN_PROGRESS = "진행중";
+    private static final String DISPLAY_IN_PROGRESS = "진행 중";
     private static final String DISPLAY_DRAW_PENDING = "추첨 대기";
     private static final String DISPLAY_ANNOUNCEMENT_PENDING = "결과 발표 대기";
     private static final String DISPLAY_TICKET_ISSUED = "티켓 발급 완료";
