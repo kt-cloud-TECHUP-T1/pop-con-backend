@@ -17,7 +17,7 @@ queue:
   cleanup-interval-ms: 60000
   heartbeat-cleanup-interval-ms: 10000
   heartbeat-ttl-seconds: 15
-  block-ttl-seconds: 1800
+  block-ttl-seconds: 60
   active-ttl:
     draw-seconds: 900
     auction-seconds: 3600
