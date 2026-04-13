@@ -25,11 +25,22 @@ public record UserProfileResponse(
                 name,
                 user.getNickname(),
                 user.getEmail(),
-                phone,
+                formatPhone(phone),
                 (birthDate != null && !birthDate.isBlank()) ? LocalDate.parse(birthDate.trim()) : null,
                 gender,
                 user.getProfileImageUrl(),
                 user.getCreatedAt() != null ? user.getCreatedAt().toLocalDate() : null
         );
+    }
+
+    /** 전화번호를 010-XXXX-XXXX 형식으로 변환 */
+    private static String formatPhone(String phone) {
+        if (phone == null || phone.isBlank() || phone.contains("-")) {
+            return phone;
+        }
+        if (phone.length() == 11) {
+            return phone.substring(0, 3) + "-" + phone.substring(3, 7) + "-" + phone.substring(7);
+        }
+        return phone;
     }
 }
