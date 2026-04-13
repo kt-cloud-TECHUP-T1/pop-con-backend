@@ -104,14 +104,7 @@ public class DrawEntryService {
         DrawEntry entry = drawEntryRepository.findByIdAndUserId(drawEntryId, userId)
             .orElseThrow(() -> new CustomException(ErrorCode.DRAW_ENTRY_NOT_FOUND));
 
-        PopupInternalResponse popupInfo = null;
-        try {
-            ApiResponse<PopupInternalResponse> popupResponse =
-                popupServiceClient.getPopupDetail(entry.getDrawOption().getDraw().getPopupId());
-            popupInfo = popupResponse != null ? popupResponse.getData() : null;
-        } catch (Exception e) {
-            log.warn("Draw entry detail popup fetch failed - drawEntryId={}", drawEntryId, e);
-        }
+        PopupInternalResponse popupInfo = fetchPopupInfo(entry.getDrawOption().getDraw().getPopupId(), drawEntryId);
 
         return DrawEntryDetailResponse.builder()
             .drawEntryId(entry.getId())
@@ -130,15 +123,7 @@ public class DrawEntryService {
     }
 
     private DrawEntryResultResponse buildApplyResult(DrawOption drawOption, UserInternalResponse userInfo) {
-        PopupInternalResponse popupInfo = null;
-
-        try {
-            ApiResponse<PopupInternalResponse> popupResponse =
-                popupServiceClient.getPopupDetail(drawOption.getDraw().getPopupId());
-            popupInfo = popupResponse != null ? popupResponse.getData() : null;
-        } catch (Exception e) {
-            log.warn("Draw apply result popup fetch failed - popupId={}", drawOption.getDraw().getPopupId(), e);
-        }
+        PopupInternalResponse popupInfo = fetchPopupInfo(drawOption.getDraw().getPopupId(), null);
 
         return DrawEntryResultResponse.builder()
             .vThumbnailUrl(popupInfo != null ? popupInfo.vThumbnailUrl() : null)
@@ -193,6 +178,20 @@ public class DrawEntryService {
             throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR, e);
         } catch (RuntimeException e) {
             throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR, e);
+        }
+    }
+
+    private PopupInternalResponse fetchPopupInfo(Long popupId, Long drawEntryId) {
+        try {
+            ApiResponse<PopupInternalResponse> popupResponse = popupServiceClient.getPopupDetail(popupId);
+            return popupResponse != null ? popupResponse.getData() : null;
+        } catch (Exception e) {
+            if (drawEntryId != null) {
+                log.warn("Draw entry detail popup fetch failed - drawEntryId={}, popupId={}", drawEntryId, popupId, e);
+            } else {
+                log.warn("Draw apply result popup fetch failed - popupId={}", popupId, e);
+            }
+            return null;
         }
     }
 

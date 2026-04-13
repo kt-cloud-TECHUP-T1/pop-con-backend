@@ -68,9 +68,7 @@ public class TicketIssueService {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
 
-        if (userId == null || userId <= 0) {
-            throw new CustomException(ErrorCode.INVALID_INPUT);
-        }
+        validatePositiveId(userId);
 
         Ticket ticket = ticketRepository.findByReservationNoAndUserId(reservationNo, userId)
             .orElseThrow(() -> new CustomException(ErrorCode.TICKET_NOT_FOUND));
@@ -79,16 +77,18 @@ public class TicketIssueService {
 
     @Transactional(readOnly = true)
     public TicketDetailResponse getTicketById(Long ticketId, Long userId) {
-        if (ticketId == null || ticketId <= 0) {
-            throw new CustomException(ErrorCode.INVALID_INPUT);
-        }
+        validatePositiveId(ticketId);
 
-        if (userId == null || userId <= 0) {
-            throw new CustomException(ErrorCode.INVALID_INPUT);
-        }
+        validatePositiveId(userId);
 
         Ticket ticket = ticketRepository.findByIdAndUserId(ticketId, userId)
             .orElseThrow(() -> new CustomException(ErrorCode.TICKET_NOT_FOUND));
         return TicketDetailResponse.from(ticket);
+    }
+
+    private void validatePositiveId(Long id) {
+        if (id == null || id <= 0) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
     }
 }

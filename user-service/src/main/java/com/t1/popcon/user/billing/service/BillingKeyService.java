@@ -118,4 +118,14 @@ public class BillingKeyService {
 			.map(UserBillingKey::getCustomerUid)
 			.orElseThrow(() -> new CustomException(ErrorCode.BILLING_KEY_NOT_FOUND));
 	}
+
+	@Transactional(readOnly = true)
+	public BillingKeyInfoResponse getDefaultBillingKeyInfo(Long userId) {
+		User user = userRepository.findById(userId)
+			.orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+		return billingKeyRepository.findByUserAndIsDefaultTrueAndIsActiveTrue(user)
+			.map(BillingKeyInfoResponse::from)
+			.orElse(null);
+	}
 }

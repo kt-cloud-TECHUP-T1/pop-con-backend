@@ -14,6 +14,7 @@ import com.t1.popcon.user.dto.history.DrawHistoryResponse;
 import com.t1.popcon.user.dto.history.PopupInternalResponse;
 import com.t1.popcon.user.dto.history.PopupLikeHistoryResponse;
 import com.t1.popcon.user.dto.history.SliceResponse;
+import com.t1.popcon.user.dto.history.TicketDetailResponse;
 import com.t1.popcon.user.dto.history.TicketDetailViewResponse;
 import com.t1.popcon.user.dto.history.TicketHistoryResponse;
 import com.t1.popcon.user.dto.history.TicketPurchaserProfileResponse;
@@ -122,12 +123,12 @@ public class UserHistoryService {
 
     public TicketDetailViewResponse getTicketById(Long userId, Long ticketId) {
         try {
-            ApiResponse<TicketHistoryResponse> response = ticketServiceClient.getTicketById(ticketId, userId);
+            ApiResponse<TicketDetailResponse> response = ticketServiceClient.getTicketById(ticketId, userId);
             if (response == null || response.getData() == null) {
                 throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
             }
 
-            TicketHistoryResponse ticket = response.getData();
+            TicketDetailResponse ticket = response.getData();
             PopupInternalResponse popup = fetchPopup(ticket.getPopupId());
             TicketPurchaserProfileResponse purchaser = userService.getTicketPurchaserProfile(userId);
 
@@ -140,9 +141,9 @@ public class UserHistoryService {
                 .sourceType(ticket.getSourceType())
                 .sourceId(ticket.getSourceId())
                 .popupId(ticket.getPopupId())
-                .popupTitle(firstNonBlank(popup != null ? popup.title() : null, ticket.getPopupTitle()))
-                .popupAddress(firstNonBlank(popup != null ? popup.location() : null, ticket.getPopupAddress()))
-                .thumbnailUrl(firstNonBlank(popup != null ? popup.vThumbnailUrl() : null, ticket.getThumbnailUrl()))
+                .popupTitle(popup != null ? popup.title() : null)
+                .popupAddress(popup != null ? popup.location() : null)
+                .thumbnailUrl(popup != null ? popup.vThumbnailUrl() : null)
                 .entryDate(ticket.getEntryDate())
                 .entryTime(ticket.getEntryTime())
                 .issuedAt(ticket.getIssuedAt())
@@ -151,7 +152,7 @@ public class UserHistoryService {
                 .userPhoneNumber(purchaser.userPhoneNumber())
                 .userEmail(purchaser.userEmail());
 
-            applySourceSpecificDetail(detailBuilder, userId, ticket);
+            applySourceSpecificDetail(detailBuilder, userId, ticket, purchaser);
             return detailBuilder.build();
         } catch (CustomException e) {
             throw e;
@@ -163,14 +164,14 @@ public class UserHistoryService {
 
     public TicketHistoryResponse getTicketByReservationNo(Long userId, String reservationNo) {
         try {
-            ApiResponse<TicketHistoryResponse> response = ticketServiceClient.getTicketByReservationNo(reservationNo, userId);
+            ApiResponse<TicketDetailResponse> response = ticketServiceClient.getTicketByReservationNo(reservationNo, userId);
             if (response == null || response.getData() == null) {
                 throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
             }
 
-            TicketHistoryResponse ticket = response.getData();
+            TicketDetailResponse ticket = response.getData();
             PopupInternalResponse popup = fetchPopup(ticket.getPopupId());
-            return enrichTicketSummary(ticket, popup);
+            return toTicketHistoryResponse(ticket, popup);
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
@@ -213,10 +214,31 @@ public class UserHistoryService {
             .build();
     }
 
+    private TicketHistoryResponse toTicketHistoryResponse(TicketDetailResponse ticket, PopupInternalResponse popup) {
+        return TicketHistoryResponse.builder()
+            .ticketId(ticket.getTicketId())
+            .userId(ticket.getUserId())
+            .popupId(ticket.getPopupId())
+            .ticketNumber(ticket.getTicketNumber())
+            .reservationNo(ticket.getReservationNo())
+            .status(ticket.getStatus())
+            .sourceType(ticket.getSourceType())
+            .sourceId(ticket.getSourceId())
+            .entryDate(ticket.getEntryDate())
+            .entryTime(ticket.getEntryTime())
+            .issuedAt(ticket.getIssuedAt())
+            .popupTitle(popup != null ? popup.title() : null)
+            .popupAddress(popup != null ? popup.location() : null)
+            .thumbnailUrl(popup != null ? popup.vThumbnailUrl() : null)
+            .displayStatus(resolveDisplayStatus(ticket.getStatus()))
+            .build();
+    }
+
     private void applySourceSpecificDetail(
         TicketDetailViewResponse.TicketDetailViewResponseBuilder detailBuilder,
         Long userId,
-        TicketHistoryResponse ticket
+        TicketDetailResponse ticket,
+        TicketPurchaserProfileResponse purchaser
     ) {
         String sourceType = ticket.getSourceType();
         if (sourceType == null) {
@@ -224,13 +246,17 @@ public class UserHistoryService {
         }
 
         if ("AUCTION".equalsIgnoreCase(sourceType)) {
+            TicketDetailViewResponse currentDetail = detailBuilder.build();
             ApiResponse<AuctionReservationDetailResponse> response =
                 auctionServiceClient.getBidDetail(ticket.getSourceId(), userId);
             AuctionReservationDetailResponse detail = requireData(response);
             detailBuilder
-                .popupTitle(firstNonBlank(detail.getPopupTitle(), detailBuilder.build().getPopupTitle()))
-                .popupAddress(firstNonBlank(detail.getPopupAddress(), detailBuilder.build().getPopupAddress()))
-                .thumbnailUrl(firstNonBlank(detail.getPopupThumbnail(), detailBuilder.build().getThumbnailUrl()))
+                .popupTitle(firstNonBlank(detail.getPopupTitle(), currentDetail.getPopupTitle()))
+                .popupAddress(firstNonBlank(detail.getPopupAddress(), currentDetail.getPopupAddress()))
+                .thumbnailUrl(firstNonBlank(detail.getPopupThumbnail(), currentDetail.getThumbnailUrl()))
+                .paymentMethod(resolvePaymentMethod(purchaser))
+                .cardName(purchaser.cardName())
+                .cardNumber(purchaser.cardNumber())
                 .paidAt(detail.getPaidAt())
                 .originalPrice(detail.getStartPrice())
                 .discountAmount(detail.getDiscountAmount())
@@ -239,16 +265,17 @@ public class UserHistoryService {
         }
 
         if ("DRAW".equalsIgnoreCase(sourceType)) {
+            TicketDetailViewResponse currentDetail = detailBuilder.build();
             ApiResponse<DrawEntryDetailResponse> response =
                 drawServiceClient.getDrawEntryDetail(ticket.getSourceId(), userId);
             DrawEntryDetailResponse detail = requireData(response);
             detailBuilder
-                .popupTitle(firstNonBlank(detail.getPopupTitle(), detailBuilder.build().getPopupTitle()))
-                .popupAddress(firstNonBlank(detail.getPopupAddress(), detailBuilder.build().getPopupAddress()))
-                .thumbnailUrl(firstNonBlank(detail.getPopupThumbnail(), detailBuilder.build().getThumbnailUrl()))
+                .popupTitle(firstNonBlank(detail.getPopupTitle(), currentDetail.getPopupTitle()))
+                .popupAddress(firstNonBlank(detail.getPopupAddress(), currentDetail.getPopupAddress()))
+                .thumbnailUrl(firstNonBlank(detail.getPopupThumbnail(), currentDetail.getThumbnailUrl()))
                 .paidAt(detail.getPaidAt())
-                .userName(firstNonBlank(detail.getUserName(), detailBuilder.build().getUserName()))
-                .userPhoneNumber(firstNonBlank(detail.getUserPhoneNumber(), detailBuilder.build().getUserPhoneNumber()));
+                .userName(firstNonBlank(detail.getUserName(), currentDetail.getUserName()))
+                .userPhoneNumber(firstNonBlank(detail.getUserPhoneNumber(), currentDetail.getUserPhoneNumber()));
         }
     }
 
@@ -294,11 +321,21 @@ public class UserHistoryService {
         };
     }
 
-    private String resolveQrValue(TicketHistoryResponse ticket) {
+    private String resolveQrValue(TicketDetailResponse ticket) {
         if (ticket.getTicketNumber() != null && !ticket.getTicketNumber().isBlank()) {
             return ticket.getTicketNumber();
         }
         return ticket.getReservationNo();
+    }
+
+    private String resolvePaymentMethod(TicketPurchaserProfileResponse purchaser) {
+        if (purchaser == null) {
+            return null;
+        }
+        if (firstNonBlank(purchaser.cardName(), purchaser.cardNumber()) != null) {
+            return "CARD";
+        }
+        return null;
     }
 
     private String firstNonBlank(String primary, String fallback) {

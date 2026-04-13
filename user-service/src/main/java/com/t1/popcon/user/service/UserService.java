@@ -3,6 +3,8 @@ package com.t1.popcon.user.service;
 import com.t1.popcon.common.encryption.EncryptionService;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
+import com.t1.popcon.user.billing.dto.BillingKeyInfoResponse;
+import com.t1.popcon.user.billing.service.BillingKeyService;
 import com.t1.popcon.user.domain.User;
 import com.t1.popcon.user.dto.history.TicketPurchaserProfileResponse;
 import com.t1.popcon.user.dto.UserLookupResponse;
@@ -32,6 +34,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final EncryptionService encryptionService;
+    private final BillingKeyService billingKeyService;
 
     @Value("${user.nickname.prefix:User}")
     private String nicknamePrefix;
@@ -68,11 +71,14 @@ public class UserService {
     @Transactional(readOnly = true)
     public TicketPurchaserProfileResponse getTicketPurchaserProfile(Long userId) {
         User user = getUserOrThrow(userId);
+        BillingKeyInfoResponse billingKeyInfo = billingKeyService.getDefaultBillingKeyInfo(userId);
         return new TicketPurchaserProfileResponse(
             user.getId(),
             encryptionService.decrypt(user.getEncryptedName()),
             encryptionService.decrypt(user.getEncryptedPhoneNumber()),
-            user.getEmail()
+            user.getEmail(),
+            billingKeyInfo != null ? billingKeyInfo.cardName() : null,
+            billingKeyInfo != null ? billingKeyInfo.cardNumber() : null
         );
     }
 

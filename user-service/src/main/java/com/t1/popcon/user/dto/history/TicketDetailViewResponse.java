@@ -32,6 +32,9 @@ public class TicketDetailViewResponse {
     private String userName;
     private String userPhoneNumber;
     private String userEmail;
+    private String paymentMethod;
+    private String cardName;
+    private String cardNumber;
     private LocalDateTime paidAt;
     private Integer originalPrice;
     private Integer discountAmount;

@@ -108,8 +108,13 @@ public class BidService {
         Bid bid = bidRepository.findByIdAndUserId(bidId, userId)
             .orElseThrow(() -> new CustomException(ErrorCode.BID_NOT_FOUND));
 
+        if (bid.getStartPrice() == null) {
+            log.warn(">>>> [데이터 정합성 경고] bidId={}, userId={}, reservationNo={} 의 startPrice가 null입니다.",
+                bidId, userId, bid.getReservationNo());
+        }
+
         Integer startPrice = bid.getStartPrice() != null ? bid.getStartPrice() : 0;
-        Integer bidPrice = bid.getBidPrice();
+        Integer bidPrice = bid.getBidPrice() != null ? bid.getBidPrice() : 0;
         Integer discountAmount = Math.max(0, startPrice - bidPrice);
 
         return ReservationDetailResponse.builder()

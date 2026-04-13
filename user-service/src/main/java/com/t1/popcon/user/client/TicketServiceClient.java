@@ -3,6 +3,7 @@ package com.t1.popcon.user.client;
 import com.t1.popcon.common.response.ApiResponse;
 import com.t1.popcon.user.client.config.FeignClientConfig;
 import com.t1.popcon.user.dto.history.SliceResponse;
+import com.t1.popcon.user.dto.history.TicketDetailResponse;
 import com.t1.popcon.user.dto.history.TicketHistoryResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,13 +25,13 @@ public interface TicketServiceClient {
     );
 
     @GetMapping("/internal/tickets/reservations/{reservationNo}")
-    ApiResponse<TicketHistoryResponse> getTicketByReservationNo(
+    ApiResponse<TicketDetailResponse> getTicketByReservationNo(
         @PathVariable("reservationNo") String reservationNo,
         @RequestParam("userId") Long userId
     );
 
     @GetMapping("/internal/tickets/{ticketId}")
-    ApiResponse<TicketHistoryResponse> getTicketById(
+    ApiResponse<TicketDetailResponse> getTicketById(
         @PathVariable("ticketId") Long ticketId,
         @RequestParam("userId") Long userId
     );
