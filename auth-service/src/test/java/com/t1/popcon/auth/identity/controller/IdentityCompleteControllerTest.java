@@ -36,7 +36,7 @@ class IdentityCompleteControllerTest extends AbstractRestDocsTest {
 
 	private static final String DEFAULT_URL = "/auth/identity/complete";
 	private static final String VALID_REGISTER_TOKEN = "valid_register_token_mock";
-	private static final String VALID_VERIFICATION_ID = "imp_1234567890";
+	private static final String VALID_VERIFICATION_ID = "identity-verification-0191a111-2222-7e3c-a7d4-test12345678";
 	private static final String VALID_DEVICE_ID = "354e-4a2a-9b1b";
 
 	@Autowired

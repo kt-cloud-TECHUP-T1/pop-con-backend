@@ -158,6 +158,8 @@ public class IdentityCompleteService {
 		String encryptedGender = encryptNullable(customer.gender());
 		String encryptedBirthDate = encryptionService.encrypt(customer.birthDate());
 		String encryptedPhoneNumber = encryptionService.encrypt(customer.phoneNumber());
+		// 전화번호 해시 — 회원가입 시 phone_hash 저장을 위해 plain 번호에서 단방향 해시 생성
+		String phoneHash = encryptionService.generateHash(customer.phoneNumber());
 		String encryptedForeigner = encryptNullable(
 				customer.isForeigner() == null ? null : String.valueOf(customer.isForeigner())
 		);
@@ -169,6 +171,7 @@ public class IdentityCompleteService {
 				encryptedGender,
 				encryptedBirthDate,
 				encryptedPhoneNumber,
+				phoneHash,
 				encryptedForeigner,
 				REGISTER_TOKEN_EXTEND_SECONDS
 		);

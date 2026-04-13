@@ -110,6 +110,7 @@ public class RedisRegisterTokenStore implements RegisterTokenStore {
             String encryptedGender,
             String encryptedBirthDate,
             String encryptedPhoneNumber,
+            String phoneHash,
             String encryptedNationality,
             long ttlSecondsToExtend
     ) {
@@ -122,6 +123,7 @@ public class RedisRegisterTokenStore implements RegisterTokenStore {
                 encryptedGender,
                 encryptedBirthDate,
                 encryptedPhoneNumber,
+                phoneHash,
                 encryptedNationality
         );
 

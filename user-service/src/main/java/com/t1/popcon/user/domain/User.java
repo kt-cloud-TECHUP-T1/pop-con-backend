@@ -35,7 +35,8 @@ import java.util.List;
         @UniqueConstraint(name = "uk_users_ci_hash", columnNames = "ci_hash"),
         @UniqueConstraint(name = "uk_users_nickname", columnNames = "nickname"),
         @UniqueConstraint(name = "uk_users_kakao_user_id", columnNames = "kakao_user_id"),
-        @UniqueConstraint(name = "uk_users_naver_user_id", columnNames = "naver_user_id")
+        @UniqueConstraint(name = "uk_users_naver_user_id", columnNames = "naver_user_id"),
+        @UniqueConstraint(name = "uk_users_phone_hash", columnNames = "phone_hash")
     },
     indexes = {
         @Index(name = "idx_users_status", columnList = "status"),
@@ -54,6 +55,10 @@ public class User extends BaseSoftDeleteEntity {
 
     @Column(name = "encrypted_phone_number", length = 255, nullable = false)
     private String encryptedPhoneNumber;
+
+    /** SHA-256 해시값 — 전화번호 중복 여부 확인 및 조회용 (복호화 없이 비교 가능) */
+    @Column(name = "phone_hash", length = 64)
+    private String phoneHash;
 
     @Column(name = "encrypted_birth_date", length = 255, nullable = false)
     private String encryptedBirthDate;
@@ -102,6 +107,7 @@ public class User extends BaseSoftDeleteEntity {
             String ciHash,
             String encryptedName,
             String encryptedPhoneNumber,
+            String phoneHash,
             String encryptedBirthDate,
             String encryptedGender,
             String encryptedNationality,
@@ -112,6 +118,7 @@ public class User extends BaseSoftDeleteEntity {
                 .ciHash(ciHash)
                 .encryptedName(encryptedName)
                 .encryptedPhoneNumber(encryptedPhoneNumber)
+                .phoneHash(phoneHash)
                 .encryptedBirthDate(encryptedBirthDate)
                 .encryptedGender(encryptedGender)
                 .encryptedNationality(encryptedNationality)
@@ -125,6 +132,7 @@ public class User extends BaseSoftDeleteEntity {
             String ciHash,
             String encryptedName,
             String encryptedPhoneNumber,
+            String phoneHash,
             String encryptedBirthDate,
             String encryptedGender,
             String encryptedNationality,
@@ -136,6 +144,7 @@ public class User extends BaseSoftDeleteEntity {
                 ciHash,
                 encryptedName,
                 encryptedPhoneNumber,
+                phoneHash,
                 encryptedBirthDate,
                 encryptedGender,
                 encryptedNationality,
@@ -151,6 +160,7 @@ public class User extends BaseSoftDeleteEntity {
             String ciHash,
             String encryptedName,
             String encryptedPhoneNumber,
+            String phoneHash,
             String encryptedBirthDate,
             String encryptedGender,
             String encryptedNationality,
@@ -162,6 +172,7 @@ public class User extends BaseSoftDeleteEntity {
                 ciHash,
                 encryptedName,
                 encryptedPhoneNumber,
+                phoneHash,
                 encryptedBirthDate,
                 encryptedGender,
                 encryptedNationality,
@@ -181,6 +192,11 @@ public class User extends BaseSoftDeleteEntity {
     public void connectNaver(String naverUserId, LocalDateTime connectedAt) {
         this.naverUserId = naverUserId;
         this.naverConnectedAt = connectedAt;
+    }
+
+    public void updatePhoneNumber(String encryptedPhoneNumber, String phoneHash) {
+        this.encryptedPhoneNumber = encryptedPhoneNumber;
+        this.phoneHash = phoneHash;
     }
 
     public void block() {

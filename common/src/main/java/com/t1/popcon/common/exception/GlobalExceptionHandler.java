@@ -36,13 +36,16 @@ public class GlobalExceptionHandler {
                 )
         );
 
+        // overrideMessage가 있으면 우선 사용, 없으면 ErrorCode 기본 메시지 사용
+        String message = e.getMessage() != null ? e.getMessage() : ec.getMessage();
+
         if (e.getData() != null) {
             return ResponseEntity.status(ec.getStatus())
-                    .body(ApiResponse.fail(ec, e.getData()));
+                    .body(ApiResponse.fail(ec.getCode(), message, e.getData()));
         }
 
         return ResponseEntity.status(ec.getStatus())
-                .body(ApiResponse.fail(ec));
+                .body(ApiResponse.fail(ec.getCode(), message));
     }
 
     // DTO 검증 실패 처리
