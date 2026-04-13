@@ -68,6 +68,6 @@ services:
   draw-service:
     url: ${DRAW_SERVICE_URL:http://localhost:8084}
   auction-service:
-    url: ${AUCTION_SERVICE_URL:http://localhost:8083}
+    url: ${AUCTION_SERVICE_URL:http://backend-auction-svc:8080}
   ticket-service:
     url: ${TICKET_SERVICE_URL:http://localhost:8086}
