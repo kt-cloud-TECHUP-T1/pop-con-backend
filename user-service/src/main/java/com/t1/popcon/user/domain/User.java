@@ -107,6 +107,7 @@ public class User extends BaseSoftDeleteEntity {
             String ciHash,
             String encryptedName,
             String encryptedPhoneNumber,
+            String phoneHash,
             String encryptedBirthDate,
             String encryptedGender,
             String encryptedNationality,
@@ -117,6 +118,7 @@ public class User extends BaseSoftDeleteEntity {
                 .ciHash(ciHash)
                 .encryptedName(encryptedName)
                 .encryptedPhoneNumber(encryptedPhoneNumber)
+                .phoneHash(phoneHash)
                 .encryptedBirthDate(encryptedBirthDate)
                 .encryptedGender(encryptedGender)
                 .encryptedNationality(encryptedNationality)
@@ -130,6 +132,7 @@ public class User extends BaseSoftDeleteEntity {
             String ciHash,
             String encryptedName,
             String encryptedPhoneNumber,
+            String phoneHash,
             String encryptedBirthDate,
             String encryptedGender,
             String encryptedNationality,
@@ -141,6 +144,7 @@ public class User extends BaseSoftDeleteEntity {
                 ciHash,
                 encryptedName,
                 encryptedPhoneNumber,
+                phoneHash,
                 encryptedBirthDate,
                 encryptedGender,
                 encryptedNationality,
@@ -156,6 +160,7 @@ public class User extends BaseSoftDeleteEntity {
             String ciHash,
             String encryptedName,
             String encryptedPhoneNumber,
+            String phoneHash,
             String encryptedBirthDate,
             String encryptedGender,
             String encryptedNationality,
@@ -167,6 +172,7 @@ public class User extends BaseSoftDeleteEntity {
                 ciHash,
                 encryptedName,
                 encryptedPhoneNumber,
+                phoneHash,
                 encryptedBirthDate,
                 encryptedGender,
                 encryptedNationality,
