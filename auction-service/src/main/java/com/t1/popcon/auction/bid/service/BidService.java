@@ -83,25 +83,14 @@ public class BidService {
         }
 
         Integer startPrice = bid.getStartPrice() != null ? bid.getStartPrice() : 0;
-        Integer bidPrice = bid.getBidPrice();
+        Integer bidPrice = bid.getBidPrice() != null ? bid.getBidPrice() : 0;
 
         Integer discountAmount = Math.max(0, startPrice - bidPrice);
         if (bid.getStartPrice() == null) {
             log.warn(">>>> [데이터 정합성 경고] reservationNo={} 의 startPrice가 null입니다.", reservationNo);
         }
 
-        return ReservationDetailResponse.builder()
-            .reservationNo(bid.getReservationNo())
-            .popupTitle(bid.getPopupTitle())
-            .popupAddress(bid.getPopupAddress())
-            .popupThumbnail(bid.getThumbnailUrl())
-            .entryDate(bid.getEntryDate())
-            .entryTime(bid.getEntryTime())
-            .startPrice(startPrice)
-            .discountAmount(discountAmount)
-            .finalPrice(bidPrice)
-            .paidAt(bid.getPaidAt())
-            .build();
+        return buildReservationDetailResponse(bid, startPrice, discountAmount, bidPrice);
     }
 
     public ReservationDetailResponse getBidDetail(Long userId, Long bidId) {
@@ -115,8 +104,21 @@ public class BidService {
 
         Integer startPrice = bid.getStartPrice() != null ? bid.getStartPrice() : 0;
         Integer bidPrice = bid.getBidPrice() != null ? bid.getBidPrice() : 0;
+        if (bid.getBidPrice() == null) {
+            log.warn(">>>> [?곗씠???뺥빀??寃쎄퀬] bidId={}, startPrice={} ??bidPrice媛 null?낅땲??",
+                bid.getId(), bid.getStartPrice());
+        }
         Integer discountAmount = Math.max(0, startPrice - bidPrice);
 
+        return buildReservationDetailResponse(bid, startPrice, discountAmount, bidPrice);
+    }
+
+    private ReservationDetailResponse buildReservationDetailResponse(
+        Bid bid,
+        Integer startPrice,
+        Integer discountAmount,
+        Integer bidPrice
+    ) {
         return ReservationDetailResponse.builder()
             .reservationNo(bid.getReservationNo())
             .popupTitle(bid.getPopupTitle())

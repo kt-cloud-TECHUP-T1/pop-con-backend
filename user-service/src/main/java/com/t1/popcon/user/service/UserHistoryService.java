@@ -129,7 +129,6 @@ public class UserHistoryService {
             }
 
             TicketDetailResponse ticket = response.getData();
-            PopupInternalResponse popup = fetchPopup(ticket.getPopupId());
             TicketPurchaserProfileResponse purchaser = userService.getTicketPurchaserProfile(userId);
 
             TicketDetailViewResponse.TicketDetailViewResponseBuilder detailBuilder = TicketDetailViewResponse.builder()
@@ -137,13 +136,10 @@ public class UserHistoryService {
                 .ticketNumber(ticket.getTicketNumber())
                 .reservationNo(ticket.getReservationNo())
                 .status(ticket.getStatus())
-                .displayStatus(resolveDisplayStatus(ticket.getStatus()))
+                .displayStatus(resolveDisplayStatus(null, ticket.getStatus()))
                 .sourceType(ticket.getSourceType())
                 .sourceId(ticket.getSourceId())
                 .popupId(ticket.getPopupId())
-                .popupTitle(popup != null ? popup.title() : null)
-                .popupAddress(popup != null ? popup.location() : null)
-                .thumbnailUrl(popup != null ? popup.vThumbnailUrl() : null)
                 .entryDate(ticket.getEntryDate())
                 .entryTime(ticket.getEntryTime())
                 .issuedAt(ticket.getIssuedAt())
@@ -153,6 +149,7 @@ public class UserHistoryService {
                 .userEmail(purchaser.userEmail());
 
             applySourceSpecificDetail(detailBuilder, userId, ticket, purchaser);
+            applyPopupFallback(detailBuilder, ticket.getPopupId());
             return detailBuilder.build();
         } catch (CustomException e) {
             throw e;
@@ -210,7 +207,7 @@ public class UserHistoryService {
             .popupTitle(firstNonBlank(popup != null ? popup.title() : null, ticket.getPopupTitle()))
             .popupAddress(firstNonBlank(popup != null ? popup.location() : null, ticket.getPopupAddress()))
             .thumbnailUrl(firstNonBlank(popup != null ? popup.vThumbnailUrl() : null, ticket.getThumbnailUrl()))
-            .displayStatus(resolveDisplayStatus(ticket.getStatus()))
+            .displayStatus(resolveDisplayStatus(ticket.getDisplayStatus(), ticket.getStatus()))
             .build();
     }
 
@@ -230,7 +227,7 @@ public class UserHistoryService {
             .popupTitle(popup != null ? popup.title() : null)
             .popupAddress(popup != null ? popup.location() : null)
             .thumbnailUrl(popup != null ? popup.vThumbnailUrl() : null)
-            .displayStatus(resolveDisplayStatus(ticket.getStatus()))
+            .displayStatus(resolveDisplayStatus(null, ticket.getStatus()))
             .build();
     }
 
@@ -279,6 +276,27 @@ public class UserHistoryService {
         }
     }
 
+    private void applyPopupFallback(TicketDetailViewResponse.TicketDetailViewResponseBuilder detailBuilder, Long popupId) {
+        TicketDetailViewResponse currentDetail = detailBuilder.build();
+        if (!needsPopupFallback(currentDetail)) {
+            return;
+        }
+
+        PopupInternalResponse popup = fetchPopupSafely(popupId);
+        if (popup == null) {
+            return;
+        }
+
+        detailBuilder
+            .popupTitle(firstNonBlank(currentDetail.getPopupTitle(), popup.title()))
+            .popupAddress(firstNonBlank(currentDetail.getPopupAddress(), popup.location()))
+            .thumbnailUrl(firstNonBlank(currentDetail.getThumbnailUrl(), popup.vThumbnailUrl()));
+    }
+
+    private boolean needsPopupFallback(TicketDetailViewResponse detail) {
+        return isBlank(detail.getPopupTitle()) || isBlank(detail.getPopupAddress()) || isBlank(detail.getThumbnailUrl());
+    }
+
     private PopupInternalResponse fetchPopup(Long popupId) {
         if (popupId == null || popupId <= 0) {
             return null;
@@ -286,6 +304,15 @@ public class UserHistoryService {
 
         ApiResponse<PopupInternalResponse> response = popupServiceClient.getPopupDetail(popupId);
         return response != null ? response.getData() : null;
+    }
+
+    private PopupInternalResponse fetchPopupSafely(Long popupId) {
+        try {
+            return fetchPopup(popupId);
+        } catch (Exception e) {
+            log.warn(">>>> [Popup fallback fetch failed] popupId={}, error={}", popupId, e.getMessage());
+            return null;
+        }
     }
 
     private Map<Long, PopupInternalResponse> fetchPopupsInBatch(List<Long> popupIds) {
@@ -308,7 +335,10 @@ public class UserHistoryService {
             .toList();
     }
 
-    private String resolveDisplayStatus(String status) {
+    private String resolveDisplayStatus(String displayStatus, String status) {
+        if (!isBlank(displayStatus)) {
+            return displayStatus;
+        }
         if (status == null || status.isBlank()) {
             return null;
         }
@@ -343,6 +373,10 @@ public class UserHistoryService {
             return primary;
         }
         return fallback;
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     private <T> T requireData(ApiResponse<T> response) {

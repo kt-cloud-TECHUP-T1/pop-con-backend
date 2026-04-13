@@ -17,6 +17,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.hibernate.exception.ConstraintViolationException;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 import com.t1.popcon.user.dto.UserCreateRequest;
@@ -71,14 +72,14 @@ public class UserService {
     @Transactional(readOnly = true)
     public TicketPurchaserProfileResponse getTicketPurchaserProfile(Long userId) {
         User user = getUserOrThrow(userId);
-        BillingKeyInfoResponse billingKeyInfo = billingKeyService.getDefaultBillingKeyInfo(userId);
+        Optional<BillingKeyInfoResponse> billingKeyInfo = billingKeyService.getDefaultBillingKeyInfo(userId);
         return new TicketPurchaserProfileResponse(
             user.getId(),
             encryptionService.decrypt(user.getEncryptedName()),
             encryptionService.decrypt(user.getEncryptedPhoneNumber()),
             user.getEmail(),
-            billingKeyInfo != null ? billingKeyInfo.cardName() : null,
-            billingKeyInfo != null ? billingKeyInfo.cardNumber() : null
+            billingKeyInfo.map(BillingKeyInfoResponse::cardName).orElse(null),
+            billingKeyInfo.map(BillingKeyInfoResponse::cardNumber).orElse(null)
         );
     }
 

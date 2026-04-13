@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -120,12 +121,11 @@ public class BillingKeyService {
 	}
 
 	@Transactional(readOnly = true)
-	public BillingKeyInfoResponse getDefaultBillingKeyInfo(Long userId) {
+	public Optional<BillingKeyInfoResponse> getDefaultBillingKeyInfo(Long userId) {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
 		return billingKeyRepository.findByUserAndIsDefaultTrueAndIsActiveTrue(user)
-			.map(BillingKeyInfoResponse::from)
-			.orElse(null);
+			.map(BillingKeyInfoResponse::from);
 	}
 }
