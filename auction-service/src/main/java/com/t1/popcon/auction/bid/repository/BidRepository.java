@@ -40,6 +40,8 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
 
 	Optional<Bid> findByIdAndUserId(Long id, Long userId);
 
+	Optional<Bid> findByIdAndUserIdAndStatus(Long id, Long userId, BidStatus status);
+
 	@Query("SELECT b FROM Bid b " +
 		"WHERE b.userId = :userId AND b.status = :status AND b.deleted = false " +
 		"ORDER BY b.createdAt DESC")

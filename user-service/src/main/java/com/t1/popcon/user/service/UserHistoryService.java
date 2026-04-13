@@ -244,6 +244,11 @@ public class UserHistoryService {
 
         if ("AUCTION".equalsIgnoreCase(sourceType)) {
             TicketDetailViewResponse currentDetail = detailBuilder.build();
+            if (ticket.getSourceId() == null) {
+                log.warn("Auction ticket is missing sourceId. ticketId={}, sourceType={}",
+                    ticket.getTicketId(), ticket.getSourceType());
+                return;
+            }
             ApiResponse<AuctionReservationDetailResponse> response =
                 auctionServiceClient.getBidDetail(ticket.getSourceId(), userId);
             AuctionReservationDetailResponse detail = requireData(response);
@@ -261,6 +266,11 @@ public class UserHistoryService {
 
         if ("DRAW".equalsIgnoreCase(sourceType)) {
             TicketDetailViewResponse currentDetail = detailBuilder.build();
+            if (ticket.getSourceId() == null) {
+                log.warn("Draw ticket is missing sourceId. ticketId={}, sourceType={}",
+                    ticket.getTicketId(), ticket.getSourceType());
+                return;
+            }
             ApiResponse<DrawEntryDetailResponse> response =
                 drawServiceClient.getDrawEntryDetail(ticket.getSourceId(), userId);
             DrawEntryDetailResponse detail = requireData(response);

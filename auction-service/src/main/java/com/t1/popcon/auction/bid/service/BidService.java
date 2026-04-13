@@ -92,7 +92,7 @@ public class BidService {
     }
 
     public ReservationDetailResponse getBidDetail(Long userId, Long bidId) {
-        Bid bid = bidRepository.findByIdAndUserId(bidId, userId)
+        Bid bid = bidRepository.findByIdAndUserIdAndStatus(bidId, userId, BidStatus.SUCCESS)
             .orElseThrow(() -> new CustomException(ErrorCode.BID_NOT_FOUND));
 
         PriceDetails priceDetails = computePriceDetails(bid, bid.getReservationNo());
@@ -238,9 +238,15 @@ public class BidService {
                     popupServiceClient.getPopupDetail(option.getAuction().getPopupId());
                 if (popupResponse != null && popupResponse.getData() != null) {
                     PopupInternalResponse popupInfo = popupResponse.getData();
-                    popupTitle = popupInfo.title();
-                    popupAddress = popupInfo.location();
-                    thumbnailUrl = popupInfo.vThumbnailUrl();
+                    if (popupInfo.title() != null) {
+                        popupTitle = popupInfo.title();
+                    }
+                    if (popupInfo.location() != null) {
+                        popupAddress = popupInfo.location();
+                    }
+                    if (popupInfo.vThumbnailUrl() != null) {
+                        thumbnailUrl = popupInfo.vThumbnailUrl();
+                    }
                 } else {
                     log.warn("Popup detail response is empty. popupId={}", option.getAuction().getPopupId());
                 }
