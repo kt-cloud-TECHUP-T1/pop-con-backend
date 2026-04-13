@@ -60,7 +60,8 @@ public class UserService {
         return new UserInternalResponse(
                 user.getId(),
                 user.getEncryptedName(),
-                user.getEncryptedPhoneNumber()
+                user.getEncryptedPhoneNumber(),
+                user.getCiHash()
         );
     }
 
@@ -204,6 +205,27 @@ public class UserService {
             .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         user.connectNaver(naverUserId, LocalDateTime.now());
+    }
+
+    /**
+     * 휴대폰 번호 변경 (본인인증 CI 검증 완료 후 auth-service에서 호출)
+     * phoneHash로 타 계정 중복 여부를 먼저 확인 후 업데이트
+     */
+    @Transactional
+    public void updatePhone(Long userId, String encryptedPhone, String phoneHash) {
+        if (encryptedPhone == null || encryptedPhone.isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+
+        // 동일 번호가 다른 계정에 이미 등록되어 있는지 확인
+        userRepository.findByPhoneHash(phoneHash)
+                .filter(existing -> !existing.getId().equals(userId))
+                .ifPresent(existing -> {
+                    throw new CustomException(ErrorCode.PHONE_ALREADY_IN_USE);
+                });
+
+        User user = getUserOrThrow(userId);
+        user.updatePhoneNumber(encryptedPhone, phoneHash);
     }
 
     @Transactional
