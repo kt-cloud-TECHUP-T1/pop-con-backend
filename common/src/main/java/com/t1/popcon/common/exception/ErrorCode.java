@@ -16,9 +16,9 @@ public enum ErrorCode {
     INVALID_INPUT("C001", HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다."),
 
     // Auth
-    REGISTER_TOKEN_EXPIRED("A001", HttpStatus.UNAUTHORIZED, "회원가입 인증이 만료되었습니다. 다시 가입 절차를 진행해 주세요."),
+    REGISTER_TOKEN_EXPIRED("A001", HttpStatus.UNAUTHORIZED, "회원가입 세션이 만료되었습니다. 다시 가입 절차를 진행해주세요."),
     INVALID_TOKEN("A002", HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
-    TOKEN_EXPIRED("A003", HttpStatus.UNAUTHORIZED, "인증이 만료되었습니다. 다시 로그인해 주세요."),
+    TOKEN_EXPIRED("A003", HttpStatus.UNAUTHORIZED, "인증이 만료되었습니다. 다시 로그인해주세요."),
     ACCESS_DENIED("A004", HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
 
     // OAuth
@@ -37,7 +37,7 @@ public enum ErrorCode {
 
     // User
     USER_NOT_FOUND("U001", HttpStatus.NOT_FOUND, "존재하지 않는 사용자입니다."),
-    SOCIAL_INFO_MISSING("U002", HttpStatus.BAD_REQUEST, "가입 세션의 소셜 정보가 유실되었습니다."),
+    SOCIAL_INFO_MISSING("U002", HttpStatus.BAD_REQUEST, "가입 세션의 소셜 정보가 누락되었습니다."),
 
     // Payment
     PAYMENT_FETCH_FAILED("P001", HttpStatus.BAD_GATEWAY, "결제 수단 정보 조회에 실패했습니다."),
@@ -58,7 +58,7 @@ public enum ErrorCode {
     AUCTION_NOT_FOUND("AU001", HttpStatus.NOT_FOUND, "존재하지 않는 경매입니다."),
     AUCTION_NOT_OPEN("AU002", HttpStatus.BAD_REQUEST, "현재 진행 중인 경매가 아닙니다."),
     AUCTION_ALREADY_CLOSED("AU003", HttpStatus.BAD_REQUEST, "이미 종료된 경매입니다."),
-    AUCTION_ALREADY_SOLD_OUT("AU004", HttpStatus.CONFLICT, "이미 완판이 완료된 경매입니다."),
+    AUCTION_ALREADY_SOLD_OUT("AU004", HttpStatus.CONFLICT, "이미 낙찰이 완료된 경매입니다."),
     AUCTION_STREAM_SUBSCRIBE_FAILED("AU005", HttpStatus.INTERNAL_SERVER_ERROR, "경매 실시간 구독 연결에 실패했습니다."),
     AUCTION_OPTION_NOT_FOUND("AU006", HttpStatus.NOT_FOUND, "존재하지 않는 경매 옵션입니다."),
     AUCTION_OPTION_SOLD_OUT("AU007", HttpStatus.CONFLICT, "해당 회차는 매진되었습니다."),
