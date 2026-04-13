@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.verify;
 
 import com.t1.popcon.auth.client.user.UserServiceClient;
 import com.t1.popcon.auth.client.user.dto.PhoneUpdateRequest;
@@ -79,6 +80,11 @@ class PhoneChangeServiceTest {
 
             // then
             assertThat(response.phone()).isEqualTo("010-9999-9999");
+            // updatePhone이 올바른 encryptedPhone, phoneHash로 호출됐는지 검증
+            verify(userServiceClient).updatePhone(
+                    eq(USER_ID),
+                    eq(new PhoneUpdateRequest(ENCRYPTED_PHONE, PHONE_HASH))
+            );
         }
     }
 
