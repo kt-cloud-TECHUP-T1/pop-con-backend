@@ -17,6 +17,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     Optional<Ticket> findByReservationNoAndUserId(String reservationNo, Long userId);
 
+    Optional<Ticket> findByIdAndUserId(Long id, Long userId);
+
     Slice<Ticket> findAllByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
     @Query("""

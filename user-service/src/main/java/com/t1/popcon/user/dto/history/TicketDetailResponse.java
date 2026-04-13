@@ -3,16 +3,12 @@ package com.t1.popcon.user.dto.history;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
-@Builder
 @NoArgsConstructor
-@AllArgsConstructor
-public class TicketHistoryResponse {
+public class TicketDetailResponse {
 
     private Long ticketId;
     private Long userId;
@@ -25,8 +21,4 @@ public class TicketHistoryResponse {
     private LocalDate entryDate;
     private LocalTime entryTime;
     private LocalDateTime issuedAt;
-    private String popupTitle;
-    private String popupAddress;
-    private String thumbnailUrl;
-    private String displayStatus;
 }

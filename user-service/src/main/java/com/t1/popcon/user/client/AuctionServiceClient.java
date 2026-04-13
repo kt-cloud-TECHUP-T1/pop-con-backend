@@ -2,9 +2,11 @@ package com.t1.popcon.user.client;
 
 import com.t1.popcon.common.response.ApiResponse;
 import com.t1.popcon.user.client.config.FeignClientConfig;
+import com.t1.popcon.user.dto.history.AuctionReservationDetailResponse;
 import com.t1.popcon.user.dto.history.AuctionHistoryResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
@@ -18,4 +20,10 @@ public interface AuctionServiceClient {
 
 	@GetMapping("/internal/auctions/bids")
 	ApiResponse<List<AuctionHistoryResponse>> getAuctionBids(@RequestParam("userId") Long userId);
+
+	@GetMapping("/internal/auctions/bids/{bidId}")
+	ApiResponse<AuctionReservationDetailResponse> getBidDetail(
+		@PathVariable("bidId") Long bidId,
+		@RequestParam("userId") Long userId
+	);
 }

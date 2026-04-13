@@ -6,6 +6,7 @@ import com.t1.popcon.user.dto.history.AuctionHistoryResponse;
 import com.t1.popcon.user.dto.history.DrawHistoryResponse;
 import com.t1.popcon.user.dto.history.PopupLikeHistoryResponse;
 import com.t1.popcon.user.dto.history.SliceResponse;
+import com.t1.popcon.user.dto.history.TicketDetailViewResponse;
 import com.t1.popcon.user.dto.history.TicketHistoryResponse;
 import com.t1.popcon.user.service.UserHistoryService;
 import java.util.List;
@@ -27,13 +28,13 @@ public class UserHistoryController {
     @GetMapping("/draws")
     public ApiResponse<List<DrawHistoryResponse>> getDrawHistory(@AuthenticationPrincipal AuthUser authUser) {
         List<DrawHistoryResponse> response = userHistoryService.getDrawHistory(authUser.id());
-        return ApiResponse.ok("드로우 응모 내역 조회를 성공했습니다.", response);
+        return ApiResponse.ok("응모 내역 조회 성공", response);
     }
 
     @GetMapping("/auctions")
     public ApiResponse<List<AuctionHistoryResponse>> getAuctionHistory(@AuthenticationPrincipal AuthUser authUser) {
         List<AuctionHistoryResponse> response = userHistoryService.getAuctionHistory(authUser.id());
-        return ApiResponse.ok("경매 참여 내역 조회를 성공했습니다.", response);
+        return ApiResponse.ok("경매 참여 이력 조회 성공", response);
     }
 
     @GetMapping("/tickets")
@@ -43,7 +44,16 @@ public class UserHistoryController {
         @RequestParam(value = "size", defaultValue = "20") int size
     ) {
         SliceResponse<TicketHistoryResponse> response = userHistoryService.getTicketHistory(authUser.id(), page, size);
-        return ApiResponse.ok("티켓 목록 조회를 성공했습니다.", response);
+        return ApiResponse.ok("티켓 목록 조회 성공", response);
+    }
+
+    @GetMapping("/tickets/{ticketId}")
+    public ApiResponse<TicketDetailViewResponse> getTicketById(
+        @AuthenticationPrincipal AuthUser authUser,
+        @PathVariable("ticketId") Long ticketId
+    ) {
+        TicketDetailViewResponse response = userHistoryService.getTicketById(authUser.id(), ticketId);
+        return ApiResponse.ok("티켓 상세 조회 성공", response);
     }
 
     @GetMapping("/tickets/reservations/{reservationNo}")
@@ -52,7 +62,7 @@ public class UserHistoryController {
         @PathVariable("reservationNo") String reservationNo
     ) {
         TicketHistoryResponse response = userHistoryService.getTicketByReservationNo(authUser.id(), reservationNo);
-        return ApiResponse.ok("티켓 상세 조회를 성공했습니다.", response);
+        return ApiResponse.ok("티켓 상세 조회 성공", response);
     }
 
     @GetMapping("/likes")
@@ -62,6 +72,6 @@ public class UserHistoryController {
         @RequestParam(value = "size", defaultValue = "12") int size
     ) {
         SliceResponse<PopupLikeHistoryResponse> response = userHistoryService.getLikedPopups(authUser.id(), page, size);
-        return ApiResponse.ok("찜한 팝업스토어 목록 조회를 성공했습니다.", response);
+        return ApiResponse.ok("좋아요한 팝업 목록 조회 성공", response);
     }
 }
