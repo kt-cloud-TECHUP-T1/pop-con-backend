@@ -107,6 +107,7 @@ public class UserService {
                         request.encryptedNationality(),
                         currentNickname,
                         request.email(),
+                        Boolean.TRUE.equals(request.isMarketingAgreed()),
                         request.providerUserId()
                 );
                 case "NAVER" -> User.createUserWithNaver(
@@ -119,6 +120,7 @@ public class UserService {
                         request.encryptedNationality(),
                         currentNickname,
                         request.email(),
+                        Boolean.TRUE.equals(request.isMarketingAgreed()),
                         request.providerUserId()
                 );
                 default -> throw new CustomException(ErrorCode.INVALID_PROVIDER);
