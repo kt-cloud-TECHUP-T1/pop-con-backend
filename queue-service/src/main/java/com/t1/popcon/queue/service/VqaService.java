@@ -43,7 +43,6 @@ public class VqaService {
     private static final String VQA_LOCK_START_PREFIX = "lock:vqa:start:";
     
     private static final long VQA_SESSION_TTL_SECONDS = 600; // 10분
-    private static final long VQA_GLOBAL_LOCKOUT_TTL_SECONDS = 1800; // 30분
     private static final int MAX_ATTEMPTS = 3;
 
     /**
@@ -210,7 +209,8 @@ public class VqaService {
             int nextAttempts = (nextAttemptsLong != null) ? nextAttemptsLong.intValue() : 0;
             
             if (nextAttempts == 1) {
-                redisTemplate.expire(globalKey, Duration.ofSeconds(VQA_GLOBAL_LOCKOUT_TTL_SECONDS));
+                // globalAttempts TTL을 blockTtlSeconds와 동기화 (block 해제 시 재시도 가능하도록)
+                redisTemplate.expire(globalKey, Duration.ofSeconds(queueProperties.getBlockTtlSeconds()));
             }
 
             if (nextAttempts >= MAX_ATTEMPTS) {

@@ -15,6 +15,7 @@ public record UserCreateRequest(
     @NotBlank String encryptedBirthDate,
     String encryptedGender,
     String encryptedNationality,
+    @NotBlank String phoneHash,
     
     @NotNull Boolean isMarketingAgreed
 ) {}

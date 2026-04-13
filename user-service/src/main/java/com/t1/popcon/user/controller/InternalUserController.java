@@ -6,6 +6,7 @@ import com.t1.popcon.user.dto.UserLookupResponse;
 import com.t1.popcon.user.service.UserService;
 import com.t1.popcon.user.dto.UserCreateRequest;
 import com.t1.popcon.user.dto.UserCreateResponse;
+import com.t1.popcon.user.dto.PhoneUpdateRequest;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -68,5 +69,17 @@ public class InternalUserController {
     ) {
         userService.linkSocialByCi(ciHash, provider, providerUserId);
         return ApiResponse.ok("소셜 계정이 연결되었습니다.");
+    }
+
+    /**
+     * 휴대폰 번호 변경 (auth-service에서 본인인증 CI 검증 완료 후 호출)
+     */
+    @PatchMapping("/internal/users/{userId}/phone")
+    public ApiResponse<Void> updatePhone(
+            @PathVariable Long userId,
+            @Valid @RequestBody PhoneUpdateRequest request
+    ) {
+        userService.updatePhone(userId, request.encryptedPhone(), request.phoneHash());
+        return ApiResponse.ok("휴대폰 번호가 변경되었습니다.");
     }
 }
