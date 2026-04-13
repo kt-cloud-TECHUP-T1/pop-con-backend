@@ -36,6 +36,8 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
 
 	Optional<Bid> findByReservationNo(String reservationNo);
 
+	Optional<Bid> findByReservationNoAndUserId(String reservationNo, Long userId);
+
 	Optional<Bid> findByIdAndUserId(Long id, Long userId);
 
 	@Query("SELECT b FROM Bid b " +

@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class DrawEntryService {
 
+    private static final String SUCCESS_CODE = "SUCCESS";
     private static final String UNKNOWN_POPUP_TITLE = "알 수 없는 팝업";
     private static final long DEFAULT_PRICE = 0L;
     private static final String DISPLAY_IN_PROGRESS = "진행 중";
@@ -184,20 +186,34 @@ public class DrawEntryService {
     private PopupInternalResponse fetchPopupInfo(Long popupId, Long drawEntryId) {
         try {
             ApiResponse<PopupInternalResponse> popupResponse = popupServiceClient.getPopupDetail(popupId);
-            return popupResponse != null ? popupResponse.getData() : null;
+            if (popupResponse == null) {
+                return null;
+            }
+            if (!SUCCESS_CODE.equalsIgnoreCase(popupResponse.getCode())) {
+                log.error("Popup service returned non-success response. popupId={}, drawEntryId={}, code={}",
+                    popupId, drawEntryId, popupResponse.getCode());
+                throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+            }
+            if (popupResponse.getData() == null) {
+                return null;
+            }
+            return popupResponse.getData();
+        } catch (CustomException e) {
+            throw e;
         } catch (Exception e) {
             if (drawEntryId != null) {
-                log.warn("Draw entry detail popup fetch failed - drawEntryId={}, popupId={}", drawEntryId, popupId, e);
+                log.error("Draw entry popup fetch failed - drawEntryId={}, popupId={}", drawEntryId, popupId, e);
             } else {
-                log.warn("Draw apply result popup fetch failed - popupId={}", popupId, e);
+                log.error("Draw apply popup fetch failed - popupId={}", popupId, e);
             }
-            return null;
+            throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR, e);
         }
     }
 
     private List<Long> extractPopupIds(Slice<DrawEntry> entries) {
         return entries.getContent().stream()
             .map(entry -> entry.getDrawOption().getDraw().getPopupId())
+            .filter(Objects::nonNull)
             .distinct()
             .toList();
     }

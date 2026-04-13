@@ -148,7 +148,7 @@ public class UserHistoryService {
                 .userPhoneNumber(purchaser.userPhoneNumber())
                 .userEmail(purchaser.userEmail());
 
-            applySourceSpecificDetail(detailBuilder, userId, ticket, purchaser);
+            applySourceSpecificDetail(detailBuilder, userId, ticket);
             applyPopupFallback(detailBuilder, ticket.getPopupId());
             return detailBuilder.build();
         } catch (CustomException e) {
@@ -167,12 +167,13 @@ public class UserHistoryService {
             }
 
             TicketDetailResponse ticket = response.getData();
-            PopupInternalResponse popup = fetchPopup(ticket.getPopupId());
+            PopupInternalResponse popup = fetchPopupSafely(ticket.getPopupId());
             return toTicketHistoryResponse(ticket, popup);
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Ticket service integration failed. userId={}, reservationNo={}, error={}", userId, reservationNo, e.getMessage());
+            log.error("Ticket service integration failed. userId={}, reservationNo={}, error={}",
+                userId, reservationNo, e.getMessage());
             throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
         }
     }
@@ -234,8 +235,7 @@ public class UserHistoryService {
     private void applySourceSpecificDetail(
         TicketDetailViewResponse.TicketDetailViewResponseBuilder detailBuilder,
         Long userId,
-        TicketDetailResponse ticket,
-        TicketPurchaserProfileResponse purchaser
+        TicketDetailResponse ticket
     ) {
         String sourceType = ticket.getSourceType();
         if (sourceType == null) {
@@ -247,13 +247,11 @@ public class UserHistoryService {
             ApiResponse<AuctionReservationDetailResponse> response =
                 auctionServiceClient.getBidDetail(ticket.getSourceId(), userId);
             AuctionReservationDetailResponse detail = requireData(response);
+
             detailBuilder
                 .popupTitle(firstNonBlank(detail.getPopupTitle(), currentDetail.getPopupTitle()))
                 .popupAddress(firstNonBlank(detail.getPopupAddress(), currentDetail.getPopupAddress()))
                 .thumbnailUrl(firstNonBlank(detail.getPopupThumbnail(), currentDetail.getThumbnailUrl()))
-                .paymentMethod(resolvePaymentMethod(purchaser))
-                .cardName(purchaser.cardName())
-                .cardNumber(purchaser.cardNumber())
                 .paidAt(detail.getPaidAt())
                 .originalPrice(detail.getStartPrice())
                 .discountAmount(detail.getDiscountAmount())
@@ -266,6 +264,7 @@ public class UserHistoryService {
             ApiResponse<DrawEntryDetailResponse> response =
                 drawServiceClient.getDrawEntryDetail(ticket.getSourceId(), userId);
             DrawEntryDetailResponse detail = requireData(response);
+
             detailBuilder
                 .popupTitle(firstNonBlank(detail.getPopupTitle(), currentDetail.getPopupTitle()))
                 .popupAddress(firstNonBlank(detail.getPopupAddress(), currentDetail.getPopupAddress()))
@@ -320,11 +319,18 @@ public class UserHistoryService {
             return Collections.emptyMap();
         }
 
-        ApiResponse<List<PopupInternalResponse>> response = popupServiceClient.getPopupsByBulkIds(popupIds);
-        List<PopupInternalResponse> popups = requireData(response);
-        return popups.stream()
-            .filter(Objects::nonNull)
-            .collect(Collectors.toMap(PopupInternalResponse::popupId, Function.identity(), (left, right) -> left));
+        try {
+            ApiResponse<List<PopupInternalResponse>> response = popupServiceClient.getPopupsByBulkIds(popupIds);
+            List<PopupInternalResponse> popups =
+                response != null && response.getData() != null ? response.getData() : Collections.emptyList();
+
+            return popups.stream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(PopupInternalResponse::popupId, Function.identity(), (left, right) -> left));
+        } catch (Exception e) {
+            log.warn("Popup bulk fetch failed. popupIds={}, error={}", popupIds, e.getMessage());
+            return Collections.emptyMap();
+        }
     }
 
     private List<Long> extractPopupIds(List<TicketHistoryResponse> tickets) {
@@ -356,16 +362,6 @@ public class UserHistoryService {
             return ticket.getTicketNumber();
         }
         return ticket.getReservationNo();
-    }
-
-    private String resolvePaymentMethod(TicketPurchaserProfileResponse purchaser) {
-        if (purchaser == null) {
-            return null;
-        }
-        if (firstNonBlank(purchaser.cardName(), purchaser.cardNumber()) != null) {
-            return "CARD";
-        }
-        return null;
     }
 
     private String firstNonBlank(String primary, String fallback) {
