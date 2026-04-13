@@ -91,6 +91,10 @@ public class User extends BaseSoftDeleteEntity {
     @Column(name = "naver_connected_at")
     private LocalDateTime naverConnectedAt;
 
+    /** 마케팅 수신 동의 여부 (회원가입 시 선택) */
+    @Column(name = "is_marketing_agreed", nullable = false)
+    private boolean isMarketingAgreed;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 10)
     private Role role;
@@ -112,7 +116,8 @@ public class User extends BaseSoftDeleteEntity {
             String encryptedGender,
             String encryptedNationality,
             String nickname,
-            String email
+            String email,
+            boolean isMarketingAgreed
     ) {
         return User.builder()
                 .ciHash(ciHash)
@@ -124,6 +129,7 @@ public class User extends BaseSoftDeleteEntity {
                 .encryptedNationality(encryptedNationality)
                 .nickname(nickname)
                 .email(email)
+                .isMarketingAgreed(isMarketingAgreed)
                 .role(Role.USER)
                 .status(UserStatus.ACTIVE);
     }
@@ -138,6 +144,7 @@ public class User extends BaseSoftDeleteEntity {
             String encryptedNationality,
             String nickname,
             String email,
+            boolean isMarketingAgreed,
             String kakaoUserId
     ) {
         User user = baseBuilder(
@@ -149,7 +156,8 @@ public class User extends BaseSoftDeleteEntity {
                 encryptedGender,
                 encryptedNationality,
                 nickname,
-                email
+                email,
+                isMarketingAgreed
         ).build();
 
         user.connectKakao(kakaoUserId, LocalDateTime.now());
@@ -166,6 +174,7 @@ public class User extends BaseSoftDeleteEntity {
             String encryptedNationality,
             String nickname,
             String email,
+            boolean isMarketingAgreed,
             String naverUserId
     ) {
         User user = baseBuilder(
@@ -177,7 +186,8 @@ public class User extends BaseSoftDeleteEntity {
                 encryptedGender,
                 encryptedNationality,
                 nickname,
-                email
+                email,
+                isMarketingAgreed
         ).build();
 
         user.connectNaver(naverUserId, LocalDateTime.now());
