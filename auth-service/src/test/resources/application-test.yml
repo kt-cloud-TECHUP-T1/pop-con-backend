@@ -23,7 +23,7 @@ app:
 services:
   user-service:
     url: http://localhost:8081
-    internal-secret: ${INTERNAL_API_SECRET:changeme-local-secret}
+    internal-secret: ${INTERNAL_API_SECRET}
 
 spring:
   config:

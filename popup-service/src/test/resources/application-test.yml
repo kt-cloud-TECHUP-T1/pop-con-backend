@@ -39,7 +39,7 @@ jwt:
   refresh-token-expiration: 604800000
 
 internal:
-  api-secret: ${INTERNAL_API_SECRET:changeme-local-secret}
+  api-secret: ${INTERNAL_API_SECRET}
 
 portone:
   api:
