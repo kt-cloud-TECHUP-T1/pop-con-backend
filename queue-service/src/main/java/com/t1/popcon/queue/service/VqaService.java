@@ -111,7 +111,7 @@ public class VqaService {
 
             // 5. 레벨 1 이상: VQA 서버 세션 시작
             VqaSessionStartResponse vqaResponse = vqaClient.startSession(VqaSessionStartRequest.empty());
-            Long pythonSessionId = vqaResponse.sessionId();
+            String pythonSessionId = vqaResponse.sessionId();
             VqaNextQuestionResponse firstQuestion = vqaClient.getNextQuestion(pythonSessionId, totalScore);
 
             if (Boolean.TRUE.equals(firstQuestion.isExempt())) {
@@ -152,14 +152,14 @@ public class VqaService {
             throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
 
-        long pythonSessionId = parseNumeric(parts[3], "pythonSessionId");
+        String pythonSessionId = parts[3];
         int score = (int) parseNumeric(parts[5], "score");
 
         return vqaClient.getNextQuestion(pythonSessionId, score);
     }
 
     /** 답변 제출 (분산 락을 통한 원자성 보장) */
-    public VqaSubmitResult submit(String vqaSessionId, Long videoId, Long questionId, String answer, Double time, Long currentUserId) {
+    public VqaSubmitResult submit(String vqaSessionId, String videoId, String questionId, String answer, Double time, Long currentUserId) {
         RLock lock = redissonClient.getLock(VQA_LOCK_SUBMIT_PREFIX + vqaSessionId);
         
         try {
@@ -185,7 +185,7 @@ public class VqaService {
                 throw new CustomException(ErrorCode.ACCESS_DENIED);
             }
 
-            long pythonSessionId = parseNumeric(parts[3], "pythonSessionId");
+            String pythonSessionId = parts[3];
             int score = (int) parseNumeric(parts[5], "score");
 
             // 2. VQA 서버에 답변 제출
@@ -254,8 +254,8 @@ public class VqaService {
         return data;
     }
 
-    private Long parsePythonSessionId(String sessionData) {
-        return parseNumeric(sessionData.split(":")[3], "pythonSessionId");
+    private String parsePythonSessionId(String sessionData) {
+        return sessionData.split(":")[3];
     }
 
     private int parseScore(String sessionData) {
@@ -270,9 +270,9 @@ public class VqaService {
         }
     }
 
-    private void saveVqaSession(String vqaSessionId, Long pythonSessionId, QueueTokenResolver.TokenInfo info, int attempts, int score) {
+    private void saveVqaSession(String vqaSessionId, String pythonSessionId, QueueTokenResolver.TokenInfo info, int attempts, int score) {
         String key = VQA_SESSION_KEY_PREFIX + vqaSessionId;
-        String value = String.format("%s:%d:%d:%d:%d:%d", 
+        String value = String.format("%s:%d:%d:%s:%d:%d", 
             info.phaseType(), info.phaseId(), info.userId(), pythonSessionId, attempts, score);
         redisTemplate.opsForValue().set(key, value, Duration.ofSeconds(VQA_SESSION_TTL_SECONDS));
         
