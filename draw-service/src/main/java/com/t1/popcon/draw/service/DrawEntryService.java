@@ -117,7 +117,8 @@ public class DrawEntryService {
             .entryDate(entry.getDrawOption().getEntryDate())
             .entryTime(entry.getDrawOption().getEntryTime())
             .userName(encryptionService.decrypt(entry.getEncryptedName()))
-            .userPhoneNumber(encryptionService.decrypt(entry.getEncryptedPhoneNumber()))
+            // 복호화된 전화번호를 하이픈 형식으로 포맷
+            .userPhoneNumber(formatPhone(encryptionService.decrypt(entry.getEncryptedPhoneNumber())))
             .paidAt(entry.getPaidAt())
             .status(entry.getStatus().name())
             .ticketIssuedAt(entry.getTicketIssuedAt())
@@ -134,7 +135,8 @@ public class DrawEntryService {
             .entryDate(drawOption.getEntryDate())
             .entryTime(drawOption.getEntryTime())
             .userName(encryptionService.decrypt(userInfo.encryptedName()))
-            .userPhoneNumber(encryptionService.decrypt(userInfo.encryptedPhoneNumber()))
+            // 복호화된 전화번호를 하이픈 형식으로 포맷
+            .userPhoneNumber(formatPhone(encryptionService.decrypt(userInfo.encryptedPhoneNumber())))
             .build();
     }
 
@@ -291,5 +293,20 @@ public class DrawEntryService {
         Throwable root = e.getMostSpecificCause();
         String message = root != null ? root.getMessage() : e.getMessage();
         return message != null && message.contains(DrawEntry.UNIQUE_CONSTRAINT_NAME);
+    }
+
+    /** 전화번호를 010-XXXX-XXXX 형식으로 변환 */
+    private static String formatPhone(String phone) {
+        if (phone == null || phone.isBlank()) {
+            return phone;
+        }
+        String trimmed = phone.trim();
+        if (trimmed.contains("-")) {
+            return trimmed;
+        }
+        if (trimmed.length() == 11 && trimmed.matches("\\d+")) {
+            return trimmed.substring(0, 3) + "-" + trimmed.substring(3, 7) + "-" + trimmed.substring(7);
+        }
+        return trimmed;
     }
 }
