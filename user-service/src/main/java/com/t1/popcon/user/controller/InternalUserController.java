@@ -1,25 +1,73 @@
 package com.t1.popcon.user.controller;
 
 import com.t1.popcon.common.response.ApiResponse;
-import com.t1.popcon.user.dto.UserInternalResponse;
-import com.t1.popcon.user.dto.UserLookupResponse;
-import com.t1.popcon.user.service.UserService;
+import com.t1.popcon.user.dto.PhoneUpdateRequest;
 import com.t1.popcon.user.dto.UserCreateRequest;
 import com.t1.popcon.user.dto.UserCreateResponse;
-import com.t1.popcon.user.dto.PhoneUpdateRequest;
+import com.t1.popcon.user.dto.UserInternalResponse;
+import com.t1.popcon.user.dto.UserLookupResponse;
+import com.t1.popcon.common.exception.ErrorCode;
+import com.t1.popcon.user.service.TestAccountGenerator;
+import com.t1.popcon.user.service.UserService;
+
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.io.File;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 내부 서비스 간 통신용 API
  */
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 public class InternalUserController {
 
     private final UserService userService;
+    private final TestAccountGenerator testAccountGenerator;
+
+    /**
+     * 부하 테스트용 대량 계정 생성
+     * @param count 생성할 계정 수
+     * @return 생성된 CSV 파일 경로
+     */
+    @PostMapping("/internal/test-accounts/bulk")
+    public ApiResponse<String> generateTestAccounts(@RequestParam(defaultValue = "10") int count) {
+        try {
+            String filePath = testAccountGenerator.generateBulk(count);
+            return ApiResponse.ok("성공적으로 테스트 계정이 생성되었습니다. 파일 경로: " + filePath, filePath);
+        } catch (Exception e) {
+            log.error("[TestAccount] 계정 생성 중 오류 발생: ", e);
+            return ApiResponse.fail(ErrorCode.ERROR_SYSTEM.getCode(), "테스트 계정 생성 실패: " + e.getMessage(), null);
+        }
+    }
+
+    /**
+     * 생성된 테스트 계정 파일 다운로드
+     * @param filePath 생성 API에서 반환된 전체 파일 경로
+     * @return CSV 파일 리소스
+     */
+    @GetMapping("/internal/test-accounts/download")
+    public ResponseEntity<Resource> downloadTestAccounts(@RequestParam String filePath) {
+        File file = new File(filePath);
+        if (!file.exists()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Resource resource = new FileSystemResource(file);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"")
+                .contentType(MediaType.parseMediaType("text/csv"))
+                .body(resource);
+    }
 
     /**
      * 사용자 ID로 상세 정보 조회 (내부 서비스용)
