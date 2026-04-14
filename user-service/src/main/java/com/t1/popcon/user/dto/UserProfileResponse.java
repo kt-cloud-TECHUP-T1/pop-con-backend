@@ -35,12 +35,16 @@ public record UserProfileResponse(
 
     /** 전화번호를 010-XXXX-XXXX 형식으로 변환 */
     private static String formatPhone(String phone) {
-        if (phone == null || phone.isBlank() || phone.contains("-")) {
+        if (phone == null || phone.isBlank()) {
             return phone;
         }
-        if (phone.length() == 11) {
-            return phone.substring(0, 3) + "-" + phone.substring(3, 7) + "-" + phone.substring(7);
+        String trimmed = phone.trim();
+        if (trimmed.contains("-")) {
+            return trimmed;
         }
-        return phone;
+        if (trimmed.length() == 11 && trimmed.matches("\\d+")) {
+            return trimmed.substring(0, 3) + "-" + trimmed.substring(3, 7) + "-" + trimmed.substring(7);
+        }
+        return trimmed;
     }
 }

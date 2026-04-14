@@ -78,7 +78,8 @@ public class UserService {
         return new TicketPurchaserProfileResponse(
             user.getId(),
             encryptionService.decrypt(user.getEncryptedName()),
-            encryptionService.decrypt(user.getEncryptedPhoneNumber()),
+            // 복호화된 전화번호를 하이픈 형식으로 포맷
+            formatPhone(encryptionService.decrypt(user.getEncryptedPhoneNumber())),
             user.getEmail(),
             billingKeyInfo.map(BillingKeyInfoResponse::cardName).orElse(null),
             billingKeyInfo.map(BillingKeyInfoResponse::cardNumber).orElse(null)
@@ -308,5 +309,20 @@ public class UserService {
     private User getUserOrThrow(Long userId) {
         return userRepository.findById(userId)
             .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    /** 전화번호를 010-XXXX-XXXX 형식으로 변환 */
+    private static String formatPhone(String phone) {
+        if (phone == null || phone.isBlank()) {
+            return phone;
+        }
+        String trimmed = phone.trim();
+        if (trimmed.contains("-")) {
+            return trimmed;
+        }
+        if (trimmed.length() == 11 && trimmed.matches("\\d+")) {
+            return trimmed.substring(0, 3) + "-" + trimmed.substring(3, 7) + "-" + trimmed.substring(7);
+        }
+        return trimmed;
     }
 }
