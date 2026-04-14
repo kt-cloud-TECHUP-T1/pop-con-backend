@@ -13,7 +13,7 @@ public record VqaNextQuestionResponse(
     ) {}
 
     public record QuestionInfo(
-        @JsonProperty("id") Long id,
+        @JsonProperty("id") String id,
         @JsonProperty("text") String text
     ) {}
 }
