@@ -14,8 +14,9 @@ public record VqaUserSubmitRequest(
     @NotBlank(message = "비디오 ID는 필수입니다.")
     String videoId,
 
-    @NotBlank(message = "질문 ID는 필수입니다.")
-    String questionId,
+    @NotNull
+    @Positive(message = "질문 ID는 양수여야 합니다.")
+    Long questionId,
 
     @NotBlank
     @Size(min = 1, max = 500, message = "답변은 1자 이상 500자 이내여야 합니다.")
