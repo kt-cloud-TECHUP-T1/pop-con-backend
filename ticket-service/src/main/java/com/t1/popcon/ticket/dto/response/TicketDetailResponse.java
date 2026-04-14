@@ -20,7 +20,6 @@ public record TicketDetailResponse(
     LocalTime entryTime,
     LocalDateTime issuedAt
 ) {
-
     public static TicketDetailResponse from(Ticket ticket) {
         return new TicketDetailResponse(
             ticket.getId(),

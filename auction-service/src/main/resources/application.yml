@@ -41,3 +41,6 @@ services:
   ticket-service:
     url: ${TICKET_SERVICE_URL:http://localhost:8086}
     internal-secret: ${INTERNAL_API_SECRET}
+  popup-service:
+    url: ${POPUP_SERVICE_URL:http://localhost:8082}
+    internal-secret: ${INTERNAL_API_SECRET}

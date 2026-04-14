@@ -42,3 +42,5 @@ services:
     url: ${AUCTION_SERVICE_URL}
   ticket-service:
     url: ${TICKET_SERVICE_URL}
+  pop-service:
+    url: ${POPUP_SERVICE_URL}
