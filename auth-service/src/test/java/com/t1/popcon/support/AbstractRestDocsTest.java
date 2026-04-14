@@ -1,6 +1,7 @@
 package com.t1.popcon.support;
 
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.t1.popcon.auth.token.domain.RefreshTokenRepository;
@@ -46,6 +47,7 @@ public abstract class AbstractRestDocsTest {
 	@BeforeEach
 	void setUp(RestDocumentationContextProvider restDocumentation) {
 		this.mockMvc = MockMvcBuilders.webAppContextSetup(context)
+			.apply(springSecurity())
 			.apply(documentationConfiguration(restDocumentation))
 			.alwaysDo(MockMvcResultHandlers.print())
 			.addFilters(new CharacterEncodingFilter("UTF-8", true))

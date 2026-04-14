@@ -21,6 +21,7 @@ public record RegisterPayload(
         String encryptedGender,           // 성별 (양방향 암호화)
         String encryptedBirthDate,        // 생년월일 (양방향 암호화)
         String encryptedPhoneNumber,      // 전화번호 (양방향 암호화)
+        String phoneHash,                 // 전화번호 해시 (단방향, 중복 검증용)
         String encryptedNationality       // 내외국인 여부 (양방향)
 ) {
 
@@ -37,7 +38,7 @@ public record RegisterPayload(
     ) {
         return new RegisterPayload(
                 provider, providerUserId, email, nickname, name, profileImageUrl,
-                null, null, null, null, null, null
+                null, null, null, null, null, null, null
         );
     }
 
@@ -50,11 +51,12 @@ public record RegisterPayload(
             String encryptedGender,
             String encryptedBirthDate,
             String encryptedPhoneNumber,
+            String phoneHash,
             String encryptedNationality
     ) {
         return new RegisterPayload(
                 provider, providerUserId, email, nickname, name, profileImageUrl,
-                ciHash, encryptedName, encryptedGender, encryptedBirthDate, encryptedPhoneNumber, encryptedNationality
+                ciHash, encryptedName, encryptedGender, encryptedBirthDate, encryptedPhoneNumber, phoneHash, encryptedNationality
         );
     }
 }

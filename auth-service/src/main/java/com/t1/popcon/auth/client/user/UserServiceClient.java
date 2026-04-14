@@ -1,11 +1,16 @@
 package com.t1.popcon.auth.client.user;
 
 import com.t1.popcon.auth.client.user.config.FeignClientConfig;
+import com.t1.popcon.auth.client.user.dto.PhoneUpdateRequest;
+import com.t1.popcon.auth.client.user.dto.UserInternalResponse;
 import com.t1.popcon.auth.client.user.dto.UserLookupResponse;
 import com.t1.popcon.common.response.ApiResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
@@ -43,5 +48,22 @@ public interface UserServiceClient {
             @RequestParam("ciHash") String ciHash,
             @RequestParam("provider") String provider,
             @RequestParam("providerUserId") String providerUserId
+    );
+
+    /**
+     * userId로 사용자 상세 정보 조회 (ciHash 포함)
+     */
+    @GetMapping("/internal/users/{userId}")
+    ApiResponse<UserInternalResponse> getUserInternal(
+            @PathVariable("userId") Long userId
+    );
+
+    /**
+     * 휴대폰 번호 변경
+     */
+    @PatchMapping("/internal/users/{userId}/phone")
+    ApiResponse<Void> updatePhone(
+            @PathVariable("userId") Long userId,
+            @RequestBody PhoneUpdateRequest request
     );
 }

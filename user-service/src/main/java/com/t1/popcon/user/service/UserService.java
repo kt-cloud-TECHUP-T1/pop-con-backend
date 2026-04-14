@@ -3,7 +3,10 @@ package com.t1.popcon.user.service;
 import com.t1.popcon.common.encryption.EncryptionService;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
+import com.t1.popcon.user.billing.dto.BillingKeyInfoResponse;
+import com.t1.popcon.user.billing.service.BillingKeyService;
 import com.t1.popcon.user.domain.User;
+import com.t1.popcon.user.dto.history.TicketPurchaserProfileResponse;
 import com.t1.popcon.user.dto.UserLookupResponse;
 import com.t1.popcon.user.dto.UserInternalResponse;
 import com.t1.popcon.user.dto.UserProfileResponse;
@@ -14,6 +17,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.hibernate.exception.ConstraintViolationException;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 import com.t1.popcon.user.dto.UserCreateRequest;
@@ -28,9 +32,11 @@ public class UserService {
 
     private static final int MAX_NICKNAME_RETRIES = 5;
     private static final String NICKNAME_CONSTRAINT = "uk_users_nickname";
+    private static final String PHONE_HASH_CONSTRAINT = "uk_users_phone_hash";
 
     private final UserRepository userRepository;
     private final EncryptionService encryptionService;
+    private final BillingKeyService billingKeyService;
 
     @Value("${user.nickname.prefix:User}")
     private String nicknamePrefix;
@@ -60,7 +66,22 @@ public class UserService {
         return new UserInternalResponse(
                 user.getId(),
                 user.getEncryptedName(),
-                user.getEncryptedPhoneNumber()
+                user.getEncryptedPhoneNumber(),
+                user.getCiHash()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public TicketPurchaserProfileResponse getTicketPurchaserProfile(Long userId) {
+        User user = getUserOrThrow(userId);
+        Optional<BillingKeyInfoResponse> billingKeyInfo = billingKeyService.getDefaultBillingKeyInfo(userId);
+        return new TicketPurchaserProfileResponse(
+            user.getId(),
+            encryptionService.decrypt(user.getEncryptedName()),
+            encryptionService.decrypt(user.getEncryptedPhoneNumber()),
+            user.getEmail(),
+            billingKeyInfo.map(BillingKeyInfoResponse::cardName).orElse(null),
+            billingKeyInfo.map(BillingKeyInfoResponse::cardNumber).orElse(null)
         );
     }
 
@@ -80,22 +101,26 @@ public class UserService {
                         request.ciHash(),
                         request.encryptedName(),
                         request.encryptedPhoneNumber(),
+                        request.phoneHash(),
                         request.encryptedBirthDate(),
                         request.encryptedGender(),
                         request.encryptedNationality(),
                         currentNickname,
                         request.email(),
+                        Boolean.TRUE.equals(request.isMarketingAgreed()),
                         request.providerUserId()
                 );
                 case "NAVER" -> User.createUserWithNaver(
                         request.ciHash(),
                         request.encryptedName(),
                         request.encryptedPhoneNumber(),
+                        request.phoneHash(),
                         request.encryptedBirthDate(),
                         request.encryptedGender(),
                         request.encryptedNationality(),
                         currentNickname,
                         request.email(),
+                        Boolean.TRUE.equals(request.isMarketingAgreed()),
                         request.providerUserId()
                 );
                 default -> throw new CustomException(ErrorCode.INVALID_PROVIDER);
@@ -204,6 +229,48 @@ public class UserService {
             .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         user.connectNaver(naverUserId, LocalDateTime.now());
+    }
+
+    /**
+     * 휴대폰 번호 변경 (본인인증 CI 검증 완료 후 auth-service에서 호출)
+     * phoneHash로 타 계정 중복 여부 사전 확인 + DB 제약 위반 시에도 U004 반환
+     */
+    @Transactional
+    public void updatePhone(Long userId, String encryptedPhone, String phoneHash) {
+        if (encryptedPhone == null || encryptedPhone.isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+        if (phoneHash == null || phoneHash.isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+
+        // 동일 번호가 다른 계정에 이미 등록되어 있는지 사전 확인 (레이스 컨디션 보완은 아래 catch에서 처리)
+        userRepository.findByPhoneHash(phoneHash)
+                .filter(existing -> !existing.getId().equals(userId))
+                .ifPresent(existing -> {
+                    throw new CustomException(ErrorCode.PHONE_ALREADY_IN_USE);
+                });
+
+        User user = getUserOrThrow(userId);
+        user.updatePhoneNumber(encryptedPhone, phoneHash);
+
+        try {
+            // flush를 강제하여 레이스 컨디션 시 DB 제약 위반을 트랜잭션 내에서 잡음
+            userRepository.saveAndFlush(user);
+        } catch (DataIntegrityViolationException e) {
+            if (isPhoneHashConflict(e)) {
+                throw new CustomException(ErrorCode.PHONE_ALREADY_IN_USE);
+            }
+            throw e;
+        }
+    }
+
+    private boolean isPhoneHashConflict(DataIntegrityViolationException e) {
+        Throwable cause = e.getRootCause();
+        if (cause instanceof ConstraintViolationException hibernateEx) {
+            return PHONE_HASH_CONSTRAINT.equals(hibernateEx.getConstraintName());
+        }
+        return e.getMessage() != null && e.getMessage().contains(PHONE_HASH_CONSTRAINT);
     }
 
     @Transactional

@@ -27,7 +27,7 @@ public class InternalTicketController {
     @PostMapping
     public ApiResponse<TicketIssueResponse> issue(@Valid @RequestBody TicketIssueRequest request) {
         TicketIssueResponse response = ticketIssueService.issue(request);
-        return ApiResponse.ok("티켓 발급에 성공했습니다.", response);
+        return ApiResponse.ok("티켓 발급 성공", response);
     }
 
     @GetMapping
@@ -40,7 +40,7 @@ public class InternalTicketController {
             userId,
             PageRequest.of(page, size)
         );
-        return ApiResponse.ok("티켓 목록 조회에 성공했습니다.", response);
+        return ApiResponse.ok("티켓 목록 조회 성공", response);
     }
 
     @GetMapping("/reservations/{reservationNo}")
@@ -49,6 +49,15 @@ public class InternalTicketController {
         @RequestParam("userId") Long userId
     ) {
         TicketDetailResponse response = ticketIssueService.getTicketByReservationNo(reservationNo, userId);
-        return ApiResponse.ok("티켓 상세 조회에 성공했습니다.", response);
+        return ApiResponse.ok("티켓 상세 조회 성공", response);
+    }
+
+    @GetMapping("/{ticketId}")
+    public ApiResponse<TicketDetailResponse> getTicketById(
+        @PathVariable("ticketId") Long ticketId,
+        @RequestParam("userId") Long userId
+    ) {
+        TicketDetailResponse response = ticketIssueService.getTicketById(ticketId, userId);
+        return ApiResponse.ok("티켓 상세 조회 성공", response);
     }
 }

@@ -1,6 +1,7 @@
 package com.t1.popcon.draw.controller;
 
 import com.t1.popcon.common.response.ApiResponse;
+import com.t1.popcon.draw.dto.response.DrawEntryDetailResponse;
 import com.t1.popcon.draw.dto.response.DrawEntryResponse;
 import com.t1.popcon.draw.dto.response.DrawExecuteResponse;
 import com.t1.popcon.draw.service.DrawEntryService;
@@ -29,12 +30,21 @@ public class InternalDrawEntryController {
         Pageable pageable
     ) {
         Slice<DrawEntryResponse> responses = drawEntryService.getEntriesByUserId(userId, pageable);
-        return ApiResponse.ok("응모 내역 조회를 성공했습니다.", responses);
+        return ApiResponse.ok("응모 내역 조회 성공", responses);
+    }
+
+    @GetMapping("/entries/{entryId}")
+    public ApiResponse<DrawEntryDetailResponse> getEntryDetail(
+        @PathVariable("entryId") Long entryId,
+        @RequestParam("userId") Long userId
+    ) {
+        DrawEntryDetailResponse response = drawEntryService.getEntryDetail(userId, entryId);
+        return ApiResponse.ok("응모 상세 조회 성공", response);
     }
 
     @PostMapping("/options/{optionId}/execute")
     public ApiResponse<DrawExecuteResponse> executeDraw(@PathVariable("optionId") Long optionId) {
         DrawExecuteResponse response = drawResultService.executeDraw(optionId);
-        return ApiResponse.ok("드로우 추첨 실행에 성공했습니다.", response);
+        return ApiResponse.ok("추첨 실행 성공", response);
     }
 }

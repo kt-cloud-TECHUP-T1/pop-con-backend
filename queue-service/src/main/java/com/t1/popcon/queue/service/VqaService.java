@@ -152,14 +152,14 @@ public class VqaService {
             throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
 
-        long pythonSessionId = parseNumeric(parts[3], "pythonSessionId");
+        Long pythonSessionId = parseNumeric(parts[3], "pythonSessionId");
         int score = (int) parseNumeric(parts[5], "score");
 
         return vqaClient.getNextQuestion(pythonSessionId, score);
     }
 
     /** 답변 제출 (분산 락을 통한 원자성 보장) */
-    public VqaSubmitResult submit(String vqaSessionId, Long videoId, Long questionId, String answer, Double time, Long currentUserId) {
+    public VqaSubmitResult submit(String vqaSessionId, String videoId, Long questionId, String answer, Double time, Long currentUserId) {
         RLock lock = redissonClient.getLock(VQA_LOCK_SUBMIT_PREFIX + vqaSessionId);
         
         try {
@@ -185,7 +185,7 @@ public class VqaService {
                 throw new CustomException(ErrorCode.ACCESS_DENIED);
             }
 
-            long pythonSessionId = parseNumeric(parts[3], "pythonSessionId");
+            Long pythonSessionId = parseNumeric(parts[3], "pythonSessionId");
             int score = (int) parseNumeric(parts[5], "score");
 
             // 2. VQA 서버에 답변 제출

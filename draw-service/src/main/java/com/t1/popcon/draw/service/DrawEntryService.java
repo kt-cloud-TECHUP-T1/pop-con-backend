@@ -13,6 +13,7 @@ import com.t1.popcon.draw.domain.DrawEntry;
 import com.t1.popcon.draw.domain.DrawEntryStatus;
 import com.t1.popcon.draw.domain.DrawOption;
 import com.t1.popcon.draw.dto.request.DrawEntryRequest;
+import com.t1.popcon.draw.dto.response.DrawEntryDetailResponse;
 import com.t1.popcon.draw.dto.response.DrawEntryResponse;
 import com.t1.popcon.draw.dto.response.DrawEntryResultResponse;
 import com.t1.popcon.draw.repository.DrawEntryRepository;
@@ -23,6 +24,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,9 +39,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class DrawEntryService {
 
+    private static final String SUCCESS_CODE = "SUCCESS";
     private static final String UNKNOWN_POPUP_TITLE = "알 수 없는 팝업";
     private static final long DEFAULT_PRICE = 0L;
-    private static final String DISPLAY_IN_PROGRESS = "진행중";
+    private static final String DISPLAY_IN_PROGRESS = "진행 중";
     private static final String DISPLAY_DRAW_PENDING = "추첨 대기";
     private static final String DISPLAY_ANNOUNCEMENT_PENDING = "결과 발표 대기";
     private static final String DISPLAY_TICKET_ISSUED = "티켓 발급 완료";
@@ -98,16 +101,31 @@ public class DrawEntryService {
         ));
     }
 
-    private DrawEntryResultResponse buildApplyResult(DrawOption drawOption, UserInternalResponse userInfo) {
-        PopupInternalResponse popupInfo = null;
+    @Transactional(readOnly = true)
+    public DrawEntryDetailResponse getEntryDetail(Long userId, Long drawEntryId) {
+        DrawEntry entry = drawEntryRepository.findByIdAndUserId(drawEntryId, userId)
+            .orElseThrow(() -> new CustomException(ErrorCode.DRAW_ENTRY_NOT_FOUND));
 
-        try {
-            ApiResponse<PopupInternalResponse> popupResponse =
-                popupServiceClient.getPopupDetail(drawOption.getDraw().getPopupId());
-            popupInfo = popupResponse != null ? popupResponse.getData() : null;
-        } catch (Exception e) {
-            log.warn("Draw apply result popup fetch failed - popupId={}", drawOption.getDraw().getPopupId(), e);
-        }
+        PopupInternalResponse popupInfo = fetchPopupInfo(entry.getDrawOption().getDraw().getPopupId(), drawEntryId);
+
+        return DrawEntryDetailResponse.builder()
+            .drawEntryId(entry.getId())
+            .drawId(entry.getDrawOption().getDraw().getId())
+            .popupTitle(popupInfo != null ? popupInfo.title() : UNKNOWN_POPUP_TITLE)
+            .popupAddress(popupInfo != null ? popupInfo.location() : null)
+            .popupThumbnail(popupInfo != null ? popupInfo.vThumbnailUrl() : null)
+            .entryDate(entry.getDrawOption().getEntryDate())
+            .entryTime(entry.getDrawOption().getEntryTime())
+            .userName(encryptionService.decrypt(entry.getEncryptedName()))
+            .userPhoneNumber(encryptionService.decrypt(entry.getEncryptedPhoneNumber()))
+            .paidAt(entry.getPaidAt())
+            .status(entry.getStatus().name())
+            .ticketIssuedAt(entry.getTicketIssuedAt())
+            .build();
+    }
+
+    private DrawEntryResultResponse buildApplyResult(DrawOption drawOption, UserInternalResponse userInfo) {
+        PopupInternalResponse popupInfo = fetchPopupInfo(drawOption.getDraw().getPopupId(), null);
 
         return DrawEntryResultResponse.builder()
             .vThumbnailUrl(popupInfo != null ? popupInfo.vThumbnailUrl() : null)
@@ -165,9 +183,37 @@ public class DrawEntryService {
         }
     }
 
+    private PopupInternalResponse fetchPopupInfo(Long popupId, Long drawEntryId) {
+        try {
+            ApiResponse<PopupInternalResponse> popupResponse = popupServiceClient.getPopupDetail(popupId);
+            if (popupResponse == null) {
+                return null;
+            }
+            if (!SUCCESS_CODE.equalsIgnoreCase(popupResponse.getCode())) {
+                log.error("Popup service returned non-success response. popupId={}, drawEntryId={}, code={}",
+                    popupId, drawEntryId, popupResponse.getCode());
+                throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+            }
+            if (popupResponse.getData() == null) {
+                return null;
+            }
+            return popupResponse.getData();
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            if (drawEntryId != null) {
+                log.error("Draw entry popup fetch failed - drawEntryId={}, popupId={}", drawEntryId, popupId, e);
+            } else {
+                log.error("Draw apply popup fetch failed - popupId={}", popupId, e);
+            }
+            throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR, e);
+        }
+    }
+
     private List<Long> extractPopupIds(Slice<DrawEntry> entries) {
         return entries.getContent().stream()
             .map(entry -> entry.getDrawOption().getDraw().getPopupId())
+            .filter(Objects::nonNull)
             .distinct()
             .toList();
     }

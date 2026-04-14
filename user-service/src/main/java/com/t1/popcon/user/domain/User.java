@@ -35,7 +35,8 @@ import java.util.List;
         @UniqueConstraint(name = "uk_users_ci_hash", columnNames = "ci_hash"),
         @UniqueConstraint(name = "uk_users_nickname", columnNames = "nickname"),
         @UniqueConstraint(name = "uk_users_kakao_user_id", columnNames = "kakao_user_id"),
-        @UniqueConstraint(name = "uk_users_naver_user_id", columnNames = "naver_user_id")
+        @UniqueConstraint(name = "uk_users_naver_user_id", columnNames = "naver_user_id"),
+        @UniqueConstraint(name = "uk_users_phone_hash", columnNames = "phone_hash")
     },
     indexes = {
         @Index(name = "idx_users_status", columnList = "status"),
@@ -54,6 +55,10 @@ public class User extends BaseSoftDeleteEntity {
 
     @Column(name = "encrypted_phone_number", length = 255, nullable = false)
     private String encryptedPhoneNumber;
+
+    /** SHA-256 해시값 — 전화번호 중복 여부 확인 및 조회용 (복호화 없이 비교 가능) */
+    @Column(name = "phone_hash", length = 64)
+    private String phoneHash;
 
     @Column(name = "encrypted_birth_date", length = 255, nullable = false)
     private String encryptedBirthDate;
@@ -86,6 +91,10 @@ public class User extends BaseSoftDeleteEntity {
     @Column(name = "naver_connected_at")
     private LocalDateTime naverConnectedAt;
 
+    /** 마케팅 수신 동의 여부 (회원가입 시 선택) */
+    @Column(name = "is_marketing_agreed", nullable = false)
+    private boolean isMarketingAgreed;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 10)
     private Role role;
@@ -102,21 +111,25 @@ public class User extends BaseSoftDeleteEntity {
             String ciHash,
             String encryptedName,
             String encryptedPhoneNumber,
+            String phoneHash,
             String encryptedBirthDate,
             String encryptedGender,
             String encryptedNationality,
             String nickname,
-            String email
+            String email,
+            boolean isMarketingAgreed
     ) {
         return User.builder()
                 .ciHash(ciHash)
                 .encryptedName(encryptedName)
                 .encryptedPhoneNumber(encryptedPhoneNumber)
+                .phoneHash(phoneHash)
                 .encryptedBirthDate(encryptedBirthDate)
                 .encryptedGender(encryptedGender)
                 .encryptedNationality(encryptedNationality)
                 .nickname(nickname)
                 .email(email)
+                .isMarketingAgreed(isMarketingAgreed)
                 .role(Role.USER)
                 .status(UserStatus.ACTIVE);
     }
@@ -125,22 +138,26 @@ public class User extends BaseSoftDeleteEntity {
             String ciHash,
             String encryptedName,
             String encryptedPhoneNumber,
+            String phoneHash,
             String encryptedBirthDate,
             String encryptedGender,
             String encryptedNationality,
             String nickname,
             String email,
+            boolean isMarketingAgreed,
             String kakaoUserId
     ) {
         User user = baseBuilder(
                 ciHash,
                 encryptedName,
                 encryptedPhoneNumber,
+                phoneHash,
                 encryptedBirthDate,
                 encryptedGender,
                 encryptedNationality,
                 nickname,
-                email
+                email,
+                isMarketingAgreed
         ).build();
 
         user.connectKakao(kakaoUserId, LocalDateTime.now());
@@ -151,22 +168,26 @@ public class User extends BaseSoftDeleteEntity {
             String ciHash,
             String encryptedName,
             String encryptedPhoneNumber,
+            String phoneHash,
             String encryptedBirthDate,
             String encryptedGender,
             String encryptedNationality,
             String nickname,
             String email,
+            boolean isMarketingAgreed,
             String naverUserId
     ) {
         User user = baseBuilder(
                 ciHash,
                 encryptedName,
                 encryptedPhoneNumber,
+                phoneHash,
                 encryptedBirthDate,
                 encryptedGender,
                 encryptedNationality,
                 nickname,
-                email
+                email,
+                isMarketingAgreed
         ).build();
 
         user.connectNaver(naverUserId, LocalDateTime.now());
@@ -181,6 +202,11 @@ public class User extends BaseSoftDeleteEntity {
     public void connectNaver(String naverUserId, LocalDateTime connectedAt) {
         this.naverUserId = naverUserId;
         this.naverConnectedAt = connectedAt;
+    }
+
+    public void updatePhoneNumber(String encryptedPhoneNumber, String phoneHash) {
+        this.encryptedPhoneNumber = encryptedPhoneNumber;
+        this.phoneHash = phoneHash;
     }
 
     public void block() {

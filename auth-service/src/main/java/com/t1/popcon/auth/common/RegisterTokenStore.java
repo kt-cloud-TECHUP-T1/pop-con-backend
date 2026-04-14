@@ -32,6 +32,7 @@ public interface RegisterTokenStore {
             String encryptedGender,
             String encryptedBirthDate,
             String encryptedPhoneNumber,
+            String phoneHash,
             String encryptedNationality,
             long ttlSecondsToExtend
     );

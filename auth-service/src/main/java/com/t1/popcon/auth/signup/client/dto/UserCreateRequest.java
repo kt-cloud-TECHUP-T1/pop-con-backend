@@ -15,7 +15,8 @@ public record UserCreateRequest(
     String encryptedBirthDate,
     String encryptedGender,
     String encryptedNationality,
-    
+    String phoneHash,
+
     Boolean isMarketingAgreed
 ) {
     public static UserCreateRequest of(RegisterPayload payload, SignUpRequest.Agreements agreements) {
@@ -30,6 +31,7 @@ public record UserCreateRequest(
             payload.encryptedBirthDate(),
             payload.encryptedGender(),
             payload.encryptedNationality(),
+            payload.phoneHash(),
             agreements.isMarketingAgreed()
         );
     }
