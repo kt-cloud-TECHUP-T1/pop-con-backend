@@ -13,6 +13,19 @@ function maskId(id?: string): string {
   return id.slice(0, 4) + '****';
 }
 
+/** Cloudflare 뒤에서 실제 클라이언트 IP 추출 */
+function getClientIp(req: Request): string | undefined {
+  const cfIp = req.headers['cf-connecting-ip'];
+  if (typeof cfIp === 'string' && cfIp.length > 0) return cfIp;
+
+  const xff = req.headers['x-forwarded-for'];
+  if (typeof xff === 'string' && xff.length > 0) {
+    return xff.split(',')[0].trim();
+  }
+
+  return req.ip || req.socket?.remoteAddress;
+}
+
 // POST /signals - raw 데이터 수신 + 분석
 router.post('/signals', async (req: Request, res: Response) => {
   try {
@@ -43,11 +56,13 @@ router.post('/signals', async (req: Request, res: Response) => {
     const totalScore = identityKey ? await getTotalScore(identityKey) : result.score;
 
     // 3. 로그 출력 (ID 마스킹)
-    console.log(`[anti-macro] page=${payload.page} score=${result.score} total=${totalScore} vqaLevel=${result.vqaLevel}`, {
-      signals: result.detectedSignals.map((s) => `${s.name}(${s.weight})`),
-      visitorId: maskId(body.visitorId),
-      userId: maskId(body.userId),
-    });
+    console.log(
+      `[anti-macro] user=${maskId(body.userId)} visitor=${maskId(body.visitorId)} page=${payload.page} ` +
+      `pageScore=${result.score} totalScore=${totalScore} vqaLevel=${result.vqaLevel}`,
+      {
+        signals: result.detectedSignals.map((s) => `${s.name}(${s.weight})`),
+      }
+    );
 
     // 4. 의심 로그 DB 저장 (score > 0이면 저장, fire-and-forget)
     if (identityKey) {
@@ -59,7 +74,7 @@ router.post('/signals', async (req: Request, res: Response) => {
         pageScore: result.score,
         totalScore,
         result,
-        ipAddress: req.ip || req.socket?.remoteAddress,
+        ipAddress: getClientIp(req),
         userAgent: req.headers['user-agent'],
         rawSummary: {
           clicks: payload.rawData.clicks?.length ?? 0,

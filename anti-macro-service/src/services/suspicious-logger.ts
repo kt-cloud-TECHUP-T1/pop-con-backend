@@ -15,15 +15,13 @@ type LogParams = {
 };
 
 /**
- * 의심 로그 DB 저장 (fire-and-forget)
- * score > 0이면 저장 (시그널이 하나라도 감지된 경우)
+ * 시그널 로그 DB 저장 (fire-and-forget)
+ * 모든 요청 저장
  */
 export function saveIfSuspicious(params: LogParams): void {
-  if (params.pageScore <= 0) return; // 정상이면 저장 안 함
-
   // fire-and-forget: await 안 함
   insertLog(params).catch((err) => {
-    console.error('[db] 의심 로그 저장 실패:', err.message);
+    console.error('[db] 시그널 로그 저장 실패:', err.message);
   });
 }
 
@@ -51,5 +49,5 @@ async function insertLog(params: LogParams): Promise<void> {
     params.userAgent || null,
   ]);
 
-  console.log(`[db] 의심 로그 저장: page=${params.page} score=${params.pageScore} total=${params.totalScore}`);
+  console.log(`[db] 시그널 로그 저장: page=${params.page} score=${params.pageScore} total=${params.totalScore}`);
 }
