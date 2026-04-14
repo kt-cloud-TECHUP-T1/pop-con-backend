@@ -159,7 +159,7 @@ public class VqaService {
     }
 
     /** 답변 제출 (분산 락을 통한 원자성 보장) */
-    public VqaSubmitResult submit(String vqaSessionId, String videoId, Long questionId, String answer, Double time, Long currentUserId) {
+    public VqaSubmitResult submit(String vqaSessionId, String videoId, String questionId, String answer, Double time, Long currentUserId) {
         RLock lock = redissonClient.getLock(VQA_LOCK_SUBMIT_PREFIX + vqaSessionId);
         
         try {
