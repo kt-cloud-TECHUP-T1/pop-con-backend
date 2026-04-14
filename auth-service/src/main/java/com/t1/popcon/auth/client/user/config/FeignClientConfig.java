@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class FeignClientConfig {
 
-    @Value("${services.user-service.internal-secret}")
+    @Value("${internal.api-secret}")
     private String internalSecret;
 
     @Bean

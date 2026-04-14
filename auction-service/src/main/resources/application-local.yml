@@ -43,5 +43,9 @@ server:
   shutdown: graceful
 
 services:
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8081}
   ticket-service:
     url: ${TICKET_SERVICE_URL:http://localhost:8086}
+  popup-service:
+    url: ${POPUP_SERVICE_URL:http://localhost:8082}

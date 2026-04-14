@@ -32,15 +32,12 @@ encryption:
   secret: ${ENCRYPTION_SECRET}
 
 internal:
-  api-secret: ${INTERNAL_API_SECRET:changeme-local-secret}
+  api-secret: ${INTERNAL_API_SECRET}
 
 services:
   user-service:
-    url: ${USER_SERVICE_URL:http://localhost:8081}
-    internal-secret: ${INTERNAL_API_SECRET}
+    url: ${USER_SERVICE_URL}
   ticket-service:
-    url: ${TICKET_SERVICE_URL:http://localhost:8086}
-    internal-secret: ${INTERNAL_API_SECRET}
+    url: ${TICKET_SERVICE_URL}
   popup-service:
-    url: ${POPUP_SERVICE_URL:http://localhost:8082}
-    internal-secret: ${INTERNAL_API_SECRET}
+    url: ${POPUP_SERVICE_URL}

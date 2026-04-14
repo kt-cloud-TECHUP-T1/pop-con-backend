@@ -37,8 +37,7 @@ app:
 
 services:
   user-service:
-    url: ${USER_SERVICE_URL}
-    internal-secret: ${INTERNAL_API_SECRET:changeme-local-secret}
+    url: ${USER_SERVICE_URL:http://backend-user-svc:8080}
 
 spring:
   datasource:

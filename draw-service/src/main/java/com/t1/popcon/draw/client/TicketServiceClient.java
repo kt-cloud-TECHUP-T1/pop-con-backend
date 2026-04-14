@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 @FeignClient(
     name = "ticket-service",
-    url = "${services.ticket-service.url:http://localhost:8086}",
+    url = "${services.ticket-service.url}",
     configuration = FeignClientConfig.class
 )
 public interface TicketServiceClient {

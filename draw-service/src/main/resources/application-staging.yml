@@ -62,3 +62,11 @@ management:
   metrics:
     tags:
       application: draw-service
+
+services:
+  user-service:
+    url: ${USER_SERVICE_URL:http://backend-user-svc:8080}
+  popup-service:
+    url: ${POPUP_SERVICE_URL:http://backend-popup-svc:8080}
+  ticket-service:
+    url: ${TICKET_SERVICE_URL:http://backend-ticket-svc:8080}

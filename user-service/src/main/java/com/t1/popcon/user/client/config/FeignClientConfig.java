@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class FeignClientConfig {
 
-    @Value("${internal.api-secret:changeme-local-secret}")
+    @Value("${internal.api-secret}")
     private String internalSecret;
 
     @Bean

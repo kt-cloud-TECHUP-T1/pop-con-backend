@@ -38,7 +38,6 @@ app:
 services:
   user-service:
     url: ${USER_SERVICE_URL:http://localhost:8081}
-    internal-secret: ${INTERNAL_API_SECRET:changeme-local-secret}
 
 spring:
   config:
