@@ -11,9 +11,8 @@ public record VqaUserSubmitRequest(
     @Pattern(regexp = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", message = "유효하지 않은 세션 형식입니다.")
     String vqaSessionId, // 우리 서버용 세션 UUID
 
-    @NotNull
-    @Positive(message = "비디오 ID는 양수여야 합니다.")
-    Long videoId,
+    @NotBlank(message = "비디오 ID는 필수입니다.")
+    String videoId,
 
     @NotNull
     @Positive(message = "질문 ID는 양수여야 합니다.")

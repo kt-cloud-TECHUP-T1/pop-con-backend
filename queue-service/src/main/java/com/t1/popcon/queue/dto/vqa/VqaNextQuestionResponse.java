@@ -8,7 +8,7 @@ public record VqaNextQuestionResponse(
     @JsonProperty("is_exempt") Boolean isExempt // 면제 여부 필드 추가
 ) {
     public record VideoInfo(
-        @JsonProperty("id") Long id,
+        @JsonProperty("id") String id,
         @JsonProperty("title") String title
     ) {}
 
