@@ -1,3 +1,4 @@
+// 티켓 컨트롤러
 package com.t1.popcon.ticket.controller;
 
 import com.t1.popcon.common.response.ApiResponse;
@@ -61,3 +62,4 @@ public class InternalTicketController {
         return ApiResponse.ok("티켓 상세 조회 성공", response);
     }
 }
+
