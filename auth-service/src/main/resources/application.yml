@@ -1,4 +1,9 @@
 spring:
+  cloud:
+    openfeign:
+      okhttp:
+        enabled: true
+
   datasource:
     url: jdbc:h2:mem:popcon
     driver-class-name: org.h2.Driver
