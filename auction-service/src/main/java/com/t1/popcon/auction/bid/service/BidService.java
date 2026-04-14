@@ -29,6 +29,7 @@ import com.t1.popcon.common.infrastructure.portone.PortOneClient;
 import com.t1.popcon.common.response.ApiResponse;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
@@ -163,6 +164,10 @@ public class BidService {
     public BidResponse attemptBid(Long userId, BidRequest request) {
         AuctionOption option = auctionOptionRepository.findByIdWithAuction(request.auctionOptionId())
             .orElseThrow(() -> new CustomException(ErrorCode.AUCTION_OPTION_NOT_FOUND));
+
+        if (bidRepository.existsByUserIdAndAuctionIdAndStatus(userId, option.getAuction().getId(), BidStatus.SUCCESS)) {
+            throw new CustomException(ErrorCode.AUCTION_ALREADY_PARTICIPATED);
+        }
 
         LocalDateTime now = LocalDateTime.now();
         validateAuctionOpen(option.getAuction(), now);
@@ -364,7 +369,9 @@ public class BidService {
             throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "Payment completion timestamp is missing.");
         }
         try {
-            return OffsetDateTime.parse(paidAtStr).toLocalDateTime();
+            return OffsetDateTime.parse(paidAtStr)
+                .atZoneSameInstant(ZoneId.of("Asia/Seoul"))
+                .toLocalDateTime();
         } catch (Exception e) {
             log.warn("Failed to parse paidAt value: {}", paidAtStr, e);
             throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "Failed to parse payment completion timestamp.");

@@ -67,6 +67,7 @@ public enum ErrorCode {
     AUCTION_OPTION_STOCK_INVALID("AU008", HttpStatus.BAD_REQUEST, "경매 옵션 재고 값이 올바르지 않습니다."),
     AUCTION_PRICE_MISMATCH("AU009", HttpStatus.BAD_REQUEST, "요청하신 입찰 가격이 현재 경매가와 일치하지 않습니다."),
     BID_NOT_FOUND("AU010", HttpStatus.NOT_FOUND, "존재하지 않는 입찰 정보입니다."),
+    AUCTION_ALREADY_PARTICIPATED("AU011", HttpStatus.CONFLICT, "이미 해당 경매에 낙찰된 내역이 있습니다."),
 
     // Draw
     DRAW_NOT_FOUND("D001", HttpStatus.NOT_FOUND, "존재하지 않는 드로우입니다."),

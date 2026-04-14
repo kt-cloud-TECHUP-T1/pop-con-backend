@@ -46,4 +46,6 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
 		"WHERE b.userId = :userId AND b.status = :status AND b.deleted = false " +
 		"ORDER BY b.createdAt DESC")
 	List<Bid> findAllByUserIdAndStatusOrderByCreatedAtDesc(@Param("userId") Long userId, @Param("status") BidStatus status);
+
+	boolean existsByUserIdAndAuctionIdAndStatus(Long userId, Long auctionId, BidStatus status);
 }
