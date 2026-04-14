@@ -11,6 +11,7 @@ import com.t1.popcon.auction.bid.domain.BidStatus;
 import com.t1.popcon.auction.bid.dto.BidRequest;
 import com.t1.popcon.auction.bid.dto.BidResponse;
 import com.t1.popcon.auction.bid.infrastructure.BidRedisRepository;
+import com.t1.popcon.auction.bid.repository.BidRepository;
 import com.t1.popcon.auction.domain.Auction;
 import com.t1.popcon.auction.domain.AuctionOption;
 import com.t1.popcon.auction.domain.AuctionStatus;
@@ -49,6 +50,8 @@ public class BidServiceTest {
 	@Mock
 	private BidRedisRepository bidRedisRepository;
 	@Mock
+	private BidRepository bidRepository;
+	@Mock
 	private AuctionOptionRepository auctionOptionRepository;
 	@Mock
 	private AuctionPriceService auctionPriceService;
@@ -82,6 +85,7 @@ public class BidServiceTest {
 		option = mock(AuctionOption.class);
 		given(option.getId()).willReturn(optionId);
 		given(option.getAuction()).willReturn(auction);
+		given(auction.getId()).willReturn(1L);
 	}
 
 	@Test
@@ -90,6 +94,7 @@ public class BidServiceTest {
 		// given
 		BidRequest request = new BidRequest(optionId, bidPrice);
 		given(auctionOptionRepository.findByIdWithAuction(optionId)).willReturn(Optional.of(option));
+		given(bidRepository.existsByUserIdAndAuctionIdAndStatus(anyLong(), anyLong(), any())).willReturn(false);
 		given(auctionStockService.hasAvailableStock(anyLong())).willReturn(true);
 		given(auctionStockService.getPriceAnchor(anyLong())).willReturn(new AuctionStockService.PriceAnchor(null, null));
 		given(auctionPriceService.calculateStatus(any(), any(), anyBoolean())).willReturn(AuctionStatus.OPEN);
@@ -160,6 +165,7 @@ public class BidServiceTest {
 		// given
 		BidRequest request = new BidRequest(optionId, bidPrice);
 		given(auctionOptionRepository.findByIdWithAuction(optionId)).willReturn(Optional.of(option));
+		given(bidRepository.existsByUserIdAndAuctionIdAndStatus(anyLong(), anyLong(), any())).willReturn(false);
 		given(auctionStockService.hasAvailableStock(anyLong())).willReturn(true);
 		given(auctionStockService.getPriceAnchor(anyLong())).willReturn(new AuctionStockService.PriceAnchor(null, null));
 		given(auctionPriceService.calculateStatus(any(), any(), anyBoolean())).willReturn(AuctionStatus.OPEN);
@@ -178,6 +184,7 @@ public class BidServiceTest {
 		// given
 		BidRequest request = new BidRequest(optionId, bidPrice);
 		given(auctionOptionRepository.findByIdWithAuction(optionId)).willReturn(Optional.of(option));
+		given(bidRepository.existsByUserIdAndAuctionIdAndStatus(anyLong(), anyLong(), any())).willReturn(false);
 		given(auctionStockService.hasAvailableStock(anyLong())).willReturn(true);
 		given(auctionStockService.getPriceAnchor(anyLong())).willReturn(new AuctionStockService.PriceAnchor(null, null));
 		given(auctionPriceService.calculateStatus(any(), any(), anyBoolean())).willReturn(AuctionStatus.OPEN);
@@ -210,5 +217,20 @@ public class BidServiceTest {
 		verify(portOneClient).cancelPayment(anyString(), anyInt());
 		verify(bidRedisRepository).addPendingRestock(optionId, 1L);
 		verify(txManager).completeBidFailure(any());
+	}
+
+	@Test
+	@DisplayName("낙찰 시도 실패 - 이미 해당 경매에 낙찰된 내역이 있음")
+	void attemptBid_Fail_AlreadyParticipated() {
+		// given
+		BidRequest request = new BidRequest(optionId, bidPrice);
+		given(auctionOptionRepository.findByIdWithAuction(optionId)).willReturn(Optional.of(option));
+		// 이미 낙찰 성공 내역이 있다고 가정 (true)
+		given(bidRepository.existsByUserIdAndAuctionIdAndStatus(anyLong(), anyLong(), eq(BidStatus.SUCCESS))).willReturn(true);
+
+		// when & then
+		assertThatThrownBy(() -> bidService.attemptBid(userId, request))
+			.isInstanceOf(CustomException.class)
+			.hasMessageContaining(ErrorCode.AUCTION_ALREADY_PARTICIPATED.getMessage());
 	}
 }
