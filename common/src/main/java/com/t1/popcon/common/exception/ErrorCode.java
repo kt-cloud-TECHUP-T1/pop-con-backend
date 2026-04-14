@@ -39,6 +39,7 @@ public enum ErrorCode {
     USER_NOT_FOUND("U001", HttpStatus.NOT_FOUND, "존재하지 않는 사용자입니다."),
     SOCIAL_INFO_MISSING("U002", HttpStatus.BAD_REQUEST, "가입 세션의 소셜 정보가 유실되었습니다."),
     PHONE_ALREADY_IN_USE("U004", HttpStatus.CONFLICT, "이미 사용중인 휴대폰 번호입니다."),
+    SAME_PHONE_NUMBER("U005", HttpStatus.CONFLICT, "현재 사용 중인 번호와 동일합니다."),
 
     // Payment
     PAYMENT_FETCH_FAILED("P001", HttpStatus.BAD_GATEWAY, "결제 수단 정보 조회에 실패했습니다."),

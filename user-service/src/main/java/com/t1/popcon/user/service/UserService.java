@@ -244,6 +244,13 @@ public class UserService {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
 
+        User user = getUserOrThrow(userId);
+
+        // 현재 사용자의 번호와 동일한지 확인
+        if (phoneHash.equals(user.getPhoneHash())) {
+            throw new CustomException(ErrorCode.SAME_PHONE_NUMBER);
+        }
+
         // 동일 번호가 다른 계정에 이미 등록되어 있는지 사전 확인 (레이스 컨디션 보완은 아래 catch에서 처리)
         userRepository.findByPhoneHash(phoneHash)
                 .filter(existing -> !existing.getId().equals(userId))
@@ -251,7 +258,6 @@ public class UserService {
                     throw new CustomException(ErrorCode.PHONE_ALREADY_IN_USE);
                 });
 
-        User user = getUserOrThrow(userId);
         user.updatePhoneNumber(encryptedPhone, phoneHash);
 
         try {
