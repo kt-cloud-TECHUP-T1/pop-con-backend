@@ -6,6 +6,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 import express from 'express';
 import cors from 'cors';
+import zlib from 'zlib';
 import signalsRouter from './routes/signals';
 import { env } from './config/env';
 import { redis, waitForRedis } from './config/redis';
@@ -15,6 +16,47 @@ import type { Server } from 'http';
 const app = express();
 
 app.use(cors());
+
+// gzip 요청 본문 해제 후 JSON 파싱
+const MAX_BODY_BYTES = 1024 * 1024; // 1MB
+app.use((req, res, next) => {
+  if (req.headers['content-encoding'] !== 'gzip') return next();
+  if (req.method === 'GET' || req.method === 'HEAD') return next();
+
+  const chunks: Buffer[] = [];
+  let received = 0;
+  req.on('data', (chunk: Buffer) => {
+    received += chunk.length;
+    if (received > MAX_BODY_BYTES * 2) {
+      req.destroy();
+      res.status(413).json({ error: 'payload too large' });
+      return;
+    }
+    chunks.push(chunk);
+  });
+  req.on('end', () => {
+    zlib.gunzip(Buffer.concat(chunks), (err, decoded) => {
+      if (err) return res.status(400).json({ error: 'invalid gzip body' });
+      if (decoded.length > MAX_BODY_BYTES) {
+        return res.status(413).json({ error: 'payload too large' });
+      }
+      try {
+        const contentType = req.headers['content-type'] || '';
+        if (contentType.includes('application/json')) {
+          req.body = JSON.parse(decoded.toString('utf8'));
+        } else {
+          req.body = decoded;
+        }
+        delete req.headers['content-encoding'];
+        next();
+      } catch {
+        res.status(400).json({ error: 'invalid JSON' });
+      }
+    });
+  });
+  req.on('error', next);
+});
+
 app.use(express.json({ limit: '1mb' }));
 
 // 라우트

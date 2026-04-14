@@ -77,8 +77,8 @@ export function analyzeRawData(payload: PageSignalPayload): AnalysisResult {
       });
     }
 
-    // Medium: 클릭 간격 일정성
-    if (intervals.length >= 2) {
+    // Medium: 클릭 간격 일정성 (샘플 부족 시 stddev 신뢰도 낮아 최소 4 interval = 5 clicks)
+    if (intervals.length >= 4) {
       const intervalStddev = stddev(intervals);
       if (intervalStddev < THRESHOLDS.CLICK_INTERVAL_STDDEV_MS) {
         detected.push({
