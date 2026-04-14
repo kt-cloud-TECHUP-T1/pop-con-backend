@@ -63,7 +63,7 @@ public class DrawEntryService {
         validateDrawOption(drawId, drawOption);
         validateEntryWindow(drawOption.getDraw());
 
-        if (drawEntryRepository.existsByUserIdAndDrawOption_Id(userId, drawOptionId)) {
+        if (drawEntryRepository.existsByUserIdAndDrawOption_Draw_Id(userId, drawId)) {
             throw new CustomException(ErrorCode.DRAW_ALREADY_APPLIED);
         }
 

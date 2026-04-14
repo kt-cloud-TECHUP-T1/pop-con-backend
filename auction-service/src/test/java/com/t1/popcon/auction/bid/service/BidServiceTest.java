@@ -83,9 +83,9 @@ public class BidServiceTest {
 	void setUp() {
 		auction = mock(Auction.class);
 		option = mock(AuctionOption.class);
-		given(option.getId()).willReturn(optionId);
-		given(option.getAuction()).willReturn(auction);
-		given(auction.getId()).willReturn(1L);
+		lenient().when(option.getId()).thenReturn(optionId);
+		lenient().when(option.getAuction()).thenReturn(auction);
+		lenient().when(auction.getId()).thenReturn(1L);
 	}
 
 	@Test
