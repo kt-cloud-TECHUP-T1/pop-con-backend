@@ -64,7 +64,7 @@ router.post('/signals', async (req: Request, res: Response) => {
       }
     );
 
-    // 4. 의심 로그 DB 저장 (score > 0이면 저장, fire-and-forget)
+    // 4. 시그널 로그 DB 저장 (fire-and-forget)
     if (identityKey) {
       saveIfSuspicious({
         visitorId: body.visitorId,
