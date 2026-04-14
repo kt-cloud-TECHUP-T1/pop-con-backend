@@ -54,7 +54,7 @@ public class FeignClientConfig {
             }
             // 409 응답의 에러 코드를 파싱하여 user-service 에러를 그대로 전파
             if (status == 409) {
-                return parseErrorCode(response);
+                return parseErrorCode(response, status);
             }
 
             return defaultDecoder.decode(methodKey, response);
@@ -64,8 +64,11 @@ public class FeignClientConfig {
          * 응답 본문에서 code 필드를 파싱하여 일치하는 ErrorCode로 CustomException 반환
          * 파싱 실패 시 S001 반환
          */
-        private CustomException parseErrorCode(Response response) {
+        private CustomException parseErrorCode(Response response, int status) {
             try {
+                if (response.body() == null) {
+                    return new CustomException(ErrorCode.ERROR_SYSTEM, "user-service 오류");
+                }
                 byte[] body = response.body().asInputStream().readAllBytes();
                 JsonNode node = objectMapper.readTree(new String(body, StandardCharsets.UTF_8));
                 String code = node.path("code").asText();
@@ -74,10 +77,10 @@ public class FeignClientConfig {
                         .filter(e -> e.getCode().equals(code))
                         .findFirst()
                         .map(CustomException::new)
-                        .orElse(new CustomException(ErrorCode.ERROR_SYSTEM, "user-service 충돌 오류"));
+                        .orElse(new CustomException(ErrorCode.ERROR_SYSTEM, "user-service 오류"));
             } catch (IOException e) {
-                log.warn("[FeignClientConfig] 409 응답 파싱 실패 - method: {}", response.request().url());
-                return new CustomException(ErrorCode.ERROR_SYSTEM, "user-service 충돌 오류");
+                log.warn("[FeignClientConfig] {}  응답 파싱 실패 - url: {}", status, response.request().url());
+                return new CustomException(ErrorCode.ERROR_SYSTEM, "user-service 오류");
             }
         }
     }
