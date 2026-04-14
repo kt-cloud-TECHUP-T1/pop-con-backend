@@ -41,7 +41,7 @@ public class TestAccountGenerator {
     private final StringRedisTemplate redisTemplate;
     private final PortOneBillingClient portOneBillingClient;
 
-    @Value("${portone.secret}")
+    @Value("${portone.api.secret}")
     private String portOneSecret;
 
     @Value("${portone.channel-key}")
