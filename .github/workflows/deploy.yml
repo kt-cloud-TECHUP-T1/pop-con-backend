@@ -85,6 +85,13 @@ jobs:
               - 'settings.gradle'
               - 'gradle/**'
               - 'gradlew'
+            ticket-service:
+              - 'ticket-service/**'
+              - 'common/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+              - 'gradle/**'
+              - 'gradlew'
             anti-macro-service:
               - 'anti-macro-service/**'
 
