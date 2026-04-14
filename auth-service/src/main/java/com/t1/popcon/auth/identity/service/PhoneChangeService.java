@@ -84,10 +84,7 @@ public class PhoneChangeService {
         }
     }
 
-    /**
-     * 전화번호를 010-XXXX-XXXX 형식으로 변환
-     * PortOne 응답은 하이픈 없는 숫자열로 반환될 수 있음
-     */
+    /** 전화번호를 010-XXXX-XXXX 형식으로 변환 */
     private String formatPhone(String phone) {
         if (phone == null || phone.isBlank()) {
             return phone;
