@@ -38,7 +38,6 @@ app:
 services:
   user-service:
     url: ${USER_SERVICE_URL:http://backend-user-svc:8080}
-    internal-secret: ${INTERNAL_API_SECRET}
 
 spring:
   datasource:

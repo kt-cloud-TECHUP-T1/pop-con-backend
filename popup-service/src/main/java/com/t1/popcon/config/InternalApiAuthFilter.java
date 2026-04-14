@@ -20,7 +20,7 @@ public class InternalApiAuthFilter extends OncePerRequestFilter {
     private static final String INTERNAL_API_PREFIX = "/internal/";
     private static final String INTERNAL_SECRET_HEADER = "X-Internal-Secret";
 
-    @Value("${internal.api-secret:changeme-local-secret}")
+    @Value("${internal.api-secret}")
     private String internalSecret;
 
     @Override

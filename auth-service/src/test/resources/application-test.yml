@@ -23,7 +23,6 @@ app:
 services:
   user-service:
     url: http://localhost:8081
-    internal-secret: ${INTERNAL_API_SECRET}
 
 spring:
   config:
@@ -73,3 +72,6 @@ portone:
 
 encryption:
   secret: ${ENCRYPTION_SECRET:default_test_secret_key_32_chars}
+
+internal:
+  api-secret: ${INTERNAL_API_SECRET:test-internal-secret}

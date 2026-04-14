@@ -28,7 +28,9 @@ portone:
 encryption:
   secret: ${ENCRYPTION_SECRET}
 
+internal:
+  api-secret: ${INTERNAL_API_SECRET}
+
 services:
   user-service:
     url: ${USER_SERVICE_URL}
-    internal-secret: ${INTERNAL_API_SECRET}

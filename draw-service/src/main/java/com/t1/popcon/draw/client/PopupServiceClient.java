@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(
 	name = "popup-service",
-	url = "${services.popup-service.url:http://localhost:8082}",
+	url = "${services.popup-service.url}",
 	configuration = FeignClientConfig.class
 )
 public interface PopupServiceClient {
