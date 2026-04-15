@@ -13,9 +13,13 @@ import com.t1.popcon.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -41,11 +45,33 @@ public class TestAccountGenerator {
     private final StringRedisTemplate redisTemplate;
     private final PortOneBillingClient portOneBillingClient;
 
+    private TestAccountGenerator self;
+
+    @Autowired
+    public void setSelf(@Lazy TestAccountGenerator self) {
+        this.self = self;
+    }
+
     @Value("${portone.api.secret}")
     private String portOneSecret;
 
     @Value("${portone.channel-key}")
     private String channelKey;
+
+    @Value("${portone.test-card.number:4045770000000000}")
+    private String testCardNumber;
+
+    @Value("${portone.test-card.expiry-year:28}")
+    private String testCardExpiryYear;
+
+    @Value("${portone.test-card.expiry-month:12}")
+    private String testCardExpiryMonth;
+
+    @Value("${portone.test-card.birth:010101}")
+    private String testCardBirth;
+
+    @Value("${portone.test-card.password:12}")
+    private String testCardPassword;
 
     private static final int BATCH_SIZE = 100;
     private static final long ONE_YEAR_MS = 365L * 24 * 60 * 60 * 1000;
@@ -70,7 +96,7 @@ public class TestAccountGenerator {
                 final int index = i;
                 futures.add(CompletableFuture.supplyAsync(() -> {
                     try {
-                        return createSingleAccount(index);
+                        return self.createSingleAccount(index);
                     } catch (Exception e) {
                         log.error("[TestAccount] 계정 생성 실패 - index={}: {}", index, e.getMessage());
                         return null;
@@ -100,8 +126,16 @@ public class TestAccountGenerator {
             throw new RuntimeException(e);
         } finally {
             executor.shutdown();
-            if (!executor.awaitTermination(1, TimeUnit.MINUTES)) {
-                executor.shutdownNow();
+            try {
+                if (!executor.awaitTermination(1, TimeUnit.MINUTES)) {
+                    List<Runnable> cancelledTasks = executor.shutdownNow();
+                    log.warn("[TestAccount] 스레드 풀 종료 타임아웃. 취소된 작업 수: {}, 총 시도된 작업: {}", cancelledTasks.size(), count);
+                    log.warn("[TestAccount] CSV 기록과 실제 DB 생성 수에 불일치가 발생했을 수 있습니다.");
+                }
+            } catch (InterruptedException e) {
+                List<Runnable> cancelledTasks = executor.shutdownNow();
+                log.warn("[TestAccount] 스레드 풀 종료 중 인터럽트 발생. 취소된 작업 수: {}", cancelledTasks.size());
+                Thread.currentThread().interrupt();
             }
         }
 
@@ -135,9 +169,18 @@ public class TestAccountGenerator {
         userRepository.save(user);
 
         // 3. 안티매크로 점수 0점 설정 (퀴즈 면제)
-        // AntiMacroScoreRepository 키: score:{userId} (Hash 구조)
+        // Redis는 트랜잭션 관리가 되지 않으므로 DB 커밋 후에만 실행되도록 동기화 등록
         String redisKey = "score:" + user.getId();
-        redisTemplate.opsForHash().put(redisKey, "total", "0");
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    redisTemplate.opsForHash().put(redisKey, "total", "0");
+                }
+            });
+        } else {
+            redisTemplate.opsForHash().put(redisKey, "total", "0");
+        }
 
         // 4. 포트원 빌링키 발급 API 호출
         String billingKeyId = "";
@@ -152,7 +195,7 @@ public class TestAccountGenerator {
                             new PortOneBillingRequest.Method(
                                     new PortOneBillingRequest.Method.Card(
                                             new PortOneBillingRequest.Method.Card.Credential(
-                                                    "4045770000000000", "28", "12", "010101", "12"
+                                                    testCardNumber, testCardExpiryYear, testCardExpiryMonth, testCardBirth, testCardPassword
                                             )
                                     )
                             )
@@ -169,7 +212,7 @@ public class TestAccountGenerator {
                     .customerUid(billingKeyId)
                     .pgProvider("KCP_V2")
                     .cardName(cardName)
-                    .cardNumber("4045770000000000")
+                    .cardNumber(testCardNumber)
                     .isDefault(true)
                     .build();
             billingKeyRepository.save(userBillingKey);

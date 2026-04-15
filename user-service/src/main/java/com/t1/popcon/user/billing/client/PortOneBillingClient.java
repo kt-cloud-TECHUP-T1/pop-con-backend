@@ -1,6 +1,5 @@
 package com.t1.popcon.user.billing.client;
 
-import feign.Headers;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -10,7 +9,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 public interface PortOneBillingClient {
 
     @PostMapping("/billing-keys")
-    @Headers("Content-Type: application/json")
     PortOneBillingResponse issueBillingKey(
             @RequestHeader("Authorization") String authorization,
             @RequestBody PortOneBillingRequest request

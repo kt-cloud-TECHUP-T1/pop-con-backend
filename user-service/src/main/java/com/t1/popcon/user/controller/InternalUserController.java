@@ -1,15 +1,17 @@
 package com.t1.popcon.user.controller;
 
+import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.common.response.ApiResponse;
 import com.t1.popcon.user.dto.PhoneUpdateRequest;
 import com.t1.popcon.user.dto.UserCreateRequest;
 import com.t1.popcon.user.dto.UserCreateResponse;
 import com.t1.popcon.user.dto.UserInternalResponse;
 import com.t1.popcon.user.dto.UserLookupResponse;
-import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.user.service.TestAccountGenerator;
 import com.t1.popcon.user.service.UserService;
-
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -18,10 +20,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
-
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
  * 내부 서비스 간 통신용 API
@@ -57,16 +58,38 @@ public class InternalUserController {
      */
     @GetMapping("/internal/test-accounts/download")
     public ResponseEntity<Resource> downloadTestAccounts(@RequestParam String filePath) {
-        File file = new File(filePath);
-        if (!file.exists()) {
+        try {
+            // 1. 보안을 위해 허용된 베이스 디렉토리 (여기서는 /tmp로 제한)
+            Path baseDir = Paths.get("/tmp").toRealPath();
+
+            // 2. 요청된 경로 정규화 및 절대 경로 변환
+            Path requestedPath = Paths.get(filePath).normalize().toAbsolutePath();
+
+            // 3. 실제 파일의 Real Path 확인 (심볼릭 링크 등 해제)
+            Path realRequestedPath = requestedPath.toRealPath();
+
+            // 4. 베이스 디렉토리 내에 존재하는지 확인 (Path Traversal 방지)
+            if (!realRequestedPath.startsWith(baseDir)) {
+                log.warn("[Security] Path Traversal 시도 감지: {}", filePath);
+                return ResponseEntity.badRequest().build();
+            }
+
+            File file = realRequestedPath.toFile();
+
+            // 5. 파일 존재 여부 및 읽기 권한 확인
+            if (!file.exists() || !file.isFile() || !file.canRead()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Resource resource = new FileSystemResource(file);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"")
+                    .contentType(MediaType.parseMediaType("text/csv"))
+                    .body(resource);
+        } catch (IOException e) {
+            log.error("[TestAccount] 파일 다운로드 중 오류 발생: ", e);
             return ResponseEntity.notFound().build();
         }
-
-        Resource resource = new FileSystemResource(file);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"")
-                .contentType(MediaType.parseMediaType("text/csv"))
-                .body(resource);
     }
 
     /**
