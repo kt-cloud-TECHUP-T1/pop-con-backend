@@ -7,4 +7,6 @@ import java.util.Optional;
 
 public interface DrawRepository extends JpaRepository<Draw, Long> {
 
+    // popupId로 드로우 조회
+    Optional<Draw> findByPopupId(Long popupId);
 }
