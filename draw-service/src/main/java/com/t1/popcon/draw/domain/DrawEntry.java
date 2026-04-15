@@ -27,6 +27,10 @@ import org.hibernate.annotations.SQLRestriction;
         @UniqueConstraint(
             name = "uk_user_draw_option",
             columnNames = {"user_id", "draw_option_id", "deleted"}
+        ),
+        @UniqueConstraint(
+            name = "uk_user_draw",
+            columnNames = {"user_id", "draw_id", "deleted"}
         )
     }
 )
@@ -35,9 +39,13 @@ import org.hibernate.annotations.SQLRestriction;
 public class DrawEntry extends BaseSoftDeleteEntity {
 
     public static final String UNIQUE_CONSTRAINT_NAME = "uk_user_draw_option";
+    public static final String DRAW_UNIQUE_CONSTRAINT_NAME = "uk_user_draw";
 
     @Column(nullable = false)
     private Long userId;
+
+    @Column(name = "draw_id", nullable = false)
+    private Long drawId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "draw_option_id", nullable = false)
@@ -79,6 +87,7 @@ public class DrawEntry extends BaseSoftDeleteEntity {
         validate(userId, drawOption, encryptedName, encryptedPhoneNumber);
 
         this.userId = userId;
+        this.drawId = drawOption.getDraw().getId();
         this.drawOption = drawOption;
         this.encryptedName = encryptedName;
         this.encryptedPhoneNumber = encryptedPhoneNumber;
