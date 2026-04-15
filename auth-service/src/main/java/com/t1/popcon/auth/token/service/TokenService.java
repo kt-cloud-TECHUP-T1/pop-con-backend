@@ -65,6 +65,15 @@ public class TokenService {
 		return new TokenReissueResult(newAccessToken, newRefreshToken, jwtProperties.getAccessTokenExpiration() / 1000);
 	}
 
+	@Transactional
+	public void logout(Long userId) {
+		if (userId == null) {
+			throw new CustomException(ErrorCode.INVALID_TOKEN);
+		}
+
+		refreshTokenRepository.deleteById(String.valueOf(userId));
+	}
+
 	public record TokenReissueResult(
 		String accessToken,
 		String refreshToken,
