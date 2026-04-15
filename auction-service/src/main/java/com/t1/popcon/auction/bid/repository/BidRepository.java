@@ -48,4 +48,9 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
 	List<Bid> findAllByUserIdAndStatusOrderByCreatedAtDesc(@Param("userId") Long userId, @Param("status") BidStatus status);
 
 	boolean existsByUserIdAndAuctionIdAndStatus(Long userId, Long auctionId, BidStatus status);
+
+    // 테스트 초기화용: auctionId 기준 입찰 내역 하드 딜리트
+    @Modifying
+    @Query(value = "DELETE FROM bids WHERE auction_id = :auctionId", nativeQuery = true)
+    void deleteAllByAuctionId(@Param("auctionId") Long auctionId);
 }
