@@ -24,7 +24,7 @@ import java.time.LocalTime;
 @Entity
 @Getter
 @Table(name = "bids", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"user_id", "auction_id"})
+    @UniqueConstraint(columnNames = {"user_id", "auction_id", "status"})
 })
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLRestriction("deleted = false")

@@ -226,4 +226,20 @@ public class BidServiceTest {
 			.isInstanceOf(CustomException.class)
 			.hasMessageContaining(ErrorCode.AUCTION_ALREADY_PARTICIPATED.getMessage());
 	}
+
+	@Test
+	@DisplayName("낙찰 시도 실패 - 락 획득 실패")
+	void attemptBid_Fail_LockNotAcquired() throws InterruptedException {
+		// given
+		BidRequest request = new BidRequest(optionId, bidPrice);
+		when(auctionOptionRepository.findByIdWithAuction(optionId)).thenReturn(Optional.of(option));
+		when(redissonClient.getLock(anyString())).thenReturn(lock);
+		// 락 획득 실패 모킹 (기존 lenient 설정을 덮어씀)
+		when(lock.tryLock(anyLong(), anyLong(), any())).thenReturn(false);
+
+		// when & then
+		assertThatThrownBy(() -> bidService.attemptBid(userId, request))
+			.isInstanceOf(CustomException.class)
+			.hasMessageContaining("요청이 너무 많습니다");
+	}
 }

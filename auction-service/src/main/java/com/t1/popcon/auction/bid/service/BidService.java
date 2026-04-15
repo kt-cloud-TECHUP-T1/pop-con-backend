@@ -218,7 +218,11 @@ public class BidService {
             boolean paymentAttempted = false;
 
             try {
-                bid = txManager.preparePendingBid(userId, option, currentServerPrice, merchantUid);
+                try {
+                    bid = txManager.preparePendingBid(userId, option, currentServerPrice, merchantUid);
+                } catch (DataIntegrityViolationException e) {
+                    throw new CustomException(ErrorCode.AUCTION_ALREADY_PARTICIPATED);
+                }
 
                 ApiResponse<BillingKeyInternalResponse> billingKeyResponse = userBillingClient.getDefaultBillingKey(userId);
                 if (billingKeyResponse == null || billingKeyResponse.getData() == null) {
