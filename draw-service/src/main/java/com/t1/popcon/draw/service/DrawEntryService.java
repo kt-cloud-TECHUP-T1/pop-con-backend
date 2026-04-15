@@ -63,7 +63,7 @@ public class DrawEntryService {
         validateDrawOption(drawId, drawOption);
         validateEntryWindow(drawOption.getDraw());
 
-        if (drawEntryRepository.existsByUserIdAndDrawOption_Id(userId, drawOptionId)) {
+        if (drawEntryRepository.existsByUserIdAndDrawId(userId, drawId)) {
             throw new CustomException(ErrorCode.DRAW_ALREADY_APPLIED);
         }
 
@@ -292,7 +292,8 @@ public class DrawEntryService {
     private boolean isDuplicateEntryViolation(DataIntegrityViolationException e) {
         Throwable root = e.getMostSpecificCause();
         String message = root != null ? root.getMessage() : e.getMessage();
-        return message != null && message.contains(DrawEntry.UNIQUE_CONSTRAINT_NAME);
+        return message != null && (message.contains(DrawEntry.UNIQUE_CONSTRAINT_NAME) 
+            || message.contains(DrawEntry.DRAW_UNIQUE_CONSTRAINT_NAME));
     }
 
     /** 전화번호를 010-XXXX-XXXX 형식으로 변환 */

@@ -29,13 +29,17 @@ app.use((req, res, next) => {
     received += chunk.length;
     if (received > MAX_BODY_BYTES * 2) {
       req.destroy();
-      res.status(413).json({ error: 'payload too large' });
+      if (!res.headersSent) {
+        res.status(413).json({ error: 'payload too large' });
+      }
       return;
     }
     chunks.push(chunk);
   });
   req.on('end', () => {
+    if (res.headersSent) return;
     zlib.gunzip(Buffer.concat(chunks), (err, decoded) => {
+      if (res.headersSent) return;
       if (err) return res.status(400).json({ error: 'invalid gzip body' });
       if (decoded.length > MAX_BODY_BYTES) {
         return res.status(413).json({ error: 'payload too large' });
