@@ -26,13 +26,21 @@ export async function updatePageScore(
 ): Promise<void> {
   const key = `${KEY_PREFIX}${identityKey}`;
 
+  console.log(`[updatePageScore] key=${key} page=${page} incoming=${score}`);
+
   if (APPLICATION_PAGES.has(page)) {
-    await redis.hsetnx(key, page, score.toString());
+    const res = await redis.hsetnx(key, page, score.toString());
+    console.log(`[updatePageScore] HSETNX result=${res} (1=written, 0=already exists)`);
   } else {
     const existingStr = await redis.hget(key, page);
     const existing = existingStr !== null ? Number(existingStr) : -Infinity;
-    if (score > existing) {
+    const willWrite = score > existing;
+    console.log(
+      `[updatePageScore] existing=${existingStr === null ? 'null' : existing} willWrite=${willWrite}`,
+    );
+    if (willWrite) {
       await redis.hset(key, page, score.toString());
+      console.log(`[updatePageScore] HSET ${key} ${page} ${score}`);
     }
   }
 
@@ -56,16 +64,35 @@ export async function mergeScores(visitorId: string, userId: string): Promise<vo
   const visitorKey = `${KEY_PREFIX}${visitorId}`;
   const userKey = `${KEY_PREFIX}${userId}`;
 
+  console.log(`[merge] start visitorKey=${visitorKey} userKey=${userKey}`);
+
   const visitorScores = await redis.hgetall(visitorKey);
-  if (Object.keys(visitorScores).length === 0) return;
+  console.log(`[merge] visitorScores=`, visitorScores);
+
+  if (Object.keys(visitorScores).length === 0) {
+    console.log(`[merge] skip: visitor hash empty`);
+    return;
+  }
+
+  const userScoresBefore = await redis.hgetall(userKey);
+  console.log(`[merge] userScores(before)=`, userScoresBefore);
 
   for (const [page, scoreStr] of Object.entries(visitorScores)) {
     const incoming = Number(scoreStr);
     const existingStr = await redis.hget(userKey, page);
     const existing = existingStr !== null ? Number(existingStr) : -Infinity;
-    if (incoming > existing) {
+    const willWrite = incoming > existing;
+    console.log(
+      `[merge] field=${page} incoming=${incoming} existing=${existingStr === null ? 'null' : existing} willWrite=${willWrite}`,
+    );
+    if (willWrite) {
       await redis.hset(userKey, page, incoming.toString());
+      console.log(`[merge] HSET ${userKey} ${page} ${incoming}`);
     }
   }
   await redis.expire(userKey, SCORE_TTL);
+
+  const userScoresAfter = await redis.hgetall(userKey);
+  console.log(`[merge] userScores(after)=`, userScoresAfter);
+  console.log(`[merge] done`);
 }
