@@ -16,6 +16,8 @@ import org.springframework.data.repository.query.Param;
 public interface DrawEntryRepository extends JpaRepository<DrawEntry, Long> {
 	boolean existsByUserIdAndDrawOption_Id(Long userId, Long drawOptionId);
 
+	boolean existsByUserIdAndDrawId(Long userId, Long drawId);
+
 	Slice<DrawEntry> findAllByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
     List<DrawEntry> findAllByDrawOption_IdAndStatusOrderByIdAsc(Long drawOptionId, DrawEntryStatus status);

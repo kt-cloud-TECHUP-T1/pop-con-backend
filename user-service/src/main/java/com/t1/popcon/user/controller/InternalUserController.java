@@ -1,20 +1,21 @@
 package com.t1.popcon.user.controller;
 
 import com.t1.popcon.common.response.ApiResponse;
+import com.t1.popcon.user.dto.PhoneUpdateRequest;
+import com.t1.popcon.user.dto.UserCreateRequest;
+import com.t1.popcon.user.dto.UserCreateResponse;
 import com.t1.popcon.user.dto.UserInternalResponse;
 import com.t1.popcon.user.dto.UserLookupResponse;
 import com.t1.popcon.user.service.UserService;
-import com.t1.popcon.user.dto.UserCreateRequest;
-import com.t1.popcon.user.dto.UserCreateResponse;
-import com.t1.popcon.user.dto.PhoneUpdateRequest;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 /**
  * 내부 서비스 간 통신용 API
  */
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 public class InternalUserController {

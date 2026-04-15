@@ -43,7 +43,8 @@ public class UserSecurityConfig extends CommonSecurityConfig {
                 ).permitAll()
                 .requestMatchers(
                         "/internal/users/**",
-                        "/internal/billing/**"
+                        "/internal/billing/**",
+                        "/users/internal/test-accounts/**"
                 ).permitAll()
                 .anyRequest().authenticated()
         );

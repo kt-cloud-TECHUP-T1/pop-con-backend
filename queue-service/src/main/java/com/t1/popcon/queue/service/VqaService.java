@@ -103,8 +103,8 @@ public class VqaService {
 
             int totalScore = antiMacroScoreRepository.getTotalScore(userId);
 
-            // 4. 레벨 0 (0~20점): 면제
-            if (totalScore <= 20) {
+            // 4. 레벨 0 (0~20점): 면제 (단, 경매의 경우 점수가 낮아도 면제 없이 퀴즈를 진행함)
+            if (totalScore <= 20 && !"auction".equals(phaseType)) {
                 String quizPassedToken = generateAndSaveQuizPassedToken(tokenInfo);
                 return VqaStartResponse.exempt(quizPassedToken);
             }

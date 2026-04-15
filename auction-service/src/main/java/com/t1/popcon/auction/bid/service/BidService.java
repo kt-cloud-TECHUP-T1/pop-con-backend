@@ -30,11 +30,15 @@ import com.t1.popcon.common.infrastructure.portone.PortOneClient;
 import com.t1.popcon.common.response.ApiResponse;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,6 +63,7 @@ public class BidService {
     private final BidTransactionManager txManager;
     private final TicketServiceClient ticketServiceClient;
     private final ReservationNoGenerator reservationNoGenerator;
+    private final RedissonClient redissonClient;
 
     @Transactional(readOnly = true)
     public AuctionStatisticsResponse getAuctionStatistics(Long userId) {
@@ -174,145 +179,197 @@ public class BidService {
         AuctionOption option = auctionOptionRepository.findByIdWithAuction(request.auctionOptionId())
             .orElseThrow(() -> new CustomException(ErrorCode.AUCTION_OPTION_NOT_FOUND));
 
-        LocalDateTime now = LocalDateTime.now();
-        validateAuctionOpen(option.getAuction(), now);
-
-        AuctionStockService.PriceAnchor priceAnchor = auctionStockService.getPriceAnchor(option.getAuction().getId());
-        AuctionStatus auctionStatus = auctionPriceService.calculateStatus(
-            option.getAuction(),
-            now,
-            auctionStockService.hasAvailableStock(option.getAuction().getId())
-        );
-
-        Integer currentServerPrice = auctionPriceService.calculateCurrentPrice(
-            option.getAuction(),
-            auctionStatus,
-            now,
-            priceAnchor.soldOutPrice(),
-            priceAnchor.restockAnchorAt()
-        );
-        if (!request.bidPrice().equals(currentServerPrice)) {
-            throw new CustomException(ErrorCode.AUCTION_PRICE_MISMATCH);
-        }
-
-        Long remainingStock = bidRedisRepository.decrementStock(option.getId());
-        if (remainingStock < 0) {
-            throw new CustomException(ErrorCode.AUCTION_OPTION_SOLD_OUT);
-        }
-        if (remainingStock == 0 && !auctionStockService.hasAvailableStock(option.getAuction().getId())) {
-            auctionStockService.recordSoldOutIfAbsent(option.getAuction().getId(), currentServerPrice);
-        }
-
-        String timestamp = now.format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        String merchantUid = "order_no_" + timestamp + "_" + UUID.randomUUID().toString().substring(0, 8);
-
-        Bid bid = null;
-        boolean paymentAttempted = false;
+        Long auctionId = option.getAuction().getId();
+        RLock lock = redissonClient.getLock("lock:auction:bid:" + userId + ":" + auctionId);
 
         try {
-            bid = txManager.preparePendingBid(userId, option, currentServerPrice, merchantUid);
-
-            ApiResponse<BillingKeyInternalResponse> billingKeyResponse = userBillingClient.getDefaultBillingKey(userId);
-            if (billingKeyResponse == null || billingKeyResponse.getData() == null) {
-                throw new CustomException(ErrorCode.BILLING_KEY_NOT_FOUND);
+            if (!lock.tryLock(10, 20, TimeUnit.SECONDS)) {
+                throw new CustomException(ErrorCode.ERROR_SYSTEM, "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.");
             }
-            String billingKey = billingKeyResponse.getData().customerUid();
 
-            paymentAttempted = true;
-            PortOnePaymentResponse paymentResponse = portOneClient.executePayment(
-                billingKey,
-                bid.getMerchantUid(),
-                bid.getBidPrice(),
-                PAYMENT_PRODUCT_NAME
+            // 1인 1회 제한: 이미 해당 경매에서 낙찰(SUCCESS)된 내역이 있는지 확인
+            if (bidRepository.existsByUserIdAndAuctionIdAndStatus(userId, auctionId, BidStatus.SUCCESS)) {
+                throw new CustomException(ErrorCode.AUCTION_ALREADY_PARTICIPATED);
+            }
+
+            LocalDateTime now = LocalDateTime.now();
+            validateAuctionOpen(option.getAuction(), now);
+
+            AuctionStockService.PriceAnchor priceAnchor = auctionStockService.getPriceAnchor(auctionId);
+            AuctionStatus auctionStatus = auctionPriceService.calculateStatus(
+                option.getAuction(),
+                now,
+                auctionStockService.hasAvailableStock(auctionId)
             );
 
-            if (!paymentResponse.isPaid()) {
-                log.error("Payment execution failed because paidAt is missing. merchantUid={}", bid.getMerchantUid());
-                throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "Payment was not completed.");
+            Integer currentServerPrice = auctionPriceService.calculateCurrentPrice(
+                option.getAuction(),
+                auctionStatus,
+                now,
+                priceAnchor.soldOutPrice(),
+                priceAnchor.restockAnchorAt()
+            );
+            if (!request.bidPrice().equals(currentServerPrice)) {
+                throw new CustomException(ErrorCode.AUCTION_PRICE_MISMATCH);
             }
 
-            String pgTxId = paymentResponse.getPgTxId();
-            if (pgTxId == null || pgTxId.isBlank()) {
-                log.error("Payment response is missing pgTxId. merchantUid={}", bid.getMerchantUid());
-                throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "Payment transaction id is missing.");
+            Long remainingStock = bidRedisRepository.decrementStock(option.getId());
+            if (remainingStock < 0) {
+                throw new CustomException(ErrorCode.AUCTION_OPTION_SOLD_OUT);
+            }
+            if (remainingStock == 0 && !auctionStockService.hasAvailableStock(auctionId)) {
+                auctionStockService.recordSoldOutIfAbsent(auctionId, currentServerPrice);
             }
 
-            LocalDateTime paidAt = parsePaidAt(paymentResponse.payment().paidAt());
+            String timestamp = now.format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            String merchantUid = "order_no_" + timestamp + "_" + UUID.randomUUID().toString().substring(0, 8);
 
-            String popupTitle = DEFAULT_POPUP_TITLE;
-            String popupAddress = DEFAULT_POPUP_ADDRESS;
-            String thumbnailUrl = null;
+            Bid bid = null;
+            boolean paymentAttempted = false;
 
             try {
-                ApiResponse<PopupInternalResponse> popupResponse =
-                    popupServiceClient.getPopupDetail(option.getAuction().getPopupId());
-                if (popupResponse != null && popupResponse.getData() != null) {
-                    PopupInternalResponse popupInfo = popupResponse.getData();
-                    if (popupInfo.title() != null) {
-                        popupTitle = popupInfo.title();
-                    }
-                    if (popupInfo.location() != null) {
-                        popupAddress = popupInfo.location();
-                    }
-                    if (popupInfo.vThumbnailUrl() != null) {
-                        thumbnailUrl = popupInfo.vThumbnailUrl();
-                    }
-                } else {
-                    log.warn("Popup detail response is empty. popupId={}", option.getAuction().getPopupId());
-                }
-            } catch (Exception e) {
-                log.error("Popup detail lookup failed. popupId={}, error={}",
-                    option.getAuction().getPopupId(), e.getMessage());
-            }
-
-            String reservationNo = null;
-            int maxRetries = 3;
-            int retryCount = 0;
-
-            while (retryCount < maxRetries) {
                 try {
-                    String currentReservationNo = reservationNoGenerator.generate();
-                    reservationNo = txManager.completeBidSuccess(
-                        bid.getId(),
-                        option.getId(),
-                        pgTxId,
-                        paidAt,
-                        currentReservationNo,
-                        popupTitle,
-                        popupAddress,
-                        thumbnailUrl,
-                        option.getEntryDate(),
-                        option.getEntryTime(),
-                        option.getAuction().getStartPrice()
-                    );
-                    break;
+                    bid = txManager.preparePendingBid(userId, option, currentServerPrice, merchantUid);
                 } catch (DataIntegrityViolationException e) {
-                    retryCount++;
-                    log.warn("Reservation number collision detected. retryCount={}, merchantUid={}",
-                        retryCount, bid.getMerchantUid());
-                    if (retryCount >= maxRetries) {
-                        throw e;
+                    throw new CustomException(ErrorCode.AUCTION_ALREADY_PARTICIPATED);
+                }
+
+                ApiResponse<BillingKeyInternalResponse> billingKeyResponse = userBillingClient.getDefaultBillingKey(userId);
+                if (billingKeyResponse == null || billingKeyResponse.getData() == null) {
+                    throw new CustomException(ErrorCode.BILLING_KEY_NOT_FOUND);
+                }
+                String billingKey = billingKeyResponse.getData().customerUid();
+
+                paymentAttempted = true;
+                PortOnePaymentResponse paymentResponse = portOneClient.executePayment(
+                    billingKey,
+                    bid.getMerchantUid(),
+                    bid.getBidPrice(),
+                    PAYMENT_PRODUCT_NAME
+                );
+
+                if (!paymentResponse.isPaid()) {
+                    log.error("Payment execution failed because paidAt is missing. merchantUid={}", bid.getMerchantUid());
+                    throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "Payment was not completed.");
+                }
+
+                String pgTxId = paymentResponse.getPgTxId();
+                if (pgTxId == null || pgTxId.isBlank()) {
+                    log.error("Payment response is missing pgTxId. merchantUid={}", bid.getMerchantUid());
+                    throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "Payment transaction id is missing.");
+                }
+
+                LocalDateTime paidAt = parsePaidAt(paymentResponse.payment().paidAt());
+
+                String popupTitle = DEFAULT_POPUP_TITLE;
+                String popupAddress = DEFAULT_POPUP_ADDRESS;
+                String thumbnailUrl = null;
+
+                try {
+                    ApiResponse<PopupInternalResponse> popupResponse =
+                        popupServiceClient.getPopupDetail(option.getAuction().getPopupId());
+                    if (popupResponse != null && popupResponse.getData() != null) {
+                        PopupInternalResponse popupInfo = popupResponse.getData();
+                        if (popupInfo.title() != null) {
+                            popupTitle = popupInfo.title();
+                        }
+                        if (popupInfo.location() != null) {
+                            popupAddress = popupInfo.location();
+                        }
+                        if (popupInfo.vThumbnailUrl() != null) {
+                            thumbnailUrl = popupInfo.vThumbnailUrl();
+                        }
+                    } else {
+                        log.warn("Popup detail response is empty. popupId={}", option.getAuction().getPopupId());
+                    }
+                } catch (Exception e) {
+                    log.error("Popup detail lookup failed. popupId={}, error={}",
+                        option.getAuction().getPopupId(), e.getMessage());
+                }
+
+                String reservationNo = null;
+                int maxRetries = 3;
+                int retryCount = 0;
+
+                while (retryCount < maxRetries) {
+                    try {
+                        String currentReservationNo = reservationNoGenerator.generate();
+                        reservationNo = txManager.completeBidSuccess(
+                            bid.getId(),
+                            option.getId(),
+                            pgTxId,
+                            paidAt,
+                            currentReservationNo,
+                            popupTitle,
+                            popupAddress,
+                            thumbnailUrl,
+                            option.getEntryDate(),
+                            option.getEntryTime(),
+                            option.getAuction().getStartPrice()
+                        );
+                        break;
+                    } catch (DataIntegrityViolationException e) {
+                        retryCount++;
+                        log.warn("Reservation number collision detected. retryCount={}, merchantUid={}",
+                            retryCount, bid.getMerchantUid());
+                        if (retryCount >= maxRetries) {
+                            throw e;
+                        }
                     }
                 }
-            }
 
-            if (reservationNo == null) {
-                reservationNo = bidRepository.findById(bid.getId())
-                    .map(Bid::getReservationNo)
-                    .orElseThrow(() -> new CustomException(ErrorCode.BID_NOT_FOUND));
-            }
+                if (reservationNo == null) {
+                    reservationNo = bidRepository.findById(bid.getId())
+                        .map(Bid::getReservationNo)
+                        .orElseThrow(() -> new CustomException(ErrorCode.BID_NOT_FOUND));
+                }
 
-            issueAuctionWinTicket(bid, option, reservationNo);
-            return new BidResponse(bid.getId(), BidStatus.SUCCESS, "Bid completed successfully.", reservationNo);
+                issueAuctionWinTicket(bid, option, reservationNo);
+                return new BidResponse(bid.getId(), BidStatus.SUCCESS, "Bid completed successfully.", reservationNo);
 
-        } catch (Exception e) {
-            log.error("Bid processing failed. userId={}, optionId={}, error={}", userId, option.getId(), e.getMessage());
+            } catch (Exception e) {
+                log.error("Bid processing failed. userId={}, optionId={}, error={}", userId, option.getId(), e.getMessage());
 
-            if (!paymentAttempted) {
-                bidRedisRepository.incrementAvailableStock(option.getId(), 1L);
+                if (!paymentAttempted) {
+                    bidRedisRepository.incrementAvailableStock(option.getId(), 1L);
 
-                if (bid != null) {
+                    if (bid != null) {
+                        txManager.completeBidFailure(bid.getId());
+                    }
+
+                    if (e instanceof CustomException customException) {
+                        throw customException;
+                    }
+                    throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, e);
+                }
+
+                boolean cancelConfirmed = false;
+
+                try {
+                    PortOneCancelResponse cancelResponse = portOneClient.cancelPayment(merchantUid, bid.getBidPrice());
+                    if (cancelResponse.isSucceeded()) {
+                        bidRedisRepository.addPendingRestock(option.getId(), 1L);
+                        cancelConfirmed = true;
+                        log.info("Compensation completed. Payment cancel succeeded. merchantUid={}", merchantUid);
+                    } else if (cancelResponse.isRequested()) {
+                        log.warn("Compensation pending. Payment cancel request accepted. merchantUid={}", merchantUid);
+                    } else {
+                        log.error("Compensation failed. Payment cancel failed. merchantUid={}, reason={}",
+                            merchantUid, cancelResponse.reason());
+                    }
+                } catch (Exception cancelEx) {
+                    log.error("Critical error while calling payment cancel API. merchantUid={}", merchantUid, cancelEx);
+                }
+
+                if (cancelConfirmed && bid != null) {
                     txManager.completeBidFailure(bid.getId());
+                }
+
+                if (!cancelConfirmed) {
+                    throw new CustomException(
+                        ErrorCode.PAYMENT_EXECUTION_FAILED,
+                        "Payment cancellation is not confirmed, so recovery is deferred."
+                    );
                 }
 
                 if (e instanceof CustomException customException) {
@@ -320,40 +377,13 @@ public class BidService {
                 }
                 throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, e);
             }
-
-            boolean cancelConfirmed = false;
-
-            try {
-                PortOneCancelResponse cancelResponse = portOneClient.cancelPayment(merchantUid, bid.getBidPrice());
-                if (cancelResponse.isSucceeded()) {
-                    bidRedisRepository.addPendingRestock(option.getId(), 1L);
-                    cancelConfirmed = true;
-                    log.info("Compensation completed. Payment cancel succeeded. merchantUid={}", merchantUid);
-                } else if (cancelResponse.isRequested()) {
-                    log.warn("Compensation pending. Payment cancel request accepted. merchantUid={}", merchantUid);
-                } else {
-                    log.error("Compensation failed. Payment cancel failed. merchantUid={}, reason={}",
-                        merchantUid, cancelResponse.reason());
-                }
-            } catch (Exception cancelEx) {
-                log.error("Critical error while calling payment cancel API. merchantUid={}", merchantUid, cancelEx);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new CustomException(ErrorCode.ERROR_SYSTEM, "인증 처리 중 오류가 발생했습니다.");
+        } finally {
+            if (lock != null && lock.isHeldByCurrentThread()) {
+                lock.unlock();
             }
-
-            if (cancelConfirmed && bid != null) {
-                txManager.completeBidFailure(bid.getId());
-            }
-
-            if (!cancelConfirmed) {
-                throw new CustomException(
-                    ErrorCode.PAYMENT_EXECUTION_FAILED,
-                    "Payment cancellation is not confirmed, so recovery is deferred."
-                );
-            }
-
-            if (e instanceof CustomException customException) {
-                throw customException;
-            }
-            throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, e);
         }
     }
 
@@ -374,7 +404,9 @@ public class BidService {
             throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "Payment completion timestamp is missing.");
         }
         try {
-            return OffsetDateTime.parse(paidAtStr).toLocalDateTime();
+            return OffsetDateTime.parse(paidAtStr)
+                .atZoneSameInstant(ZoneId.of("Asia/Seoul"))
+                .toLocalDateTime();
         } catch (Exception e) {
             log.warn("Failed to parse paidAt value: {}", paidAtStr, e);
             throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "Failed to parse payment completion timestamp.");
