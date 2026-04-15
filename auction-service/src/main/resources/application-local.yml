@@ -16,7 +16,7 @@ spring:
         format_sql: true
         jdbc:
           time_zone: Asia/Seoul
-    show-sql: true
+    show-sql: false
     defer-datasource-initialization: true
 
   jackson:
@@ -30,8 +30,8 @@ spring:
 
 logging:
   level:
-    org.hibernate.SQL: debug
-    org.hibernate.orm.jdbc.bind: trace
+    org.hibernate.SQL: off
+    org.hibernate.orm.jdbc.bind: off
 
 jwt:
   secret: ${JWT_SECRET}
