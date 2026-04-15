@@ -3,6 +3,7 @@ import type { AntiMacroSubmission } from '../types';
 import { analyzeRawData } from '../analysis/analyze';
 import { resolveIdentityKey, updatePageScore, getTotalScore, mergeScores } from '../services/score-aggregator';
 import { saveIfSuspicious } from '../services/suspicious-logger';
+import { uploadRawSignal } from '../services/raw-signal-uploader';
 
 const router = Router();
 
@@ -64,7 +65,7 @@ router.post('/signals', async (req: Request, res: Response) => {
       }
     );
 
-    // 4. 시그널 로그 DB 저장 (fire-and-forget)
+    // 4. 시그널 로그 DB 저장 → S3 raw 데이터 업로드 (fire-and-forget)
     if (identityKey) {
       saveIfSuspicious({
         visitorId: body.visitorId,
@@ -82,6 +83,8 @@ router.post('/signals', async (req: Request, res: Response) => {
           hasUntrustedEvent: payload.rawData.hasUntrustedEvent ?? false,
           loadToFirstClickMs: payload.rawData.loadToFirstClickMs ?? null,
         },
+      }).then((dbId) => {
+        if (dbId) uploadRawSignal({ dbId, payload, analysis: result });
       });
     }
 
