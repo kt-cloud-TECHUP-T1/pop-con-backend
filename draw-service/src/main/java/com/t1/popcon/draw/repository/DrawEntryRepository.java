@@ -2,12 +2,16 @@ package com.t1.popcon.draw.repository;
 
 import com.t1.popcon.draw.domain.DrawEntry;
 import com.t1.popcon.draw.domain.DrawEntryStatus;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface DrawEntryRepository extends JpaRepository<DrawEntry, Long> {
 	boolean existsByUserIdAndDrawOption_Id(Long userId, Long drawOptionId);

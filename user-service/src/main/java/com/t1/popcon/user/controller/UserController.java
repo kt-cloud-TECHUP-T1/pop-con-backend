@@ -2,6 +2,7 @@ package com.t1.popcon.user.controller;
 
 import com.t1.popcon.common.auth.domain.AuthUser;
 import com.t1.popcon.common.response.ApiResponse;
+import com.t1.popcon.user.dto.UserProfileResponse;
 import com.t1.popcon.user.dto.statistics.UserActivityStatisticsResponse;
 import com.t1.popcon.user.service.UserHistoryService;
 import com.t1.popcon.user.service.UserService;

@@ -39,8 +39,8 @@ public class PopupLikeQueryService {
         validatePageRequest(validatedPage, validatedSize);
 
         Slice<PopupLike> likeSlice = popupLikeRepository.findByUserIdOrderByCreatedAtDescIdDesc(
-            userId,
-            PageRequest.of(validatedPage, validatedSize)
+          userId,
+          PageRequest.of(validatedPage, validatedSize)
         );
 
         Slice<PopupCardDto> cardSlice = likeSlice.map(popupLike -> toPopupCardDto(popupLike.getPopup()));
@@ -56,28 +56,28 @@ public class PopupLikeQueryService {
     private PopupCardDto toPopupCardDto(Popup popup) {
         PhaseInfo phaseInfo = resolvePhaseInfo(popup);
         PhaseStatus status = phaseInfo == null
-            ? PhaseStatus.CLOSED
-            : calculatePhaseStatus(phaseInfo.openAt(), phaseInfo.closeAt());
+          ? PhaseStatus.CLOSED
+          : calculatePhaseStatus(phaseInfo.openAt(), phaseInfo.closeAt());
         PopupCardDto.PhaseDto phaseDto = phaseInfo == null
-            ? null
-            : new PopupCardDto.PhaseDto(
-                phaseInfo.phaseType(),
-                status,
-                toOffsetDateTime(phaseInfo.openAt()),
-                toOffsetDateTime(phaseInfo.closeAt())
-            );
+          ? null
+          : new PopupCardDto.PhaseDto(
+          phaseInfo.phaseType(),
+          status,
+          toOffsetDateTime(phaseInfo.openAt()),
+          toOffsetDateTime(phaseInfo.closeAt())
+        );
 
         return new PopupCardDto(
-            popup.getId(),
-            popup.getTitle(),
-            popup.getSubtitle(),
-            popup.getSubText() != null ? popup.getSubText() : popup.getLocation(),
-            popup.getCaption(),
-            phaseInfo != null && phaseInfo.phaseType() == PhaseType.AUCTION ? popup.getHThumbUrl() : popup.getVThumbUrl(),
-            true,
-            new PopupCardDto.StatsDto(popup.getLikeCount(), popup.getViewCount()),
-            null,
-            phaseDto
+          popup.getId(),
+          popup.getTitle(),
+          popup.getSubtitle(),
+          popup.getSubText() != null ? popup.getSubText() : popup.getLocation(),
+          popup.getCaption(),
+          phaseInfo != null && phaseInfo.phaseType() == PhaseType.AUCTION ? popup.getHThumbUrl() : popup.getVThumbUrl(),
+          true,
+          new PopupCardDto.StatsDto(popup.getLikeCount(), popup.getViewCount()),
+          null,
+          phaseDto
         );
     }
 
@@ -105,8 +105,8 @@ public class PopupLikeQueryService {
         if (auctionStatus == PhaseStatus.UPCOMING) {
             boolean auctionFirst = popup.getAuctionOpenAt().isBefore(popup.getDrawOpenAt());
             return auctionFirst
-                ? new PhaseInfo(PhaseType.AUCTION, popup.getAuctionOpenAt(), popup.getAuctionCloseAt())
-                : new PhaseInfo(PhaseType.DRAW, popup.getDrawOpenAt(), popup.getDrawCloseAt());
+              ? new PhaseInfo(PhaseType.AUCTION, popup.getAuctionOpenAt(), popup.getAuctionCloseAt())
+              : new PhaseInfo(PhaseType.DRAW, popup.getDrawOpenAt(), popup.getDrawCloseAt());
         }
 
         if (popup.getAuctionCloseAt() == null && popup.getDrawCloseAt() == null) {
@@ -123,8 +123,8 @@ public class PopupLikeQueryService {
 
         boolean auctionLast = popup.getAuctionCloseAt().isAfter(popup.getDrawCloseAt());
         return auctionLast
-            ? new PhaseInfo(PhaseType.AUCTION, popup.getAuctionOpenAt(), popup.getAuctionCloseAt())
-            : new PhaseInfo(PhaseType.DRAW, popup.getDrawOpenAt(), popup.getDrawCloseAt());
+          ? new PhaseInfo(PhaseType.AUCTION, popup.getAuctionOpenAt(), popup.getAuctionCloseAt())
+          : new PhaseInfo(PhaseType.DRAW, popup.getDrawOpenAt(), popup.getDrawCloseAt());
     }
 
     private PhaseStatus calculatePhaseStatus(LocalDateTime openAt, LocalDateTime closeAt) {
@@ -153,6 +153,8 @@ public class PopupLikeQueryService {
         LocalDateTime openAt,
         LocalDateTime closeAt
     ) {
+    }
+
     public long countLikedPopupsByUserId(Long userId) {
         if (userId == null) {
             throw new CustomException(ErrorCode.INVALID_INPUT);

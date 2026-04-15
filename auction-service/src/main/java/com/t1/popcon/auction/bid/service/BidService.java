@@ -11,6 +11,7 @@ import com.t1.popcon.auction.bid.domain.Bid;
 import com.t1.popcon.auction.bid.domain.BidStatus;
 import com.t1.popcon.auction.bid.dto.BidRequest;
 import com.t1.popcon.auction.bid.dto.BidResponse;
+import com.t1.popcon.auction.bid.dto.response.AuctionStatisticsResponse;
 import com.t1.popcon.auction.bid.dto.response.BidHistoryResponse;
 import com.t1.popcon.auction.bid.dto.response.ReservationDetailResponse;
 import com.t1.popcon.auction.bid.infrastructure.BidRedisRepository;
@@ -36,22 +37,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
-import com.t1.popcon.auction.bid.dto.response.AuctionStatisticsResponse;
-
 @Service
 @RequiredArgsConstructor
 public class BidService {
-...
-    @Transactional(readOnly = true)
-    public AuctionStatisticsResponse getAuctionStatistics(Long userId) {
-        return new AuctionStatisticsResponse(
-            bidRepository.countByUserId(userId),
-            bidRepository.countByUserIdAndStatus(userId, BidStatus.SUCCESS)
-        );
-    }
-}
 
     private static final String PAYMENT_PRODUCT_NAME = "팝업 입장권 결제";
     private static final String DEFAULT_POPUP_TITLE = "팝업 정보 확인 중";
@@ -68,6 +59,14 @@ public class BidService {
     private final BidTransactionManager txManager;
     private final TicketServiceClient ticketServiceClient;
     private final ReservationNoGenerator reservationNoGenerator;
+
+    @Transactional(readOnly = true)
+    public AuctionStatisticsResponse getAuctionStatistics(Long userId) {
+        return new AuctionStatisticsResponse(
+          bidRepository.countByUserId(userId),
+          bidRepository.countByUserIdAndStatus(userId, BidStatus.SUCCESS)
+        );
+    }
 
     public Long getAuctionIdByOptionId(Long optionId) {
         return auctionOptionRepository.findByIdWithAuction(optionId)

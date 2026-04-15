@@ -1,6 +1,8 @@
 package com.t1.popcon.draw.controller;
 
 import com.t1.popcon.common.response.ApiResponse;
+import com.t1.popcon.draw.dto.response.DrawEntryDetailResponse;
+import com.t1.popcon.draw.dto.response.DrawEntryResponse;
 import com.t1.popcon.draw.dto.response.DrawStatisticsResponse;
 import com.t1.popcon.draw.dto.response.DrawExecuteResponse;
 import com.t1.popcon.draw.service.DrawEntryService;
