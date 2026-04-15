@@ -49,9 +49,11 @@ public class AuctionSecurityConfig extends CommonSecurityConfig {
                 // 1. 상세 조회 제외
                 if (method.equals("GET") && path.matches("^/auctions/\\d+$")) return true;
                 if (method.equals("GET") && path.matches("^/auctions/\\d+/stream$")) return true;
-                // 2. 어드민 및 내부 API 제외
+                // 2. 예약 상세 조회 제외
+                if (method.equals("GET") && path.startsWith("/auctions/reservations/")) return true;
+                // 3. 어드민 및 내부 API 제외
                 if (path.startsWith("/admin/") || path.startsWith("/internal/")) return true;
-                // 3. 헬스체크 등 공용 API 제외
+                // 4. 헬스체크 등 공용 API 제외
                 return path.equals("/health") || path.startsWith("/actuator/");
             }
         };

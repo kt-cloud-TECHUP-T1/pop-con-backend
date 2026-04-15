@@ -10,6 +10,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,7 +23,9 @@ import java.time.LocalTime;
 
 @Entity
 @Getter
-@Table(name = "bids")
+@Table(name = "bids", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"user_id", "auction_id", "status"})
+})
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLRestriction("deleted = false")
 public class Bid extends BaseSoftDeleteEntity {
