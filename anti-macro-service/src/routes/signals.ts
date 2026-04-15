@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import type { AntiMacroSubmission } from '../types';
 import { analyzeRawData } from '../analysis/analyze';
 import { resolveIdentityKey, updatePageScore, getTotalScore, mergeScores } from '../services/score-aggregator';
-import { saveIfSuspicious } from '../services/suspicious-logger';
+import { saveSignalLog } from '../services/suspicious-logger';
 import { uploadRawSignal } from '../services/raw-signal-uploader';
 
 const router = Router();
@@ -67,7 +67,7 @@ router.post('/signals', async (req: Request, res: Response) => {
 
     // 4. 시그널 로그 DB 저장 → S3 raw 데이터 업로드 (fire-and-forget)
     if (identityKey) {
-      saveIfSuspicious({
+      saveSignalLog({
         visitorId: body.visitorId,
         userId: body.userId,
         identityKey,

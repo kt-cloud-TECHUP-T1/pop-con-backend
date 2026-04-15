@@ -20,7 +20,7 @@ type LogParams = {
  * 모든 요청 저장. insert된 row id를 Promise로 resolve (S3 업로드 체이닝용).
  * 실패 시 resolve(null) — 호출자는 null이면 후속 처리 skip.
  */
-export function saveIfSuspicious(params: LogParams): Promise<number | null> {
+export function saveSignalLog(params: LogParams): Promise<number | null> {
   return insertLog(params).catch((err) => {
     console.error('[db] 시그널 로그 저장 실패:', err.message);
     return null;
