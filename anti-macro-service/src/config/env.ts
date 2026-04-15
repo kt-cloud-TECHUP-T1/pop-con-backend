@@ -18,4 +18,8 @@ export const env = {
   DB_NAME: process.env.DB_NAME || 'popcon',
   DB_USERNAME: requireEnv('DB_USERNAME'),
   DB_PASSWORD: requireEnv('DB_PASSWORD'),
+
+  // S3 raw 시그널 저장 (미설정 시 업로드 no-op)
+  AWS_REGION: process.env.AWS_REGION,
+  S3_RAW_SIGNAL_BUCKET: process.env.S3_RAW_SIGNAL_BUCKET,
 } as const;
