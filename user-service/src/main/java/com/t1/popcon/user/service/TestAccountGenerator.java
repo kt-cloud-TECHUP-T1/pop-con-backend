@@ -217,7 +217,7 @@ public class TestAccountGenerator {
                     .build();
             billingKeyRepository.save(userBillingKey);
 
-        } catch (Exception e) {
+        } catch (feign.FeignException e) {
             log.warn("[TestAccount] 빌링키 발급 실패 (유저 ID: {}): {}", user.getId(), e.getMessage());
             // 빌링키 발급 실패해도 유저는 생성됨 (경매 참여는 불가)
         }
