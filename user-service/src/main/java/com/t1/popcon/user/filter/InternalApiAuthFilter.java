@@ -18,7 +18,7 @@ import java.io.IOException;
 public class InternalApiAuthFilter extends OncePerRequestFilter {
 
     private static final String INTERNAL_API_PREFIX = "/internal/";
-    private static final String TEST_ACCOUNT_PREFIX = "/users/internal/test-accounts/";
+    private static final String TEST_ACCOUNT_PREFIX = "/users/internal/test-accounts";
     private static final String INTERNAL_SECRET_HEADER = "X-Internal-Secret";
 
     @Value("${internal.api-secret}")
@@ -26,8 +26,8 @@ public class InternalApiAuthFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String uri = request.getRequestURI();
-        return !uri.startsWith(INTERNAL_API_PREFIX) && !uri.startsWith(TEST_ACCOUNT_PREFIX);
+        String path = request.getServletPath();
+        return !path.startsWith(INTERNAL_API_PREFIX) && !path.startsWith(TEST_ACCOUNT_PREFIX);
     }
 
     @Override

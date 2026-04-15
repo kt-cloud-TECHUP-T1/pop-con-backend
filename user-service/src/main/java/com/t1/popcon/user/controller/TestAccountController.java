@@ -35,12 +35,16 @@ public class TestAccountController {
      */
     @PostMapping("/bulk")
     public ApiResponse<String> generateTestAccounts(@RequestParam(defaultValue = "10") int count) {
+        if (count < 1 || count > 50000) {
+            return ApiResponse.fail(ErrorCode.ERROR_SYSTEM.getCode(), "생성할 계정 수는 1개에서 50,000개 사이여야 합니다. (요청: " + count + ")", null);
+        }
+
         try {
             String filePath = testAccountGenerator.generateBulk(count);
             return ApiResponse.ok("성공적으로 테스트 계정이 생성되었습니다. 파일 경로: " + filePath, filePath);
         } catch (Exception e) {
             log.error("[TestAccount] 계정 생성 중 오류 발생: ", e);
-            return ApiResponse.fail(ErrorCode.ERROR_SYSTEM.getCode(), "테스트 계정 생성 실패: " + e.getMessage(), null);
+            return ApiResponse.fail(ErrorCode.ERROR_SYSTEM.getCode(), "테스트 계정 생성 실패", null);
         }
     }
 
@@ -67,9 +71,16 @@ public class TestAccountController {
                 return ResponseEntity.badRequest().build();
             }
 
+            // 5. 파일명 패턴 검증 (프로젝트 패턴: load_test_accounts_*.csv)
+            String fileName = realRequestedPath.getFileName().toString();
+            if (!fileName.matches("^load_test_accounts_.*\\.csv$")) {
+                log.warn("[Security] 허용되지 않은 파일 형식 다운로드 시도: {}", fileName);
+                return ResponseEntity.status(403).build();
+            }
+
             File file = realRequestedPath.toFile();
 
-            // 5. 파일 존재 여부 및 읽기 권한 확인
+            // 6. 파일 존재 여부 및 읽기 권한 확인
             if (!file.exists() || !file.isFile() || !file.canRead()) {
                 return ResponseEntity.notFound().build();
             }
