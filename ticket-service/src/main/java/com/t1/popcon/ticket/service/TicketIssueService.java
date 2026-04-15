@@ -90,5 +90,8 @@ public class TicketIssueService {
         if (id == null || id <= 0) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
+    @Transactional(readOnly = true)
+    public long countTicketsByUserId(Long userId) {
+        return ticketRepository.countByUserId(userId);
     }
 }

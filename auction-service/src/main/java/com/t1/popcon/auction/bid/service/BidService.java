@@ -38,9 +38,20 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 @Slf4j
+import com.t1.popcon.auction.bid.dto.response.AuctionStatisticsResponse;
+
 @Service
 @RequiredArgsConstructor
 public class BidService {
+...
+    @Transactional(readOnly = true)
+    public AuctionStatisticsResponse getAuctionStatistics(Long userId) {
+        return new AuctionStatisticsResponse(
+            bidRepository.countByUserId(userId),
+            bidRepository.countByUserIdAndStatus(userId, BidStatus.SUCCESS)
+        );
+    }
+}
 
     private static final String PAYMENT_PRODUCT_NAME = "팝업 입장권 결제";
     private static final String DEFAULT_POPUP_TITLE = "팝업 정보 확인 중";

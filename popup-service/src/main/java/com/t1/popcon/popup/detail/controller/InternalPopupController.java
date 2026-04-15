@@ -37,4 +37,9 @@ public class InternalPopupController {
     ) {
         return ApiResponse.ok(popupLikeQueryService.getLikedPopups(userId, page, size));
     }
+
+    @GetMapping("/likes/count")
+    public ApiResponse<Long> countLikedPopups(@RequestParam("userId") Long userId) {
+        return ApiResponse.ok(popupLikeQueryService.countLikedPopupsByUserId(userId));
+    }
 }

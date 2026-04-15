@@ -21,4 +21,16 @@ public interface DrawEntryRepository extends JpaRepository<DrawEntry, Long> {
     boolean existsByDrawOption_IdAndStatus(Long drawOptionId, DrawEntryStatus status);
 
     Optional<DrawEntry> findByIdAndUserId(Long id, Long userId);
+
+    long countByUserId(Long userId);
+
+    long countByUserIdAndStatus(Long userId, DrawEntryStatus status);
+
+    @Query("SELECT COUNT(de) FROM DrawEntry de JOIN de.drawOption do JOIN do.draw d " +
+           "WHERE de.userId = :userId AND de.status = 'APPLIED' AND d.drawCloseAt > :now")
+    long countOngoingByUserId(@Param("userId") Long userId, @Param("now") LocalDateTime now);
+
+    @Query("SELECT COUNT(de) FROM DrawEntry de JOIN de.drawOption do JOIN do.draw d " +
+           "WHERE de.userId = :userId AND de.status = 'APPLIED' AND d.drawCloseAt <= :now")
+    long countWaitingByUserId(@Param("userId") Long userId, @Param("now") LocalDateTime now);
 }

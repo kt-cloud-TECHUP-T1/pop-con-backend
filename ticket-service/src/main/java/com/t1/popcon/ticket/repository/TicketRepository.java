@@ -21,6 +21,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     Slice<Ticket> findAllByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
+    long countByUserId(Long userId);
+
     @Query("""
         select t
         from Ticket t

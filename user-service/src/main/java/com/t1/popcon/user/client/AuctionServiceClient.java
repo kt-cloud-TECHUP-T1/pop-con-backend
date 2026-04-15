@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.t1.popcon.user.dto.statistics.AuctionStatisticsInternalResponse;
+
 import java.util.List;
 
 @FeignClient(
@@ -17,6 +19,9 @@ import java.util.List;
 	configuration = FeignClientConfig.class
 )
 public interface AuctionServiceClient {
+
+    @GetMapping("/internal/auctions/statistics")
+    ApiResponse<AuctionStatisticsInternalResponse> getAuctionStatistics(@RequestParam("userId") Long userId);
 
 	@GetMapping("/internal/auctions/bids")
 	ApiResponse<List<AuctionHistoryResponse>> getAuctionBids(@RequestParam("userId") Long userId);

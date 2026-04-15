@@ -153,5 +153,10 @@ public class PopupLikeQueryService {
         LocalDateTime openAt,
         LocalDateTime closeAt
     ) {
+    public long countLikedPopupsByUserId(Long userId) {
+        if (userId == null) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+        return popupLikeRepository.countByUserId(userId);
     }
 }

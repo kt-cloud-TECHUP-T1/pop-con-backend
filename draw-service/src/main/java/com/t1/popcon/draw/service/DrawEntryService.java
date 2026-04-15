@@ -308,5 +308,15 @@ public class DrawEntryService {
             return trimmed.substring(0, 3) + "-" + trimmed.substring(3, 7) + "-" + trimmed.substring(7);
         }
         return trimmed;
+    @Transactional(readOnly = true)
+    public DrawStatisticsResponse getDrawStatistics(Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+        return new DrawStatisticsResponse(
+            drawEntryRepository.countByUserId(userId),
+            drawEntryRepository.countByUserIdAndStatus(userId, DrawEntryStatus.WINNER),
+            drawEntryRepository.countByUserIdAndStatus(userId, DrawEntryStatus.FAILED),
+            drawEntryRepository.countOngoingByUserId(userId, now),
+            drawEntryRepository.countWaitingByUserId(userId, now)
+        );
     }
 }
