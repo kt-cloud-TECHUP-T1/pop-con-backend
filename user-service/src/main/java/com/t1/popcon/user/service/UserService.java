@@ -10,15 +10,18 @@ import com.t1.popcon.user.dto.history.TicketPurchaserProfileResponse;
 import com.t1.popcon.user.dto.UserLookupResponse;
 import com.t1.popcon.user.dto.UserInternalResponse;
 import com.t1.popcon.user.dto.UserProfileResponse;
+import com.t1.popcon.user.dto.UserProfileUpdateResponse;
 import com.t1.popcon.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import com.t1.popcon.user.dto.UserCreateRequest;
 import com.t1.popcon.user.dto.UserCreateResponse;
@@ -34,9 +37,14 @@ public class UserService {
     private static final String NICKNAME_CONSTRAINT = "uk_users_nickname";
     private static final String PHONE_HASH_CONSTRAINT = "uk_users_phone_hash";
 
+    /** 닉네임 유효성 패턴: 한글 2~10자 또는 영문/숫자 1~16자, 특수문자·공백 불가 */
+    private static final Pattern NICKNAME_PATTERN =
+            Pattern.compile("^([가-힣]{2,10}|[a-zA-Z0-9]{1,16})$");
+
     private final UserRepository userRepository;
     private final EncryptionService encryptionService;
     private final BillingKeyService billingKeyService;
+    private final S3Service s3Service;
 
     @Value("${user.nickname.prefix:User}")
     private String nicknamePrefix;
@@ -55,6 +63,61 @@ public class UserService {
                 encryptionService.decrypt(user.getEncryptedBirthDate()),
                 encryptionService.decrypt(user.getEncryptedGender())
         );
+    }
+
+    /**
+     * 사용자 프로필 수정 (PATCH /users/me/profile)
+     * - nickname, file, deleteImage 중 변경할 항목만 처리
+     */
+    @Transactional
+    public UserProfileUpdateResponse updateProfile(
+            Long userId,
+            String nickname,
+            MultipartFile file,
+            boolean deleteImage
+    ) {
+        User user = getUserOrThrow(userId);
+
+        // 닉네임 변경
+        if (nickname != null && !nickname.isBlank()) {
+            validateNickname(nickname);
+            checkNicknameDuplicate(nickname);
+            user.updateNickname(nickname);
+        }
+
+        // 이미지 업로드 (새 파일이 있으면 기존 삭제 후 업로드)
+        if (file != null && !file.isEmpty()) {
+            deleteExistingImage(user);
+            String newUrl = s3Service.uploadProfileImage(userId, file);
+            user.updateProfileImageUrl(newUrl);
+        } else if (deleteImage) {
+            // 이미지 삭제만 요청
+            deleteExistingImage(user);
+            user.updateProfileImageUrl(null);
+        }
+
+        return new UserProfileUpdateResponse(user.getNickname(), user.getProfileImageUrl());
+    }
+
+    /** 기존 프로필 이미지가 있으면 S3에서 삭제 */
+    private void deleteExistingImage(User user) {
+        if (user.getProfileImageUrl() != null) {
+            s3Service.deleteProfileImage(user.getProfileImageUrl());
+        }
+    }
+
+    /** 닉네임 형식 검증: 한글 2~10자 또는 영문/숫자 1~16자 */
+    private void validateNickname(String nickname) {
+        if (!NICKNAME_PATTERN.matcher(nickname).matches()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT, "한글 2~10자, 영문 16자 이내만 가능합니다.");
+        }
+    }
+
+    /** 닉네임 중복 검증 */
+    private void checkNicknameDuplicate(String nickname) {
+        if (userRepository.existsByNickname(nickname)) {
+            throw new CustomException(ErrorCode.NICKNAME_DUPLICATED);
+        }
     }
 
     /**
