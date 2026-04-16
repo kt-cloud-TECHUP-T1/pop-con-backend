@@ -15,6 +15,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 public interface DrawServiceClient {
 
     // 테스트 초기화용: popupId 기준 드로우 데이터 + 대기열 Redis 초기화
-    @PostMapping("/internal/admin/draws/reset/{popupId}")
+    @PostMapping("/internal/draws/reset/{popupId}")
     ApiResponse<Void> resetDraw(@PathVariable("popupId") Long popupId);
 }
