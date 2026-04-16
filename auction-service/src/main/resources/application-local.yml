@@ -13,10 +13,11 @@ spring:
       ddl-auto: update
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
+        show_sql: false
         jdbc:
           time_zone: Asia/Seoul
-    show-sql: true
+    show-sql: false
     defer-datasource-initialization: true
 
   jackson:
@@ -30,8 +31,8 @@ spring:
 
 logging:
   level:
-    org.hibernate.SQL: debug
-    org.hibernate.orm.jdbc.bind: trace
+    org.hibernate.SQL: off
+    org.hibernate.orm.jdbc.bind: off
 
 jwt:
   secret: ${JWT_SECRET}
@@ -49,3 +50,5 @@ services:
     url: ${TICKET_SERVICE_URL:http://localhost:8086}
   popup-service:
     url: ${POPUP_SERVICE_URL:http://localhost:8082}
+  draw-service:
+    url: ${DRAW_SERVICE_URL:http://localhost:8084}

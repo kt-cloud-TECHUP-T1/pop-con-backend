@@ -35,10 +35,10 @@ public class FeignClientConfig {
             int status = response.status();
 
             if (status >= 500) {
-                return new CustomException(ErrorCode.ERROR_SYSTEM, "user-service 호출에 실패했습니다.");
+                return new CustomException(ErrorCode.ERROR_SYSTEM, "내부 서비스 호출에 실패했습니다. [" + methodKey + "]");
             }
             if (status == 400) {
-                return new CustomException(ErrorCode.INVALID_INPUT, "user-service 요청 값 오류");
+                return new CustomException(ErrorCode.INVALID_INPUT, "내부 서비스 요청 값 오류 [" + methodKey + "]");
             }
             if (status == 401) {
                 return new CustomException(ErrorCode.ERROR_SYSTEM, "내부 API 인증에 실패했습니다.");

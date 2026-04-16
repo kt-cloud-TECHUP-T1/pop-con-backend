@@ -113,6 +113,12 @@ public class Auction extends BaseSoftDeleteEntity {
         this.status = status;
     }
 
+    // 테스트 초기화용: 경매 상태 및 완판 정보 원복
+    public void resetForTest() {
+        this.status = AuctionStatus.OPEN;
+        this.soldAt = null;
+    }
+
     private void validatePricePolicy(
             Long popupId,
             Integer startPrice,

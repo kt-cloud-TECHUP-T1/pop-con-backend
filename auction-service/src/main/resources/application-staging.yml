@@ -24,6 +24,7 @@ spring:
     properties:
       hibernate:
         format_sql: false
+        show_sql: false
     show-sql: false
 
   data:
@@ -41,7 +42,7 @@ server:
 logging:
   level:
     root: info
-    org.hibernate: warn
+    org.hibernate: off
     org.hibernate.SQL: off
     org.hibernate.orm.jdbc.bind: off
 
@@ -57,6 +58,8 @@ services:
     url: ${TICKET_SERVICE_URL:http://backend-ticket-svc:8080}
   popup-service:
     url: ${POPUP_SERVICE_URL:http://backend-popup-svc:8080}
+  draw-service:
+    url: ${DRAW_SERVICE_URL:http://backend-draw-svc:8080}
 
 
 management:

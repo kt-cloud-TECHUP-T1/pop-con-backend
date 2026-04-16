@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -33,4 +34,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         @Param("sourceType") TicketSourceType sourceType,
         @Param("sourceId") Long sourceId
     );
+
+    // 테스트 초기화용: popupId 기준 하드 딜리트
+    @Modifying
+    @Query(value = "DELETE FROM tickets WHERE popup_id = :popupId", nativeQuery = true)
+    void deleteAllByPopupId(@Param("popupId") Long popupId);
 }

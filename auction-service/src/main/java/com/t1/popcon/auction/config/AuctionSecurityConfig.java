@@ -52,18 +52,20 @@ public class AuctionSecurityConfig extends CommonSecurityConfig {
                 // 2. 예약 상세 조회 제외
                 if (method.equals("GET") && path.startsWith("/auctions/reservations/")) return true;
                 // 3. 어드민 및 내부 API 제외
-                if (path.startsWith("/admin/") || path.startsWith("/internal/")) return true;
+                if (path.startsWith("/admin/") || path.startsWith("/internal/") || path.startsWith("/auctions/internal/")) return true;
                 // 4. 헬스체크 등 공용 API 제외
                 return path.equals("/health") || path.startsWith("/actuator/");
             }
         };
 
         http
-          .securityMatcher("/auctions/**", "/bids/**", "/admin/auctions/**", "/internal/**")
+          .securityMatcher("/auctions/**", "/bids/**", "/admin/**", "/internal/**")
           .authorizeHttpRequests(auth -> auth
             .requestMatchers("/internal/**").permitAll()
+            .requestMatchers("/auctions/internal/**").permitAll()
             .requestMatchers(HttpMethod.GET,"/auctions/{auctionId}").permitAll()
             .requestMatchers(HttpMethod.GET,"/auctions/{auctionId}/stream").permitAll()
+            .requestMatchers("/admin/**").authenticated()
             .requestMatchers("/auctions/**", "/bids/**").authenticated() // 나머지는 퀴즈 토큰 필요
             .anyRequest().authenticated()
           )
