@@ -64,7 +64,6 @@ public class AuctionSecurityConfig extends CommonSecurityConfig {
             .requestMatchers("/internal/**").permitAll()
             .requestMatchers(HttpMethod.GET,"/auctions/{auctionId}").permitAll()
             .requestMatchers(HttpMethod.GET,"/auctions/{auctionId}/stream").permitAll()
-            .requestMatchers("/admin/popups/*/reset").permitAll()
             .requestMatchers("/admin/**").authenticated()
             .requestMatchers("/auctions/**", "/bids/**").authenticated() // 나머지는 퀴즈 토큰 필요
             .anyRequest().authenticated()
