@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
@@ -74,6 +75,9 @@ public class BidServiceTest {
 	private RedissonClient redissonClient;
 	@Mock
 	private RLock lock;
+
+	@Spy
+	private io.micrometer.core.instrument.MeterRegistry registry = new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
 
 	@InjectMocks
 	private BidService bidService;
