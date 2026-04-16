@@ -36,6 +36,8 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
@@ -65,6 +67,7 @@ public class BidService {
     private final ReservationNoGenerator reservationNoGenerator;
     private final RedissonClient redissonClient;
     private final MeterRegistry registry;
+    private final ObservationRegistry observationRegistry;
 
     public Long getAuctionIdByOptionId(Long optionId) {
         return auctionOptionRepository.findByIdWithAuction(optionId)
@@ -200,17 +203,23 @@ public class BidService {
             );
             
             if (!request.bidPrice().equals(currentServerPrice)) {
-                registry.counter("popcon_bid_total",
-                        "auction_id", String.valueOf(auctionId),
-                        "outcome", "price_mismatch").increment();
+                Observation.createNotStarted("popcon_bid", observationRegistry)
+                        .lowCardinalityKeyValue("outcome", "price_mismatch")
+                        .highCardinalityKeyValue("auction_id", String.valueOf(auctionId))
+                        .observe(() -> {
+                            registry.counter("popcon_bid_total", "outcome", "price_mismatch").increment();
+                        });
                 throw new CustomException(ErrorCode.AUCTION_PRICE_MISMATCH);
             }
 
             Long remainingStock = bidRedisRepository.decrementStock(option.getId());
             if (remainingStock < 0) {
-                registry.counter("popcon_bid_total",
-                        "auction_id", String.valueOf(auctionId),
-                        "outcome", "sold_out").increment();
+                Observation.createNotStarted("popcon_bid", observationRegistry)
+                        .lowCardinalityKeyValue("outcome", "sold_out")
+                        .highCardinalityKeyValue("auction_id", String.valueOf(auctionId))
+                        .observe(() -> {
+                            registry.counter("popcon_bid_total", "outcome", "sold_out").increment();
+                        });
                 throw new CustomException(ErrorCode.AUCTION_OPTION_SOLD_OUT);
             }
             if (remainingStock == 0 && !auctionStockService.hasAvailableStock(auctionId)) {
@@ -232,9 +241,12 @@ public class BidService {
 
                 ApiResponse<BillingKeyInternalResponse> billingKeyResponse = userBillingClient.getDefaultBillingKey(userId);
                 if (billingKeyResponse == null || billingKeyResponse.getData() == null) {
-                    registry.counter("popcon_bid_total",
-                            "auction_id", String.valueOf(auctionId),
-                            "outcome", "no_billing_key").increment();
+                    Observation.createNotStarted("popcon_bid", observationRegistry)
+                            .lowCardinalityKeyValue("outcome", "no_billing_key")
+                            .highCardinalityKeyValue("auction_id", String.valueOf(auctionId))
+                            .observe(() -> {
+                                registry.counter("popcon_bid_total", "outcome", "no_billing_key").increment();
+                            });
                     throw new CustomException(ErrorCode.BILLING_KEY_NOT_FOUND);
                 }
                 String billingKey = billingKeyResponse.getData().customerUid();
@@ -258,18 +270,12 @@ public class BidService {
 
                 if (!paymentResponse.isPaid()) {
                     log.error("Payment execution failed because paidAt is missing. merchantUid={}", bid.getMerchantUid());
-                    registry.counter("popcon_bid_total",
-                            "auction_id", String.valueOf(auctionId),
-                            "outcome", "payment_failed").increment();
                     throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "Payment was not completed.");
                 }
 
                 String pgTxId = paymentResponse.getPgTxId();
                 if (pgTxId == null || pgTxId.isBlank()) {
                     log.error("Payment response is missing pgTxId. merchantUid={}", bid.getMerchantUid());
-                    registry.counter("popcon_bid_total",
-                            "auction_id", String.valueOf(auctionId),
-                            "outcome", "payment_failed").increment();
                     throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "Payment transaction id is missing.");
                 }
 
@@ -340,14 +346,26 @@ public class BidService {
 
                 issueAuctionWinTicket(bid, option, reservationNo);
                 
-                registry.counter("popcon_bid_total",
-                        "auction_id", String.valueOf(auctionId),
-                        "outcome", "success").increment();
+                Observation.createNotStarted("popcon_bid", observationRegistry)
+                        .lowCardinalityKeyValue("outcome", "success")
+                        .highCardinalityKeyValue("auction_id", String.valueOf(auctionId))
+                        .observe(() -> {
+                            registry.counter("popcon_bid_total", "outcome", "success").increment();
+                        });
                         
                 return new BidResponse(bid.getId(), BidStatus.SUCCESS, "Bid completed successfully.", reservationNo);
 
             } catch (Exception e) {
                 log.error("Bid processing failed. userId={}, optionId={}, error={}", userId, option.getId(), e.getMessage());
+
+                if (paymentAttempted) {
+                    Observation.createNotStarted("popcon_bid", observationRegistry)
+                            .lowCardinalityKeyValue("outcome", "payment_failed")
+                            .highCardinalityKeyValue("auction_id", String.valueOf(auctionId))
+                            .observe(() -> {
+                                registry.counter("popcon_bid_total", "outcome", "payment_failed").increment();
+                            });
+                }
 
                 if (!paymentAttempted) {
                     bidRedisRepository.incrementAvailableStock(option.getId(), 1L);

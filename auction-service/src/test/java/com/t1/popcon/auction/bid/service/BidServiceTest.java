@@ -79,6 +79,9 @@ public class BidServiceTest {
 	@Spy
 	private io.micrometer.core.instrument.MeterRegistry registry = new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
 
+	@Spy
+	private io.micrometer.observation.ObservationRegistry observationRegistry = io.micrometer.observation.ObservationRegistry.create();
+
 	@InjectMocks
 	private BidService bidService;
 

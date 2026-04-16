@@ -39,50 +39,54 @@ public class QueueSizeMetrics {
 
     @Scheduled(fixedRateString = "${queue.metrics.update-interval-ms:5000}")
     public void updateQueueSizeMetrics() {
-        Set<QueuePhaseScanner.PhaseKey> phases = phaseScanner.scanActivePhases();
-        
-        Set<String> activeKeys = phases.stream()
-                .map(p -> p.phaseType() + ":" + p.phaseId())
-                .collect(Collectors.toSet());
-
-        cleanupStaleMetrics(activeKeys);
-
-        for (QueuePhaseScanner.PhaseKey phase : phases) {
-            String key = phase.phaseType() + ":" + phase.phaseId();
+        try {
+            Set<QueuePhaseScanner.PhaseKey> phases = phaseScanner.scanActivePhases();
             
-            try {
-                AtomicLong waiting = waitingCounts.computeIfAbsent(key, k -> {
-                    AtomicLong gaugeNum = new AtomicLong(0);
-                    Gauge gauge = Gauge.builder("popcon_queue_waiting_size", gaugeNum, AtomicLong::get)
-                            .tag("phase", phase.phaseType())
-                            .tag("phase_id", String.valueOf(phase.phaseId()))
-                            .description("대기열 WAITING 인원 수")
-                            .register(registry);
-                    registeredWaitingGauges.put(k, gauge);
-                    return gaugeNum;
-                });
-                waiting.set(waitingRepository.getWaitingCount(phase.phaseType(), phase.phaseId()));
-                
-            } catch (Exception e) {
-                log.error("Failed to update waiting queue size metric for phase {}:{}", phase.phaseType(), phase.phaseId(), e);
-            }
+            Set<String> activeKeys = phases.stream()
+                    .map(p -> p.phaseType() + ":" + p.phaseId())
+                    .collect(Collectors.toSet());
 
-            try {
-                AtomicLong active = activeCounts.computeIfAbsent(key, k -> {
-                    AtomicLong gaugeNum = new AtomicLong(0);
-                    Gauge gauge = Gauge.builder("popcon_queue_active_size", gaugeNum, AtomicLong::get)
-                            .tag("phase", phase.phaseType())
-                            .tag("phase_id", String.valueOf(phase.phaseId()))
-                            .description("대기열 ACTIVE 인원 수")
-                            .register(registry);
-                    registeredActiveGauges.put(k, gauge);
-                    return gaugeNum;
-                });
-                active.set(activeRepository.getActiveCount(phase.phaseType(), phase.phaseId()));
+            cleanupStaleMetrics(activeKeys);
+
+            for (QueuePhaseScanner.PhaseKey phase : phases) {
+                String key = phase.phaseType() + ":" + phase.phaseId();
                 
-            } catch (Exception e) {
-                log.error("Failed to update active queue size metric for phase {}:{}", phase.phaseType(), phase.phaseId(), e);
+                try {
+                    AtomicLong waiting = waitingCounts.computeIfAbsent(key, k -> {
+                        AtomicLong gaugeNum = new AtomicLong(0);
+                        Gauge gauge = Gauge.builder("popcon_queue_waiting_size", gaugeNum, AtomicLong::get)
+                                .tag("phase", phase.phaseType())
+                                .tag("phase_id", String.valueOf(phase.phaseId()))
+                                .description("대기열 WAITING 인원 수")
+                                .register(registry);
+                        registeredWaitingGauges.put(k, gauge);
+                        return gaugeNum;
+                    });
+                    waiting.set(waitingRepository.getWaitingCount(phase.phaseType(), phase.phaseId()));
+                    
+                } catch (Exception e) {
+                    log.error("Failed to update waiting queue size metric for phase {}:{}", phase.phaseType(), phase.phaseId(), e);
+                }
+
+                try {
+                    AtomicLong active = activeCounts.computeIfAbsent(key, k -> {
+                        AtomicLong gaugeNum = new AtomicLong(0);
+                        Gauge gauge = Gauge.builder("popcon_queue_active_size", gaugeNum, AtomicLong::get)
+                                .tag("phase", phase.phaseType())
+                                .tag("phase_id", String.valueOf(phase.phaseId()))
+                                .description("대기열 ACTIVE 인원 수")
+                                .register(registry);
+                        registeredActiveGauges.put(k, gauge);
+                        return gaugeNum;
+                    });
+                    active.set(activeRepository.getActiveCount(phase.phaseType(), phase.phaseId()));
+                    
+                } catch (Exception e) {
+                    log.error("Failed to update active queue size metric for phase {}:{}", phase.phaseType(), phase.phaseId(), e);
+                }
             }
+        } catch (Exception e) {
+            log.error("updateQueueSizeMetrics failed", e);
         }
     }
 
