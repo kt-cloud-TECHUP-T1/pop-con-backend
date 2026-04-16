@@ -96,6 +96,12 @@ public class QueueWaitingRepository {
         );
     }
 
+    /** 대기 인원 수 조회 */
+    public long getWaitingCount(String phaseType, long phaseId) {
+        Long count = redisTemplate.opsForZSet().zCard(QueueRedisKeys.waiting(phaseType, phaseId));
+        return count != null ? count : 0L;
+    }
+
     /** 대기 순위 조회 (0-based, null이면 목록에 없음) */
     public Long getWaitingRank(String phaseType, long phaseId, long userId) {
         return redisTemplate.opsForZSet().rank(

@@ -34,6 +34,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
@@ -62,51 +64,50 @@ public class BidService {
     private final TicketServiceClient ticketServiceClient;
     private final ReservationNoGenerator reservationNoGenerator;
     private final RedissonClient redissonClient;
+    private final MeterRegistry registry;
 
     public Long getAuctionIdByOptionId(Long optionId) {
         return auctionOptionRepository.findByIdWithAuction(optionId)
-            .map(option -> option.getAuction().getId())
-            .orElseThrow(() -> new CustomException(ErrorCode.AUCTION_OPTION_NOT_FOUND));
+                .map(option -> option.getAuction().getId())
+                .orElseThrow(() -> new CustomException(ErrorCode.AUCTION_OPTION_NOT_FOUND));
     }
 
     public Long getAuctionIdByReservationNo(String reservationNo) {
         return bidRepository.findByReservationNo(reservationNo)
-            .map(Bid::getAuctionId)
-            .orElseThrow(() -> new CustomException(ErrorCode.BID_NOT_FOUND));
+                .map(Bid::getAuctionId)
+                .orElseThrow(() -> new CustomException(ErrorCode.BID_NOT_FOUND));
     }
 
     public List<BidHistoryResponse> getBidHistory(Long userId) {
         List<Bid> bids = bidRepository.findAllByUserIdAndStatusOrderByCreatedAtDesc(userId, BidStatus.SUCCESS);
 
         return bids.stream()
-            .map(this::convertToHistoryResponse)
-            .toList();
+                .map(this::convertToHistoryResponse)
+                .toList();
     }
 
     public ReservationDetailResponse getReservationDetail(Long userId, String reservationNo) {
         Bid bid = bidRepository.findByReservationNoAndUserId(reservationNo, userId)
-            .orElseThrow(() -> new CustomException(ErrorCode.BID_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ErrorCode.BID_NOT_FOUND));
 
         PriceDetails priceDetails = computePriceDetails(bid, reservationNo);
         return buildReservationDetailResponse(
-            bid,
-            priceDetails.startPrice(),
-            priceDetails.discountAmount(),
-            priceDetails.bidPrice()
-        );
+                bid,
+                priceDetails.startPrice(),
+                priceDetails.discountAmount(),
+                priceDetails.bidPrice());
     }
 
     public ReservationDetailResponse getBidDetail(Long userId, Long bidId) {
         Bid bid = bidRepository.findByIdAndUserIdAndStatus(bidId, userId, BidStatus.SUCCESS)
-            .orElseThrow(() -> new CustomException(ErrorCode.BID_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ErrorCode.BID_NOT_FOUND));
 
         PriceDetails priceDetails = computePriceDetails(bid, bid.getReservationNo());
         return buildReservationDetailResponse(
-            bid,
-            priceDetails.startPrice(),
-            priceDetails.discountAmount(),
-            priceDetails.bidPrice()
-        );
+                bid,
+                priceDetails.startPrice(),
+                priceDetails.discountAmount(),
+                priceDetails.bidPrice());
     }
 
     private PriceDetails computePriceDetails(Bid bid, String reservationNo) {
@@ -119,7 +120,7 @@ public class BidService {
         }
         if (bidPrice == null) {
             log.warn("Bid price is null for reservationNo={}, bidId={}, startPrice={}",
-                reservationNo, bid.getId(), bid.getStartPrice());
+                    reservationNo, bid.getId(), bid.getStartPrice());
             bidPrice = 0;
         }
 
@@ -128,41 +129,39 @@ public class BidService {
     }
 
     private ReservationDetailResponse buildReservationDetailResponse(
-        Bid bid,
-        Integer startPrice,
-        Integer discountAmount,
-        Integer bidPrice
-    ) {
+            Bid bid,
+            Integer startPrice,
+            Integer discountAmount,
+            Integer bidPrice) {
         return ReservationDetailResponse.builder()
-            .reservationNo(bid.getReservationNo())
-            .popupTitle(bid.getPopupTitle())
-            .popupAddress(bid.getPopupAddress())
-            .popupThumbnail(bid.getThumbnailUrl())
-            .entryDate(bid.getEntryDate())
-            .entryTime(bid.getEntryTime())
-            .startPrice(startPrice)
-            .discountAmount(discountAmount)
-            .finalPrice(bidPrice)
-            .paidAt(bid.getPaidAt())
-            .build();
+                .reservationNo(bid.getReservationNo())
+                .popupTitle(bid.getPopupTitle())
+                .popupAddress(bid.getPopupAddress())
+                .popupThumbnail(bid.getThumbnailUrl())
+                .entryDate(bid.getEntryDate())
+                .entryTime(bid.getEntryTime())
+                .startPrice(startPrice)
+                .discountAmount(discountAmount)
+                .finalPrice(bidPrice)
+                .paidAt(bid.getPaidAt())
+                .build();
     }
 
     private record PriceDetails(
-        Integer startPrice,
-        Integer bidPrice,
-        Integer discountAmount
-    ) {
+            Integer startPrice,
+            Integer bidPrice,
+            Integer discountAmount) {
     }
 
     private BidHistoryResponse convertToHistoryResponse(Bid bid) {
         return BidHistoryResponse.builder()
-            .id(bid.getId())
-            .thumbnailUrl(bid.getThumbnailUrl())
-            .popupTitle(bid.getPopupTitle())
-            .bidPrice(bid.getBidPrice())
-            .paidAt(bid.getPaidAt())
-            .displayStatus(bid.getStatus().getDescription())
-            .build();
+                .id(bid.getId())
+                .thumbnailUrl(bid.getThumbnailUrl())
+                .popupTitle(bid.getPopupTitle())
+                .bidPrice(bid.getBidPrice())
+                .paidAt(bid.getPaidAt())
+                .displayStatus(bid.getStatus().getDescription())
+                .build();
     }
 
     public BidResponse attemptBid(Long userId, BidRequest request) {
@@ -199,12 +198,19 @@ public class BidService {
                 priceAnchor.soldOutPrice(),
                 priceAnchor.restockAnchorAt()
             );
+            
             if (!request.bidPrice().equals(currentServerPrice)) {
+                registry.counter("popcon_bid_total",
+                        "auction_id", String.valueOf(auctionId),
+                        "outcome", "price_mismatch").increment();
                 throw new CustomException(ErrorCode.AUCTION_PRICE_MISMATCH);
             }
 
             Long remainingStock = bidRedisRepository.decrementStock(option.getId());
             if (remainingStock < 0) {
+                registry.counter("popcon_bid_total",
+                        "auction_id", String.valueOf(auctionId),
+                        "outcome", "sold_out").increment();
                 throw new CustomException(ErrorCode.AUCTION_OPTION_SOLD_OUT);
             }
             if (remainingStock == 0 && !auctionStockService.hasAvailableStock(auctionId)) {
@@ -226,26 +232,43 @@ public class BidService {
 
                 ApiResponse<BillingKeyInternalResponse> billingKeyResponse = userBillingClient.getDefaultBillingKey(userId);
                 if (billingKeyResponse == null || billingKeyResponse.getData() == null) {
+                    registry.counter("popcon_bid_total",
+                            "auction_id", String.valueOf(auctionId),
+                            "outcome", "no_billing_key").increment();
                     throw new CustomException(ErrorCode.BILLING_KEY_NOT_FOUND);
                 }
                 String billingKey = billingKeyResponse.getData().customerUid();
 
                 paymentAttempted = true;
-                PortOnePaymentResponse paymentResponse = portOneClient.executePayment(
-                    billingKey,
-                    bid.getMerchantUid(),
-                    bid.getBidPrice(),
-                    PAYMENT_PRODUCT_NAME
-                );
+                Timer.Sample paymentSample = Timer.start(registry);
+                PortOnePaymentResponse paymentResponse;
+                try {
+                    paymentResponse = portOneClient.executePayment(
+                        billingKey,
+                        bid.getMerchantUid(),
+                        bid.getBidPrice(),
+                        PAYMENT_PRODUCT_NAME
+                    );
+                } finally {
+                    paymentSample.stop(Timer.builder("popcon_payment_latency")
+                            .tag("auction_id", String.valueOf(auctionId))
+                            .register(registry));
+                }
 
                 if (!paymentResponse.isPaid()) {
                     log.error("Payment execution failed because paidAt is missing. merchantUid={}", bid.getMerchantUid());
+                    registry.counter("popcon_bid_total",
+                            "auction_id", String.valueOf(auctionId),
+                            "outcome", "payment_failed").increment();
                     throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "Payment was not completed.");
                 }
 
                 String pgTxId = paymentResponse.getPgTxId();
                 if (pgTxId == null || pgTxId.isBlank()) {
                     log.error("Payment response is missing pgTxId. merchantUid={}", bid.getMerchantUid());
+                    registry.counter("popcon_bid_total",
+                            "auction_id", String.valueOf(auctionId),
+                            "outcome", "payment_failed").increment();
                     throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "Payment transaction id is missing.");
                 }
 
@@ -315,6 +338,11 @@ public class BidService {
                 }
 
                 issueAuctionWinTicket(bid, option, reservationNo);
+                
+                registry.counter("popcon_bid_total",
+                        "auction_id", String.valueOf(auctionId),
+                        "outcome", "success").increment();
+                        
                 return new BidResponse(bid.getId(), BidStatus.SUCCESS, "Bid completed successfully.", reservationNo);
 
             } catch (Exception e) {
@@ -379,10 +407,9 @@ public class BidService {
 
     private void validateAuctionOpen(Auction auction, LocalDateTime now) {
         AuctionStatus auctionStatus = auctionPriceService.calculateStatus(
-            auction,
-            now,
-            auctionStockService.hasAvailableStock(auction.getId())
-        );
+                auction,
+                now,
+                auctionStockService.hasAvailableStock(auction.getId()));
 
         if (auctionStatus != AuctionStatus.OPEN) {
             throw new CustomException(ErrorCode.AUCTION_NOT_OPEN);
@@ -395,25 +422,25 @@ public class BidService {
         }
         try {
             return OffsetDateTime.parse(paidAtStr)
-                .atZoneSameInstant(ZoneId.of("Asia/Seoul"))
-                .toLocalDateTime();
+                    .atZoneSameInstant(ZoneId.of("Asia/Seoul"))
+                    .toLocalDateTime();
         } catch (Exception e) {
             log.warn("Failed to parse paidAt value: {}", paidAtStr, e);
-            throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED, "Failed to parse payment completion timestamp.");
+            throw new CustomException(ErrorCode.PAYMENT_EXECUTION_FAILED,
+                    "Failed to parse payment completion timestamp.");
         }
     }
 
     private void issueAuctionWinTicket(Bid bid, AuctionOption option, String reservationNo) {
         try {
             ApiResponse<TicketIssueResponse> response = ticketServiceClient.issueTicket(
-                buildTicketIssueRequest(bid, option, reservationNo)
-            );
+                    buildTicketIssueRequest(bid, option, reservationNo));
             if (response == null || response.getData() == null) {
                 throw new CustomException(ErrorCode.EXTERNAL_SERVICE_ERROR);
             }
         } catch (Exception e) {
             log.error("Ticket service integration failed. bidId={}, optionId={}, error={}",
-                bid.getId(), option.getId(), e.getMessage());
+                    bid.getId(), option.getId(), e.getMessage());
             if (e instanceof CustomException customException) {
                 throw customException;
             }
@@ -423,13 +450,12 @@ public class BidService {
 
     private TicketIssueRequest buildTicketIssueRequest(Bid bid, AuctionOption option, String reservationNo) {
         return new TicketIssueRequest(
-            bid.getUserId(),
-            option.getAuction().getPopupId(),
-            "AUCTION",
-            bid.getId(),
-            reservationNo,
-            option.getEntryDate(),
-            option.getEntryTime()
-        );
+                bid.getUserId(),
+                option.getAuction().getPopupId(),
+                "AUCTION",
+                bid.getId(),
+                reservationNo,
+                option.getEntryDate(),
+                option.getEntryTime());
     }
 }

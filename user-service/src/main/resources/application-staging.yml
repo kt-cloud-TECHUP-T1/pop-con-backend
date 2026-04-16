@@ -63,6 +63,11 @@ management:
   metrics:
     tags:
       application: user-service
+    distribution:
+      percentiles-histogram:
+        "[http.server.requests]": true
+      slo:
+        "[http.server.requests]": 100ms,300ms,500ms,1s,2s
 
 services:
   draw-service:

@@ -8,6 +8,7 @@ import com.t1.popcon.queue.common.redis.*;
 import com.t1.popcon.queue.dto.response.VqaStartResponse;
 import com.t1.popcon.queue.dto.response.VqaSubmitResult;
 import com.t1.popcon.queue.dto.vqa.*;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
@@ -35,6 +36,7 @@ public class VqaService {
     private final QueueTokenResolver tokenResolver;
     private final StringRedisTemplate redisTemplate;
     private final RedissonClient redissonClient;
+    private final MeterRegistry registry;
 
     private static final String VQA_SESSION_KEY_PREFIX = "vqa:session:";
     private static final String VQA_USER_SESSION_KEY_PREFIX = "vqa:session:user:";
@@ -85,6 +87,9 @@ public class VqaService {
             int globalAttempts = (attemptsStr != null) ? Integer.parseInt(attemptsStr) : 0;
 
             if (globalAttempts >= MAX_ATTEMPTS) {
+                registry.counter("popcon_vqa_start_total",
+                        "phase", phaseType, "phase_id", String.valueOf(phaseId),
+                        "outcome", "attempts_exceeded").increment();
                 throw new CustomException(ErrorCode.QUIZ_ATTEMPTS_EXCEEDED);
             }
 
@@ -105,6 +110,9 @@ public class VqaService {
 
             // 4. 레벨 0 (0~20점): 면제 (단, 경매의 경우 점수가 낮아도 면제 없이 퀴즈를 진행함)
             if (totalScore <= 20 && !"auction".equals(phaseType)) {
+                registry.counter("popcon_vqa_start_total",
+                        "phase", phaseType, "phase_id", String.valueOf(phaseId),
+                        "outcome", "exempt").increment();
                 String quizPassedToken = generateAndSaveQuizPassedToken(tokenInfo);
                 return VqaStartResponse.exempt(quizPassedToken);
             }
@@ -115,6 +123,9 @@ public class VqaService {
             VqaNextQuestionResponse firstQuestion = vqaClient.getNextQuestion(pythonSessionId, totalScore);
 
             if (Boolean.TRUE.equals(firstQuestion.isExempt())) {
+                registry.counter("popcon_vqa_start_total",
+                        "phase", phaseType, "phase_id", String.valueOf(phaseId),
+                        "outcome", "exempt").increment();
                 String quizPassedToken = generateAndSaveQuizPassedToken(tokenInfo);
                 return VqaStartResponse.exempt(quizPassedToken);
             }
@@ -125,6 +136,9 @@ public class VqaService {
             redisTemplate.opsForValue().set(userSessionKey, vqaSessionId, Duration.ofSeconds(VQA_SESSION_TTL_SECONDS));
 
             log.info("[VQA] 퀴즈 세션 생성 완료 - userId={}, vqaSessionId={}", userId, vqaSessionId);
+            registry.counter("popcon_vqa_start_total",
+                    "phase", phaseType, "phase_id", String.valueOf(phaseId),
+                    "outcome", "session_created").increment();
             return VqaStartResponse.session(vqaSessionId, firstQuestion);
 
         } catch (InterruptedException e) {
@@ -197,9 +211,12 @@ public class VqaService {
             if (Boolean.TRUE.equals(response.isCorrect())) {
                 QueueTokenResolver.TokenInfo tokenInfo = new QueueTokenResolver.TokenInfo(phaseType, phaseId, userId);
                 String quizPassedToken = generateAndSaveQuizPassedToken(tokenInfo);
-                
+
                 clearVqaSession(vqaSessionId, userId, phaseType, phaseId);
                 log.info("[VQA] 퀴즈 통과 - userId={}", userId);
+                registry.counter("popcon_vqa_submit_total",
+                        "phase", phaseType, "phase_id", String.valueOf(phaseId),
+                        "outcome", "pass").increment();
                 return VqaSubmitResult.success(response.similarityScore(), quizPassedToken);
             }
 
@@ -219,10 +236,16 @@ public class VqaService {
                 cleanupRepository.cleanupUserData(phaseType, phaseId, userId, null);
 
                 log.warn("[VQA] 퀴즈 최종 실패 - userId={}", userId);
+                registry.counter("popcon_vqa_submit_total",
+                        "phase", phaseType, "phase_id", String.valueOf(phaseId),
+                        "outcome", "blocked").increment();
                 return VqaSubmitResult.fail(response.similarityScore(), 0);
             }
 
             saveVqaSession(vqaSessionId, pythonSessionId, new QueueTokenResolver.TokenInfo(phaseType, phaseId, userId), nextAttempts, score);
+            registry.counter("popcon_vqa_submit_total",
+                    "phase", phaseType, "phase_id", String.valueOf(phaseId),
+                    "outcome", "fail").increment();
             return VqaSubmitResult.fail(response.similarityScore(), MAX_ATTEMPTS - nextAttempts);
 
         } catch (InterruptedException e) {
