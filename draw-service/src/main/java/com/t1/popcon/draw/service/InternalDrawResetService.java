@@ -61,6 +61,7 @@ public class InternalDrawResetService {
     }
 
     // DB 초기화 + Redis 대기열 초기화를 단일 진입점으로 묶어 컨트롤러 단순화
+    @Transactional
     public void resetAllByPopupId(Long popupId) {
         resetByPopupId(popupId);
         resetQueueByPopupId(popupId);
