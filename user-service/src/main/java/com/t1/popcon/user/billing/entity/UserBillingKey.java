@@ -13,9 +13,13 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "user_billing_key",
+	uniqueConstraints = {
+		@UniqueConstraint(name = "uk_user_billing_key_composite",
+			columnNames = {"user_id", "cardNumber", "cardName", "pgProvider", "isActive"})
+	},
 	indexes = {
-		@Index(name = "idx_user_billing_active", columnList = "userId, isActive"),
-		@Index(name = "idx_user_billing_default", columnList = "userId, isDefault, isActive")
+		@Index(name = "idx_user_billing_active", columnList = "user_id, isActive"),
+		@Index(name = "idx_user_billing_default", columnList = "user_id, isDefault, isActive")
 	})
 public class UserBillingKey extends BaseSoftDeleteEntity {
 
