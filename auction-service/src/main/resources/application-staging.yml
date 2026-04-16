@@ -1,4 +1,6 @@
 spring:
+  config:
+    import: classpath:application-metrics-slo.yml
   mvc:
     async:
       request-timeout: 3600000
@@ -61,7 +63,6 @@ services:
   draw-service:
     url: ${DRAW_SERVICE_URL:http://backend-draw-svc:8080}
 
-
 management:
   endpoints:
     web:
@@ -76,8 +77,3 @@ management:
   metrics:
     tags:
       application: auction-service
-    distribution:
-      percentiles-histogram:
-        "[http.server.requests]": true
-      slo:
-        "[http.server.requests]": 100ms,300ms,500ms,1s,2s

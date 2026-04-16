@@ -240,6 +240,9 @@ public class BidService {
                 String billingKey = billingKeyResponse.getData().customerUid();
 
                 paymentAttempted = true;
+                Timer paymentTimer = Timer.builder("popcon_payment_latency")
+                        .tag("auction_id", String.valueOf(auctionId))
+                        .register(registry);
                 Timer.Sample paymentSample = Timer.start(registry);
                 PortOnePaymentResponse paymentResponse;
                 try {
@@ -250,9 +253,7 @@ public class BidService {
                         PAYMENT_PRODUCT_NAME
                     );
                 } finally {
-                    paymentSample.stop(Timer.builder("popcon_payment_latency")
-                            .tag("auction_id", String.valueOf(auctionId))
-                            .register(registry));
+                    paymentSample.stop(paymentTimer);
                 }
 
                 if (!paymentResponse.isPaid()) {

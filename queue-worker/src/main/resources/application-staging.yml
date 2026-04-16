@@ -1,5 +1,6 @@
 spring:
-
+  config:
+    import: classpath:application-metrics-slo.yml
   data:
     redis:
       host: ${REDIS_HOST}
@@ -40,12 +41,6 @@ management:
   metrics:
     tags:
       application: queue-worker
-    distribution:
-      percentiles-histogram:
-        "[http.server.requests]": true
-      slo:
-        "[http.server.requests]": 100ms,300ms,500ms,1s,2s
-
-
 server:
   port: 8080
+

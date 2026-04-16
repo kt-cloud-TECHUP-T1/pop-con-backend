@@ -63,7 +63,7 @@ public class DrawEntryService {
         DrawOption drawOption = drawOptionRepository.findById(drawOptionId)
             .orElseThrow(() -> new CustomException(ErrorCode.DRAW_OPTION_NOT_FOUND));
         validateDrawOption(drawId, drawOption);
-        validateEntryWindow(drawOption.getDraw());
+        validateEntryWindow(drawOption);
 
         if (drawEntryRepository.existsByUserIdAndDrawId(userId, drawId)) {
             registry.counter("popcon_draw_entry_total",
@@ -163,17 +163,18 @@ public class DrawEntryService {
         }
     }
 
-    private void validateEntryWindow(Draw draw) {
+    private void validateEntryWindow(DrawOption drawOption) {
+        Draw draw = drawOption.getDraw();
         LocalDateTime now = LocalDateTime.now(clock);
         if (now.isBefore(draw.getDrawOpenAt())) {
             registry.counter("popcon_draw_entry_total",
-                    "draw_id", String.valueOf(draw.getId()), "option_id", "unknown",
+                    "draw_id", String.valueOf(draw.getId()), "option_id", String.valueOf(drawOption.getId()),
                     "outcome", "not_open").increment();
             throw new CustomException(ErrorCode.DRAW_NOT_OPEN);
         }
         if (now.isAfter(draw.getDrawCloseAt())) {
             registry.counter("popcon_draw_entry_total",
-                    "draw_id", String.valueOf(draw.getId()), "option_id", "unknown",
+                    "draw_id", String.valueOf(draw.getId()), "option_id", String.valueOf(drawOption.getId()),
                     "outcome", "closed").increment();
             throw new CustomException(ErrorCode.DRAW_ALREADY_CLOSED);
         }

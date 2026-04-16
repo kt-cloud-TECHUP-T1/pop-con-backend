@@ -40,6 +40,8 @@ services:
     url: ${USER_SERVICE_URL:http://backend-user-svc:8080}
 
 spring:
+  config:
+    import: classpath:application-metrics-slo.yml
   datasource:
     url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -88,7 +90,6 @@ server:
   port: 8080
   shutdown: graceful
 
-
 management:
   endpoints:
     web:
@@ -103,8 +104,3 @@ management:
   metrics:
     tags:
       application: auth-service
-    distribution:
-      percentiles-histogram:
-        "[http.server.requests]": true
-      slo:
-        "[http.server.requests]": 100ms,300ms,500ms,1s,2s
