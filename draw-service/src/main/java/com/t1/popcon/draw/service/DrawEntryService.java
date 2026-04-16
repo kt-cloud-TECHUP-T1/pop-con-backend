@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -49,7 +50,9 @@ public class DrawEntryService {
     private static final String DISPLAY_DRAW_PENDING = "추첨 대기";
     private static final String DISPLAY_ANNOUNCEMENT_PENDING = "결과 발표 대기";
     private static final String DISPLAY_TICKET_ISSUED = "티켓 발급 완료";
-    private static final int SILENT_DROP_THRESHOLD = 80;
+
+    @Value("${draw.silent-drop-threshold:80}")
+    private int silentDropThreshold;
 
     private final DrawEntryRepository drawEntryRepository;
     private final DrawOptionRepository drawOptionRepository;
@@ -77,8 +80,7 @@ public class DrawEntryService {
         }
 
         UserInternalResponse userInfo = fetchUserInfo(userId);
-        int macroScore = antiMacroScoreRepository.getTotalScore(userId);
-        boolean isDropped = macroScore >= SILENT_DROP_THRESHOLD;
+        boolean isDropped = checkSilentDrop(userId);
 
         DrawEntry entry = DrawEntry.builder()
             .userId(userId)
@@ -106,6 +108,16 @@ public class DrawEntryService {
                 "draw_id", String.valueOf(drawId), "option_id", String.valueOf(drawOptionId),
                 "outcome", "success").increment();
         return buildApplyResult(drawOption, userInfo);
+    }
+
+    private boolean checkSilentDrop(Long userId) {
+        try {
+            int macroScore = antiMacroScoreRepository.getTotalScore(userId);
+            return macroScore >= silentDropThreshold;
+        } catch (Exception e) {
+            log.error("Failed to fetch macro score for user {}. Defaulting to NOT dropped.", userId, e);
+            return false;
+        }
     }
 
     @Transactional(readOnly = true)
