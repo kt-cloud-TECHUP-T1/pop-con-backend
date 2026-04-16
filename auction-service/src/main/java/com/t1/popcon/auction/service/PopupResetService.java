@@ -35,15 +35,12 @@ public class PopupResetService {
     private final StringRedisTemplate redisTemplate;
 
     /**
-     * popupId 기준 팝업 전체 데이터 초기화
-     * 처리 순서:
-     * 1. 티켓 삭제 (ticket-service Feign) — popupId 기준 한 번에 처리
+     * popupId 기준 DB 데이터 초기화 (steps 1–4)
+     * 1. 티켓 삭제 — ticket-service Feign, afterCommit 훅으로 실행
      * 2. 입찰 내역 하드 딜리트
      * 3. AuctionOption.remainingStock 원복
      * 4. Auction.status/soldAt 원복
-     * 5. Redis 경매 재고 키 초기화
-     * 6. Redis 경매 대기열 키 초기화
-     * 7. 드로우 데이터 + 대기열 초기화 (draw-service Feign)
+     * Redis 및 드로우 초기화는 resetRedisAndDraw() 에서 처리
      */
     @Transactional
     public void reset(Long popupId) {
@@ -78,10 +75,10 @@ public class PopupResetService {
     }
 
     /**
-     * Redis 초기화 (트랜잭션 밖에서 호출)
-     * - 경매 재고/메타 키 삭제
-     * - 경매 대기열 키 삭제
-     * - 드로우 초기화 (draw-service Feign)
+     * Redis 및 드로우 초기화 (steps 5–7), reset() 커밋 후 호출
+     * 5. Redis 경매 재고 키 초기화
+     * 6. Redis 경매 대기열 키 초기화
+     * 7. 드로우 데이터 + 대기열 초기화 — draw-service Feign
      */
     public void resetRedisAndDraw(Long popupId) {
         Auction auction = auctionRepository.findByPopupId(popupId)

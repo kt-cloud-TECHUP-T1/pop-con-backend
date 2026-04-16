@@ -25,11 +25,10 @@ public class InternalDrawResetService {
     private final TicketServiceClient ticketServiceClient;
 
     /**
-     * popupId 기준 드로우 데이터 전체 초기화
-     * 처리 순서:
+     * popupId 기준 드로우 DB 데이터 초기화 (트랜잭션)
      * 1. draw_entries 하드 딜리트
      * 2. draw_options.processed 원복
-     * 3. Redis 대기열 초기화
+     * Redis 대기열 초기화는 resetQueueByPopupId() 에서 처리
      * 티켓은 auction-service의 통합 초기화 시 popupId 기준으로 한 번에 처리
      */
     @Transactional
