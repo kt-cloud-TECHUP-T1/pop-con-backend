@@ -63,6 +63,9 @@ public class DrawEntry extends BaseSoftDeleteEntity {
     @Column(nullable = false)
     private boolean isTermsAgreed;
 
+    @Column(nullable = false)
+    private boolean isDropped;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private DrawEntryStatus status;
@@ -82,7 +85,8 @@ public class DrawEntry extends BaseSoftDeleteEntity {
         String encryptedName,
         String encryptedPhoneNumber,
         boolean isPrivacyAgreed,
-        boolean isTermsAgreed
+        boolean isTermsAgreed,
+        boolean isDropped
     ) {
         validate(userId, drawOption, encryptedName, encryptedPhoneNumber);
 
@@ -93,6 +97,7 @@ public class DrawEntry extends BaseSoftDeleteEntity {
         this.encryptedPhoneNumber = encryptedPhoneNumber;
         this.isPrivacyAgreed = isPrivacyAgreed;
         this.isTermsAgreed = isTermsAgreed;
+        this.isDropped = isDropped;
         this.status = DrawEntryStatus.APPLIED;
     }
 

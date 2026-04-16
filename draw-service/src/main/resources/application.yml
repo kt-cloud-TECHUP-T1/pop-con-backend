@@ -31,6 +31,9 @@ encryption:
 internal:
   api-secret: ${INTERNAL_API_SECRET}
 
+draw:
+  silent-drop-threshold: ${SILENT_DROP_THRESHOLD}
+
 services:
   user-service:
     url: ${USER_SERVICE_URL}
