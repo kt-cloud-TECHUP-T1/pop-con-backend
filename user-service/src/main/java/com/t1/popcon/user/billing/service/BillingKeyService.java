@@ -11,6 +11,8 @@ import com.t1.popcon.user.billing.repository.UserBillingKeyRepository;
 import com.t1.popcon.user.domain.User;
 import com.t1.popcon.user.repository.UserRepository;
 
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,8 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class BillingKeyService {
+
+	private static final String BILLING_KEY_CONSTRAINT = "uk_user_billing_key_composite";
 
 	private final UserBillingKeyRepository billingKeyRepository;
 	private final PortOneClient portOneClient;
@@ -60,7 +64,22 @@ public class BillingKeyService {
 			.isDefault(!hasActiveKey)
 			.build();
 
-		return BillingKeyInfoResponse.from(billingKeyRepository.save(newBillingKey));
+		try {
+			return BillingKeyInfoResponse.from(billingKeyRepository.save(newBillingKey));
+		} catch (DataIntegrityViolationException e) {
+			if (isBillingKeyConflict(e)) {
+				throw new CustomException(ErrorCode.BILLING_KEY_ALREADY_EXISTS);
+			}
+			throw e;
+		}
+	}
+
+	private boolean isBillingKeyConflict(DataIntegrityViolationException e) {
+		Throwable cause = e.getRootCause();
+		if (cause instanceof ConstraintViolationException hibernateEx) {
+			return BILLING_KEY_CONSTRAINT.equals(hibernateEx.getConstraintName());
+		}
+		return e.getMessage() != null && e.getMessage().contains(BILLING_KEY_CONSTRAINT);
 	}
 
 	@Transactional(readOnly = true)
