@@ -1,4 +1,6 @@
 spring:
+  config:
+    import: classpath:application-metrics-slo.yml
   data:
     redis:
       host: ${REDIS_HOST}
@@ -38,6 +40,4 @@ management:
   metrics:
     tags:
       application: queue-service
-
-
 

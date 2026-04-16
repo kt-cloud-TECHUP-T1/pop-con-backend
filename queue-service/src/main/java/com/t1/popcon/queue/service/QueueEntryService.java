@@ -11,6 +11,7 @@ import com.t1.popcon.queue.common.redis.QueueRedisKeys;
 import com.t1.popcon.queue.common.redis.QueueWaitingRepository;
 import com.t1.popcon.queue.dto.response.QueueBlockedResponse;
 import com.t1.popcon.queue.dto.response.QueueEntryResponse;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
@@ -42,6 +43,7 @@ public class QueueEntryService {
     private final QueueBlockRepository blockRepository;
     private final QueueProperties properties;
     private final RedissonClient redissonClient;
+    private final MeterRegistry registry;
 
     /**
      * 대기열 진입 처리
@@ -102,6 +104,9 @@ public class QueueEntryService {
                 .toString();
             log.info("[Queue] 차단된 사용자 진입 시도 - phaseType={}, phaseId={}, userId={}",
                 phaseType, phaseId, userId % 1000);
+            registry.counter("popcon_queue_enter_total",
+                    "phase", phaseType, "phase_id", String.valueOf(phaseId), "result", "blocked")
+                    .increment();
             throw new CustomException(ErrorCode.QUEUE_BLOCKED,
                 new QueueBlockedResponse("BLOCKED", blockedUntil));
         }
@@ -150,6 +155,9 @@ public class QueueEntryService {
 
         log.info("[Queue] 즉시 입장 - phaseType={}, phaseId={}, userId={}",
             phaseType, phaseId, userId % 1000);
+        registry.counter("popcon_queue_enter_total",
+                "phase", phaseType, "phase_id", String.valueOf(phaseId), "result", "active")
+                .increment();
         return QueueEntryResponse.active(queueToken);
     }
 
@@ -174,6 +182,9 @@ public class QueueEntryService {
 
         log.info("[Queue] 대기열 등록 - phaseType={}, phaseId={}, userId={}, position={}",
             phaseType, phaseId, userId % 1000, position);
+        registry.counter("popcon_queue_enter_total",
+                "phase", phaseType, "phase_id", String.valueOf(phaseId), "result", "waiting")
+                .increment();
         return QueueEntryResponse.waiting(queueToken, position, estimatedWaitSeconds,
             properties.getPollingDefaultMs());
     }

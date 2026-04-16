@@ -10,6 +10,7 @@ import com.t1.popcon.queue.common.redis.QueueCleanupRepository;
 import com.t1.popcon.queue.common.redis.QueueWaitingRepository;
 import com.t1.popcon.queue.dto.response.QueueStatusResponse;
 import com.t1.popcon.queue.service.QueueTokenResolver.TokenInfo;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class QueuePollingService {
     private final QueueCleanupRepository cleanupRepository;
     private final QueueProperties properties;
     private final QueueTokenResolver tokenResolver;
+    private final MeterRegistry registry;
 
     /**
      * 대기열 상태 조회
@@ -86,6 +88,10 @@ public class QueuePollingService {
             info.phaseType(), info.phaseId(), info.userId(), queueToken);
         log.info("[Queue] 자진 이탈 완료 - phaseType={}, phaseId={}, userId={}",
             info.phaseType(), info.phaseId(), info.userId() % 1000);
+        registry.counter("popcon_queue_leave_total",
+                "phase", info.phaseType(), "phase_id", String.valueOf(info.phaseId()),
+                "reason", "voluntary")
+                .increment();
     }
 
     // ── 내부 메서드 ────────────────────────────────────────────

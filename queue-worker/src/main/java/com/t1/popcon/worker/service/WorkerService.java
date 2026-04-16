@@ -7,6 +7,7 @@ import com.t1.popcon.queue.common.redis.QueueActiveRepository;
 import com.t1.popcon.queue.common.redis.QueueCleanupRepository;
 import com.t1.popcon.queue.common.redis.QueueRedisKeys;
 import com.t1.popcon.queue.common.redis.QueueWaitingRepository;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ public class WorkerService {
     private final QueueActiveRepository activeRepository;
     private final QueueCleanupRepository cleanupRepository;
     private final QueueProperties queueProperties;
+    private final MeterRegistry registry;
 
     /**
      * WAITING → ACTIVE 승격
@@ -80,17 +82,29 @@ public class WorkerService {
                     log.warn("[Worker] heartbeat 만료 사용자 승격 스킵 - phaseType={}, phaseId={}, userId={}",
                         phaseType, phaseId, userId % 1000);
                     cleanupRepository.cleanupWaitingUserData(phaseType, phaseId, userId, null);
+                    registry.counter("popcon_worker_promote_total",
+                            "phase", phaseType, "phase_id", String.valueOf(phaseId),
+                            "outcome", "heartbeat_expired").increment();
                     continue;
                 }
 
                 promoteUser(phaseType, phaseId, userId, expireAtMillis, activeTtlSeconds);
                 promotedSuccessCount++;
+                registry.counter("popcon_worker_promote_total",
+                        "phase", phaseType, "phase_id", String.valueOf(phaseId),
+                        "outcome", "success").increment();
             } catch (NumberFormatException e) {
                 log.error("[Worker] userId 파싱 실패 - phaseType={}, phaseId={}, raw={}",
                     phaseType, phaseId, userIdStr, e);
+                registry.counter("popcon_worker_promote_total",
+                        "phase", phaseType, "phase_id", String.valueOf(phaseId),
+                        "outcome", "error").increment();
             } catch (Exception e) {
                 log.error("[Worker] 승격 실패 - phaseType={}, phaseId={}, userId={}",
                     phaseType, phaseId, userIdStr, e);
+                registry.counter("popcon_worker_promote_total",
+                        "phase", phaseType, "phase_id", String.valueOf(phaseId),
+                        "outcome", "error").increment();
             }
         }
 
@@ -163,6 +177,9 @@ public class WorkerService {
 
         log.info("[Worker] heartbeat 만료 정리 - phaseType={}, phaseId={}, removed={}",
             phaseType, phaseId, expiredUserIds.size());
+        registry.counter("popcon_worker_heartbeat_cleanup_total",
+                "phase", phaseType, "phase_id", String.valueOf(phaseId))
+                .increment(expiredUserIds.size());
     }
 
     /** phaseType별 ACTIVE TTL(초) 반환 */

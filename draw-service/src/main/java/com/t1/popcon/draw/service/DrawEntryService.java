@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -54,6 +55,7 @@ public class DrawEntryService {
     private final UserServiceClient userServiceClient;
     private final EncryptionService encryptionService;
     private final Clock clock;
+    private final MeterRegistry registry;
 
     @Transactional
     public DrawEntryResultResponse applyForDraw(Long userId, Long drawId, Long drawOptionId, DrawEntryRequest request) {
@@ -62,9 +64,12 @@ public class DrawEntryService {
         DrawOption drawOption = drawOptionRepository.findById(drawOptionId)
             .orElseThrow(() -> new CustomException(ErrorCode.DRAW_OPTION_NOT_FOUND));
         validateDrawOption(drawId, drawOption);
-        validateEntryWindow(drawOption.getDraw());
+        validateEntryWindow(drawOption);
 
         if (drawEntryRepository.existsByUserIdAndDrawId(userId, drawId)) {
+            registry.counter("popcon_draw_entry_total",
+                    "draw_id", String.valueOf(drawId), "option_id", String.valueOf(drawOptionId),
+                    "outcome", "duplicate").increment();
             throw new CustomException(ErrorCode.DRAW_ALREADY_APPLIED);
         }
 
@@ -83,11 +88,17 @@ public class DrawEntryService {
             drawEntryRepository.saveAndFlush(entry);
         } catch (DataIntegrityViolationException e) {
             if (isDuplicateEntryViolation(e)) {
+                registry.counter("popcon_draw_entry_total",
+                        "draw_id", String.valueOf(drawId), "option_id", String.valueOf(drawOptionId),
+                        "outcome", "duplicate").increment();
                 throw new CustomException(ErrorCode.DRAW_ALREADY_APPLIED);
             }
             throw e;
         }
 
+        registry.counter("popcon_draw_entry_total",
+                "draw_id", String.valueOf(drawId), "option_id", String.valueOf(drawOptionId),
+                "outcome", "success").increment();
         return buildApplyResult(drawOption, userInfo);
     }
 
@@ -153,12 +164,19 @@ public class DrawEntryService {
         }
     }
 
-    private void validateEntryWindow(Draw draw) {
+    private void validateEntryWindow(DrawOption drawOption) {
+        Draw draw = drawOption.getDraw();
         LocalDateTime now = LocalDateTime.now(clock);
         if (now.isBefore(draw.getDrawOpenAt())) {
+            registry.counter("popcon_draw_entry_total",
+                    "draw_id", String.valueOf(draw.getId()), "option_id", String.valueOf(drawOption.getId()),
+                    "outcome", "not_open").increment();
             throw new CustomException(ErrorCode.DRAW_NOT_OPEN);
         }
         if (now.isAfter(draw.getDrawCloseAt())) {
+            registry.counter("popcon_draw_entry_total",
+                    "draw_id", String.valueOf(draw.getId()), "option_id", String.valueOf(drawOption.getId()),
+                    "outcome", "closed").increment();
             throw new CustomException(ErrorCode.DRAW_ALREADY_CLOSED);
         }
     }
