@@ -20,8 +20,7 @@ public class InternalDrawResetController {
     // popupId 기준 드로우 데이터 + 대기열 Redis 초기화
     @PostMapping("/reset/{popupId}")
     public ResponseEntity<ApiResponse<Void>> reset(@PathVariable Long popupId) {
-        internalDrawResetService.resetByPopupId(popupId);
-        internalDrawResetService.resetQueueByPopupId(popupId);
+        internalDrawResetService.resetAllByPopupId(popupId);
         return ResponseEntity.ok(ApiResponse.ok("드로우 초기화 완료 (popupId: " + popupId + ")"));
     }
 }

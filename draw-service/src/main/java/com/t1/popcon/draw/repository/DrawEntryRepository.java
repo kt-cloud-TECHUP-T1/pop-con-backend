@@ -27,8 +27,8 @@ public interface DrawEntryRepository extends JpaRepository<DrawEntry, Long> {
 
     Optional<DrawEntry> findByIdAndUserId(Long id, Long userId);
 
-    // 테스트 초기화용: drawId 기준 응모 내역 하드 딜리트
+    // 테스트 초기화용: drawId 기준 응모 내역 하드 딜리트 (소프트 딜리트된 옵션의 응모도 포함)
     @Modifying
-    @Query(value = "DELETE FROM draw_entries WHERE draw_option_id IN (SELECT id FROM draw_options WHERE draw_id = :drawId AND deleted = false)", nativeQuery = true)
+    @Query(value = "DELETE FROM draw_entries WHERE draw_option_id IN (SELECT id FROM draw_options WHERE draw_id = :drawId)", nativeQuery = true)
     void deleteAllByDrawId(@Param("drawId") Long drawId);
 }

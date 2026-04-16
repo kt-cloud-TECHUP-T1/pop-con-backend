@@ -17,6 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Slf4j
 @Service
@@ -51,9 +53,14 @@ public class PopupResetService {
             .orElseThrow(() -> new CustomException(ErrorCode.AUCTION_NOT_FOUND));
         long auctionId = auction.getId();
 
-        // 1. 티켓 삭제 (Feign - ticket-service)
-        ticketServiceClient.deleteTicketsByPopupId(popupId);
-        log.info(">>>> [TestReset] popupId={} 티켓 삭제 완료", popupId);
+        // 1. 티켓 삭제 (Feign - ticket-service) — 트랜잭션 커밋 후 실행하여 외부 호출이 롤백에 영향받지 않도록 처리
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                ticketServiceClient.deleteTicketsByPopupId(popupId);
+                log.info(">>>> [TestReset] popupId={} 티켓 삭제 완료", popupId);
+            }
+        });
 
         // 2. 입찰 내역 하드 딜리트
         bidRepository.deleteAllByAuctionId(auctionId);
@@ -97,9 +104,14 @@ public class PopupResetService {
         // Redis 경매 대기열 키 초기화
         auctionQueueResetService.reset("auction", auctionId);
 
-        // 드로우 초기화 (Feign - draw-service)
-        drawServiceClient.resetDraw(popupId);
-        log.info(">>>> [TestReset] popupId={} 드로우 초기화 완료 (draw-service)", popupId);
+        // 드로우 초기화 (Feign - draw-service) — 실패 시 경고 로그 후 예외 전파
+        try {
+            drawServiceClient.resetDraw(popupId);
+            log.info(">>>> [TestReset] popupId={} 드로우 초기화 완료 (draw-service)", popupId);
+        } catch (Exception e) {
+            log.warn(">>>> [TestReset] popupId={} 드로우 초기화 실패 (draw-service): {}", popupId, e.getMessage());
+            throw e;
+        }
 
         log.info(">>>> [TestReset] popupId={} 통합 초기화 완료", popupId);
     }
