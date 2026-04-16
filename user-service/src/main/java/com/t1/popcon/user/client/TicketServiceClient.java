@@ -17,6 +17,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 )
 public interface TicketServiceClient {
 
+    @GetMapping("/internal/tickets/count")
+    ApiResponse<Long> countTickets(@RequestParam("userId") Long userId);
+
     @GetMapping("/internal/tickets")
     ApiResponse<SliceResponse<TicketHistoryResponse>> getTickets(
         @RequestParam("userId") Long userId,

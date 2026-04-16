@@ -91,4 +91,11 @@ public class TicketIssueService {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
     }
+    @Transactional(readOnly = true)
+    public long countTicketsByUserId(Long userId) {
+        if (userId == null || userId <= 0) {
+            throw new IllegalArgumentException("Invalid user ID: " + userId);
+        }
+        return ticketRepository.countByUserId(userId);
+    }
 }

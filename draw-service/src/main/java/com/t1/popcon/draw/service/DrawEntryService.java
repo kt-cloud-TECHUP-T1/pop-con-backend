@@ -16,6 +16,7 @@ import com.t1.popcon.draw.dto.request.DrawEntryRequest;
 import com.t1.popcon.draw.dto.response.DrawEntryDetailResponse;
 import com.t1.popcon.draw.dto.response.DrawEntryResponse;
 import com.t1.popcon.draw.dto.response.DrawEntryResultResponse;
+import com.t1.popcon.draw.dto.response.DrawStatisticsResponse;
 import com.t1.popcon.draw.repository.DrawEntryRepository;
 import com.t1.popcon.draw.repository.DrawOptionRepository;
 import feign.FeignException;
@@ -327,5 +328,17 @@ public class DrawEntryService {
             return trimmed.substring(0, 3) + "-" + trimmed.substring(3, 7) + "-" + trimmed.substring(7);
         }
         return trimmed;
+    }
+
+    @Transactional(readOnly = true)
+    public DrawStatisticsResponse getDrawStatistics(Long userId) {
+        LocalDateTime now = LocalDateTime.now(clock);
+        return new DrawStatisticsResponse(
+            drawEntryRepository.countByUserId(userId),
+            drawEntryRepository.countByUserIdAndStatus(userId, DrawEntryStatus.WINNER),
+            drawEntryRepository.countByUserIdAndStatus(userId, DrawEntryStatus.FAILED),
+            drawEntryRepository.countOngoingByUserId(userId, DrawEntryStatus.APPLIED, now),
+            drawEntryRepository.countWaitingByUserId(userId, DrawEntryStatus.APPLIED, now)
+        );
     }
 }

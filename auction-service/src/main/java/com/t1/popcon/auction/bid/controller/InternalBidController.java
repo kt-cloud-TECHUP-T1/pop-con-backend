@@ -1,5 +1,6 @@
 package com.t1.popcon.auction.bid.controller;
 
+import com.t1.popcon.auction.bid.dto.response.AuctionStatisticsResponse;
 import com.t1.popcon.auction.bid.dto.response.BidHistoryResponse;
 import com.t1.popcon.auction.bid.dto.response.ReservationDetailResponse;
 import com.t1.popcon.auction.bid.service.BidService;
@@ -18,6 +19,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class InternalBidController {
 
     private final BidService bidService;
+
+    @GetMapping("/statistics")
+    public ApiResponse<AuctionStatisticsResponse> getAuctionStatistics(@RequestParam("userId") Long userId) {
+        AuctionStatisticsResponse response = bidService.getAuctionStatistics(userId);
+        return ApiResponse.ok("경매 통계 조회 성공", response);
+    }
 
     @GetMapping("/bids")
     public ApiResponse<List<BidHistoryResponse>> getBidHistory(@RequestParam("userId") Long userId) {

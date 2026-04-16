@@ -18,11 +18,17 @@ import com.t1.popcon.user.dto.history.TicketDetailResponse;
 import com.t1.popcon.user.dto.history.TicketDetailViewResponse;
 import com.t1.popcon.user.dto.history.TicketHistoryResponse;
 import com.t1.popcon.user.dto.history.TicketPurchaserProfileResponse;
+import com.t1.popcon.user.dto.statistics.AuctionStatisticsInternalResponse;
+import com.t1.popcon.user.dto.statistics.DrawStatisticsInternalResponse;
+import com.t1.popcon.user.dto.statistics.UserActivityStatisticsResponse;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -36,12 +42,76 @@ public class UserHistoryService {
 
     private static final int DEFAULT_HISTORY_PAGE = 0;
     private static final int DEFAULT_HISTORY_SIZE = 100;
+    private static final Executor IO_EXECUTOR = Executors.newFixedThreadPool(10);
 
     private final DrawServiceClient drawServiceClient;
     private final AuctionServiceClient auctionServiceClient;
     private final TicketServiceClient ticketServiceClient;
     private final PopupServiceClient popupServiceClient;
     private final UserService userService;
+
+    public UserActivityStatisticsResponse getMyStatistics(Long userId) {
+        CompletableFuture<DrawStatisticsInternalResponse> drawFuture = CompletableFuture.supplyAsync(() -> {
+            try {
+                ApiResponse<DrawStatisticsInternalResponse> response = drawServiceClient.getDrawStatistics(userId);
+                return (response != null && response.getData() != null) ? response.getData() : null;
+            } catch (Exception e) {
+                log.error("Failed to fetch draw statistics for user: {}. Error: {}", userId, e.getMessage());
+                return null;
+            }
+        }, IO_EXECUTOR);
+
+        CompletableFuture<AuctionStatisticsInternalResponse> auctionFuture = CompletableFuture.supplyAsync(() -> {
+            try {
+                ApiResponse<AuctionStatisticsInternalResponse> response = auctionServiceClient.getAuctionStatistics(userId);
+                return (response != null && response.getData() != null) ? response.getData() : null;
+            } catch (Exception e) {
+                log.error("Failed to fetch auction statistics for user: {}. Error: {}", userId, e.getMessage());
+                return null;
+            }
+        }, IO_EXECUTOR);
+
+        CompletableFuture<Long> ticketCountFuture = CompletableFuture.supplyAsync(() -> {
+            try {
+                ApiResponse<Long> response = ticketServiceClient.countTickets(userId);
+                return (response != null && response.getData() != null) ? response.getData() : 0L;
+            } catch (Exception e) {
+                log.error("Failed to fetch ticket count for user: {}. Error: {}", userId, e.getMessage());
+                return 0L;
+            }
+        }, IO_EXECUTOR);
+
+        CompletableFuture<Long> likedPopupCountFuture = CompletableFuture.supplyAsync(() -> {
+            try {
+                ApiResponse<Long> response = popupServiceClient.countLikedPopups(userId);
+                return (response != null && response.getData() != null) ? response.getData() : 0L;
+            } catch (Exception e) {
+                log.error("Failed to fetch liked popup count for user: {}. Error: {}", userId, e.getMessage());
+                return 0L;
+            }
+        }, IO_EXECUTOR);
+
+        CompletableFuture.allOf(drawFuture, auctionFuture, ticketCountFuture, likedPopupCountFuture).join();
+
+        DrawStatisticsInternalResponse drawStats = drawFuture.join();
+        AuctionStatisticsInternalResponse auctionStats = auctionFuture.join();
+        long ticketCount = ticketCountFuture.join();
+        long likedPopupCount = likedPopupCountFuture.join();
+
+        // TODO: 리뷰수는 현재 0으로 고정
+        return new UserActivityStatisticsResponse(
+            ticketCount,
+            drawStats != null ? drawStats.totalCount() : 0,
+            auctionStats != null ? auctionStats.totalCount() : 0,
+            0L, // reviewCount (placeholder)
+            drawStats != null ? drawStats.wonCount() : 0,
+            drawStats != null ? drawStats.lostCount() : 0,
+            drawStats != null ? drawStats.ongoingCount() : 0,
+            drawStats != null ? drawStats.waitingResultCount() : 0,
+            auctionStats != null ? auctionStats.wonCount() : 0,
+            likedPopupCount
+        );
+    }
 
     public List<DrawHistoryResponse> getDrawHistory(Long userId) {
         try {

@@ -18,6 +18,8 @@ public interface PopupLikeRepository extends JpaRepository<PopupLike, Long> {
 
     boolean existsByPopup_IdAndUserId(Long popupId, Long userId);
 
+    long countByUserId(Long userId);
+
     Optional<PopupLike> findByPopup_IdAndUserId(Long popupId, Long userId);
 
     @Query("""

@@ -18,6 +18,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 )
 public interface PopupServiceClient {
 
+    @GetMapping("/internal/popups/likes/count")
+    ApiResponse<Long> countLikedPopups(@RequestParam("userId") Long userId);
+
     @GetMapping("/internal/popups/{popupId}")
     ApiResponse<PopupInternalResponse> getPopupDetail(@PathVariable("popupId") Long popupId);
 

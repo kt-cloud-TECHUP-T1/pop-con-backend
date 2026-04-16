@@ -10,12 +10,17 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.t1.popcon.user.dto.statistics.DrawStatisticsInternalResponse;
+
 @FeignClient(
     name = "draw-service",
     url = "${services.draw-service.url:http://localhost:8083}",
     configuration = FeignClientConfig.class
 )
 public interface DrawServiceClient {
+
+    @GetMapping("/internal/draws/statistics")
+    ApiResponse<DrawStatisticsInternalResponse> getDrawStatistics(@RequestParam("userId") Long userId);
 
     @GetMapping("/internal/draws/entries")
     ApiResponse<SliceResponse<DrawHistoryResponse>> getDrawEntries(

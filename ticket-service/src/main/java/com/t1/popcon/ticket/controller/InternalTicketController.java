@@ -25,6 +25,12 @@ public class InternalTicketController {
 
     private final TicketIssueService ticketIssueService;
 
+    @GetMapping("/count")
+    public ApiResponse<Long> countTicketsByUserId(@RequestParam("userId") Long userId) {
+        long count = ticketIssueService.countTicketsByUserId(userId);
+        return ApiResponse.ok("티켓 수 조회 성공", count);
+    }
+
     @PostMapping
     public ApiResponse<TicketIssueResponse> issue(@Valid @RequestBody TicketIssueRequest request) {
         TicketIssueResponse response = ticketIssueService.issue(request);

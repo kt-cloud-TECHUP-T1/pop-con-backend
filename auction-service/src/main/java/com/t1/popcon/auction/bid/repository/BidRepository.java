@@ -47,6 +47,10 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
 		"ORDER BY b.createdAt DESC")
 	List<Bid> findAllByUserIdAndStatusOrderByCreatedAtDesc(@Param("userId") Long userId, @Param("status") BidStatus status);
 
+  long countByUserId(Long userId);
+
+  long countByUserIdAndStatus(Long userId, BidStatus status);
+  
 	boolean existsByUserIdAndAuctionIdAndStatus(Long userId, Long auctionId, BidStatus status);
 
     // 테스트 초기화용: auctionId 기준 입찰 내역 하드 딜리트
