@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +42,7 @@ public class UserHistoryService {
 
     private static final int DEFAULT_HISTORY_PAGE = 0;
     private static final int DEFAULT_HISTORY_SIZE = 100;
+    private static final Executor IO_EXECUTOR = Executors.newFixedThreadPool(10);
 
     private final DrawServiceClient drawServiceClient;
     private final AuctionServiceClient auctionServiceClient;
@@ -56,7 +59,7 @@ public class UserHistoryService {
                 log.error("Failed to fetch draw statistics for user: {}. Error: {}", userId, e.getMessage());
                 return null;
             }
-        });
+        }, IO_EXECUTOR);
 
         CompletableFuture<AuctionStatisticsInternalResponse> auctionFuture = CompletableFuture.supplyAsync(() -> {
             try {
@@ -66,7 +69,7 @@ public class UserHistoryService {
                 log.error("Failed to fetch auction statistics for user: {}. Error: {}", userId, e.getMessage());
                 return null;
             }
-        });
+        }, IO_EXECUTOR);
 
         CompletableFuture<Long> ticketCountFuture = CompletableFuture.supplyAsync(() -> {
             try {
@@ -76,7 +79,7 @@ public class UserHistoryService {
                 log.error("Failed to fetch ticket count for user: {}. Error: {}", userId, e.getMessage());
                 return 0L;
             }
-        });
+        }, IO_EXECUTOR);
 
         CompletableFuture<Long> likedPopupCountFuture = CompletableFuture.supplyAsync(() -> {
             try {
@@ -86,7 +89,7 @@ public class UserHistoryService {
                 log.error("Failed to fetch liked popup count for user: {}. Error: {}", userId, e.getMessage());
                 return 0L;
             }
-        });
+        }, IO_EXECUTOR);
 
         CompletableFuture.allOf(drawFuture, auctionFuture, ticketCountFuture, likedPopupCountFuture).join();
 
@@ -95,6 +98,7 @@ public class UserHistoryService {
         long ticketCount = ticketCountFuture.join();
         long likedPopupCount = likedPopupCountFuture.join();
 
+        // TODO: 리뷰수는 현재 0으로 고정
         return new UserActivityStatisticsResponse(
             ticketCount,
             drawStats != null ? drawStats.totalCount() : 0,

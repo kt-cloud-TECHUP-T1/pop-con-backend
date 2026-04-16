@@ -13,8 +13,6 @@ import org.springframework.data.repository.query.Param;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 public interface DrawEntryRepository extends JpaRepository<DrawEntry, Long> {
 	boolean existsByUserIdAndDrawOption_Id(Long userId, Long drawOptionId);
@@ -36,12 +34,12 @@ public interface DrawEntryRepository extends JpaRepository<DrawEntry, Long> {
     long countByUserIdAndStatus(Long userId, DrawEntryStatus status);
 
     @Query("SELECT COUNT(de) FROM DrawEntry de JOIN de.drawOption do JOIN do.draw d " +
-           "WHERE de.userId = :userId AND de.status = 'APPLIED' AND d.drawCloseAt > :now")
-    long countOngoingByUserId(@Param("userId") Long userId, @Param("now") LocalDateTime now);
+           "WHERE de.userId = :userId AND de.status = :status AND d.drawCloseAt > :now")
+    long countOngoingByUserId(@Param("userId") Long userId, @Param("status") DrawEntryStatus status, @Param("now") LocalDateTime now);
 
     @Query("SELECT COUNT(de) FROM DrawEntry de JOIN de.drawOption do JOIN do.draw d " +
-           "WHERE de.userId = :userId AND de.status = 'APPLIED' AND d.drawCloseAt <= :now")
-    long countWaitingByUserId(@Param("userId") Long userId, @Param("now") LocalDateTime now);
+           "WHERE de.userId = :userId AND de.status = :status AND d.drawCloseAt <= :now")
+    long countWaitingByUserId(@Param("userId") Long userId, @Param("status") DrawEntryStatus status, @Param("now") LocalDateTime now);
   
     // 테스트 초기화용: drawId 기준 응모 내역 하드 딜리트 (소프트 딜리트된 옵션의 응모도 포함)
     @Modifying

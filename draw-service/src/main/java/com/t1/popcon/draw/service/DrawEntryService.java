@@ -314,13 +314,13 @@ public class DrawEntryService {
 
     @Transactional(readOnly = true)
     public DrawStatisticsResponse getDrawStatistics(Long userId) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         return new DrawStatisticsResponse(
             drawEntryRepository.countByUserId(userId),
             drawEntryRepository.countByUserIdAndStatus(userId, DrawEntryStatus.WINNER),
             drawEntryRepository.countByUserIdAndStatus(userId, DrawEntryStatus.FAILED),
-            drawEntryRepository.countOngoingByUserId(userId, now),
-            drawEntryRepository.countWaitingByUserId(userId, now)
+            drawEntryRepository.countOngoingByUserId(userId, DrawEntryStatus.APPLIED, now),
+            drawEntryRepository.countWaitingByUserId(userId, DrawEntryStatus.APPLIED, now)
         );
     }
 }

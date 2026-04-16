@@ -67,12 +67,14 @@ public class BidService {
 
     @Transactional(readOnly = true)
     public AuctionStatisticsResponse getAuctionStatistics(Long userId) {
+        if (userId == null || userId <= 0) {
+            throw new IllegalArgumentException("Invalid user ID: " + userId);
+        }
         return new AuctionStatisticsResponse(
-          bidRepository.countByUserId(userId),
-          bidRepository.countByUserIdAndStatus(userId, BidStatus.SUCCESS)
+            bidRepository.countByUserId(userId),
+            bidRepository.countByUserIdAndStatus(userId, BidStatus.SUCCESS)
         );
     }
-
     public Long getAuctionIdByOptionId(Long optionId) {
         return auctionOptionRepository.findByIdWithAuction(optionId)
             .map(option -> option.getAuction().getId())
