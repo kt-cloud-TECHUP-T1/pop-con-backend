@@ -1,4 +1,6 @@
 spring:
+  config:
+    import: classpath:application-metrics-slo.yml
   mvc:
     async:
       request-timeout: 3600000
@@ -60,7 +62,6 @@ services:
     url: ${POPUP_SERVICE_URL:http://backend-popup-svc:8080}
   draw-service:
     url: ${DRAW_SERVICE_URL:http://backend-draw-svc:8080}
-
 
 management:
   endpoints:
