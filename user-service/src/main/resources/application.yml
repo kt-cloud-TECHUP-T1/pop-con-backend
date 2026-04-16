@@ -1,4 +1,8 @@
 spring:
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
   datasource:
     url: jdbc:h2:mem:popcon
     driver-class-name: org.h2.Driver
@@ -45,3 +49,11 @@ services:
     url: ${TICKET_SERVICE_URL}
   popup-service:
     url: ${POPUP_SERVICE_URL}
+
+s3:
+  endpoint: ${S3_ENDPOINT}
+  bucket: ${S3_BUCKET}
+  region: ${S3_REGION:ap-northeast-2}
+  access-key: ${S3_ACCESS_KEY}
+  secret-key: ${S3_SECRET_KEY}
+  base-url: ${S3_BASE_URL}
