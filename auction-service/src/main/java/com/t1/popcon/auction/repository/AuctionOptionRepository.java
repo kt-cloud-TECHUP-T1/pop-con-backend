@@ -33,4 +33,9 @@ public interface AuctionOptionRepository extends JpaRepository<AuctionOption, Lo
     @Modifying
     @Query("UPDATE AuctionOption ao SET ao.remainingStock = ao.remainingStock - 1, ao.version = ao.version + 1 WHERE ao.id = :id AND ao.remainingStock > 0")
     int decreaseStockAtomic(@Param("id") Long id);
+
+    // 테스트 초기화용: auctionId 기준 remainingStock 원복 (auction.stockPerOption 기준)
+    @Modifying
+    @Query(value = "UPDATE auction_options ao JOIN auctions a ON ao.auction_id = a.id SET ao.remaining_stock = a.stock_per_option WHERE ao.auction_id = :auctionId AND ao.deleted = false", nativeQuery = true)
+    int resetRemainingStockByAuctionId(@Param("auctionId") Long auctionId);
 }

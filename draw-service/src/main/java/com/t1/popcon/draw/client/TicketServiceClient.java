@@ -5,6 +5,8 @@ import com.t1.popcon.draw.client.config.FeignClientConfig;
 import com.t1.popcon.draw.client.dto.TicketIssueRequest;
 import com.t1.popcon.draw.client.dto.TicketIssueResponse;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -17,4 +19,8 @@ public interface TicketServiceClient {
 
     @PostMapping("/internal/tickets")
     ApiResponse<TicketIssueResponse> issueTicket(@RequestBody TicketIssueRequest request);
+
+    // 테스트 초기화용: popupId 기준 티켓 전체 삭제
+    @DeleteMapping("/internal/admin/tickets/{popupId}")
+    ApiResponse<Void> deleteTicketsByPopupId(@PathVariable("popupId") Long popupId);
 }
