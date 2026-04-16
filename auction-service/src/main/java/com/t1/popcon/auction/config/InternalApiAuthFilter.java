@@ -21,7 +21,6 @@ import java.util.List;
 @Component
 public class InternalApiAuthFilter extends OncePerRequestFilter {
 
-    private static final String INTERNAL_API_PREFIX = "/internal/";
     private static final String INTERNAL_SECRET_HEADER = "X-Internal-Secret";
 
     @Value("${internal.api-secret}")
@@ -29,7 +28,9 @@ public class InternalApiAuthFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !request.getRequestURI().startsWith(INTERNAL_API_PREFIX);
+        String uri = request.getRequestURI();
+        // 서비스 prefix 없는 내부 경로(/internal/)와 게이트웨이 라우팅용 경로(/auctions/internal/) 모두 처리
+        return !uri.startsWith("/internal/") && !uri.startsWith("/auctions/internal/");
     }
 
     @Override
