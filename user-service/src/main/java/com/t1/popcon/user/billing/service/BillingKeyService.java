@@ -44,7 +44,13 @@ public class BillingKeyService {
 			throw new CustomException(ErrorCode.PAYMENT_FETCH_FAILED, "유효하지 않은 빌링키 상태입니다.");
 		}
 
-		// 4. DB 저장 (첫 등록이면 isDefault = true)
+		// 4. 중복 등록 확인 (마스킹된 카드번호, 카드사, PG사 조합)
+		if (billingKeyRepository.existsByUserAndCardNumberAndCardNameAndPgProviderAndIsActiveTrue(
+			user, response.getCardNumber(), response.getCardName(), response.getPgProvider())) {
+			throw new CustomException(ErrorCode.BILLING_KEY_ALREADY_EXISTS);
+		}
+
+		// 5. DB 저장 (첫 등록이면 isDefault = true)
 		UserBillingKey newBillingKey = UserBillingKey.builder()
 			.user(user)
 			.customerUid(response.billingKey())

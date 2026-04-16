@@ -17,4 +17,7 @@ public interface UserBillingKeyRepository extends JpaRepository<UserBillingKey, 
 	List<UserBillingKey> findAllByUserAndIsActiveTrue(User user);
 
 	Optional<UserBillingKey> findByUserAndIsDefaultTrueAndIsActiveTrue(User user);
+
+	boolean existsByUserAndCardNumberAndCardNameAndPgProviderAndIsActiveTrue(
+		User user, String cardNumber, String cardName, String pgProvider);
 }
