@@ -19,6 +19,7 @@ import com.t1.popcon.draw.dto.response.DrawEntryResultResponse;
 import com.t1.popcon.draw.dto.response.DrawStatisticsResponse;
 import com.t1.popcon.draw.repository.DrawEntryRepository;
 import com.t1.popcon.draw.repository.DrawOptionRepository;
+import com.t1.popcon.queue.common.redis.AntiMacroScoreRepository;
 import feign.FeignException;
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -48,11 +49,13 @@ public class DrawEntryService {
     private static final String DISPLAY_DRAW_PENDING = "추첨 대기";
     private static final String DISPLAY_ANNOUNCEMENT_PENDING = "결과 발표 대기";
     private static final String DISPLAY_TICKET_ISSUED = "티켓 발급 완료";
+    private static final int SILENT_DROP_THRESHOLD = 80;
 
     private final DrawEntryRepository drawEntryRepository;
     private final DrawOptionRepository drawOptionRepository;
     private final PopupServiceClient popupServiceClient;
     private final UserServiceClient userServiceClient;
+    private final AntiMacroScoreRepository antiMacroScoreRepository;
     private final EncryptionService encryptionService;
     private final Clock clock;
     private final MeterRegistry registry;
@@ -74,6 +77,8 @@ public class DrawEntryService {
         }
 
         UserInternalResponse userInfo = fetchUserInfo(userId);
+        int macroScore = antiMacroScoreRepository.getTotalScore(userId);
+        boolean isDropped = macroScore >= SILENT_DROP_THRESHOLD;
 
         DrawEntry entry = DrawEntry.builder()
             .userId(userId)
@@ -82,6 +87,7 @@ public class DrawEntryService {
             .encryptedPhoneNumber(userInfo.encryptedPhoneNumber())
             .isTermsAgreed(request.isTermsAgreed())
             .isPrivacyAgreed(request.isPrivacyAgreed())
+            .isDropped(isDropped)
             .build();
 
         try {
