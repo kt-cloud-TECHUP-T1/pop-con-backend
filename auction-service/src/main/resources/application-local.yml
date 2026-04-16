@@ -50,3 +50,5 @@ services:
     url: ${TICKET_SERVICE_URL:http://localhost:8086}
   popup-service:
     url: ${POPUP_SERVICE_URL:http://localhost:8082}
+  draw-service:
+    url: ${DRAW_SERVICE_URL:http://localhost:8084}
