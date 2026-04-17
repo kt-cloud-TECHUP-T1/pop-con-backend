@@ -29,6 +29,10 @@ public interface DrawEntryRepository extends JpaRepository<DrawEntry, Long> {
 
     Optional<DrawEntry> findByIdAndUserId(Long id, Long userId);
 
+    long countByDrawOption_Draw_Id(Long drawId);
+
+    long countByDrawOption_Draw_IdAndStatus(Long drawId, DrawEntryStatus status);
+
     long countByUserId(Long userId);
 
     long countByUserIdAndStatus(Long userId, DrawEntryStatus status);

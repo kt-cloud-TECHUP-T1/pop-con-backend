@@ -89,6 +89,7 @@ public class DrawResultService {
         LocalDateTime now = LocalDateTime.now(clock);
         entry.markResultChecked(now);
 
+        Integer topPercent = calculateTopPercent(draw.getId(), entry.getStatus());
         TicketIssueResponse ticket = issueDrawTicket(entry, draw);
         entry.markTicketIssued(now);
 
@@ -98,7 +99,7 @@ public class DrawResultService {
             entry.getStatus(),
             draw.getAnnouncementAt(),
             entry.getResultCheckedAt(),
-            null,
+            topPercent,
             ticket
         );
     }
@@ -129,6 +130,20 @@ public class DrawResultService {
         }
 
         return winnerCount;
+    }
+
+    private Integer calculateTopPercent(Long drawId, DrawEntryStatus status) {
+        if (status != DrawEntryStatus.WINNER) {
+            return null;
+        }
+
+        long totalParticipantCount = drawEntryRepository.countByDrawOption_Draw_Id(drawId);
+        if (totalParticipantCount <= 0) {
+            return null;
+        }
+
+        long totalWinnerCount = drawEntryRepository.countByDrawOption_Draw_IdAndStatus(drawId, DrawEntryStatus.WINNER);
+        return (int) ((totalWinnerCount * 100) / totalParticipantCount);
     }
 
     private void validateConfirmable(DrawEntry entry) {
