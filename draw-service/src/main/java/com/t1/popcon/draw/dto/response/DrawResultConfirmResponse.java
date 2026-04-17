@@ -13,7 +13,7 @@ public record DrawResultConfirmResponse(
     boolean hasTicket,
     LocalDateTime announcementAt,
     LocalDateTime resultCheckedAt,
-    Integer winningRatePercent,
+    String winningRatePercent,
     TicketIssueResponse ticket
 ) {
     public static DrawResultConfirmResponse of(
@@ -22,7 +22,7 @@ public record DrawResultConfirmResponse(
         DrawEntryStatus status,
         LocalDateTime announcementAt,
         LocalDateTime resultCheckedAt,
-        Integer topPercent,
+        String winningRatePercent,
         TicketIssueResponse ticket
     ) {
         return DrawResultConfirmResponse.builder()
@@ -32,7 +32,7 @@ public record DrawResultConfirmResponse(
             .hasTicket(ticket != null)
             .announcementAt(announcementAt)
             .resultCheckedAt(resultCheckedAt)
-            .winningRatePercent(topPercent)
+            .winningRatePercent(winningRatePercent)
             .ticket(ticket)
             .build();
     }

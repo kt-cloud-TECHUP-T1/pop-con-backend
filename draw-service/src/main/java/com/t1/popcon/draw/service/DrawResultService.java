@@ -80,7 +80,7 @@ public class DrawResultService {
 
     @Transactional
     public DrawResultConfirmResponse confirmResult(Long userId, Long drawEntryId) {
-        DrawEntry entry = drawEntryRepository.findByIdAndUserId(drawEntryId, userId)
+        DrawEntry entry = drawEntryRepository.findByIdAndUserIdForUpdate(drawEntryId, userId)
             .orElseThrow(() -> new CustomException(ErrorCode.DRAW_ENTRY_NOT_FOUND));
 
         validateConfirmable(entry);
@@ -89,7 +89,7 @@ public class DrawResultService {
         LocalDateTime now = LocalDateTime.now(clock);
         entry.markResultChecked(now);
 
-        Integer topPercent = calculateTopPercent(draw.getId(), entry.getStatus());
+        String winningRatePercent = calculateWinningRatePercent(draw.getId(), entry.getStatus());
         TicketIssueResponse ticket = null;
         if (entry.getStatus() == DrawEntryStatus.WINNER) {
             ticket = issueDrawTicket(entry, draw);
@@ -102,7 +102,7 @@ public class DrawResultService {
             entry.getStatus(),
             draw.getAnnouncementAt(),
             entry.getResultCheckedAt(),
-            topPercent,
+            winningRatePercent,
             ticket
         );
     }
@@ -135,7 +135,7 @@ public class DrawResultService {
         return winnerCount;
     }
 
-    private Integer calculateTopPercent(Long drawId, DrawEntryStatus status) {
+    private String calculateWinningRatePercent(Long drawId, DrawEntryStatus status) {
         if (status != DrawEntryStatus.WINNER) {
             return null;
         }
@@ -146,7 +146,19 @@ public class DrawResultService {
         }
 
         long totalWinnerCount = drawEntryRepository.countByDrawOption_Draw_IdAndStatus(drawId, DrawEntryStatus.WINNER);
-        return (int) ((totalWinnerCount * 100) / totalParticipantCount);
+        double winningRatePercent = (double) totalWinnerCount * 100.0d / totalParticipantCount;
+
+        if (winningRatePercent > 50.0d) {
+            return null;
+        }
+        if (winningRatePercent == 0.0d) {
+            return "0%";
+        }
+        if (winningRatePercent < 1.0d) {
+            return "<1%";
+        }
+
+        return (long) Math.floor(winningRatePercent) + "%";
     }
 
     private void validateConfirmable(DrawEntry entry) {
