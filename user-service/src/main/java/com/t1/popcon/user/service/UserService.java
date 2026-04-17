@@ -39,9 +39,9 @@ public class UserService {
     private static final String NICKNAME_CONSTRAINT = "uk_users_nickname";
     private static final String PHONE_HASH_CONSTRAINT = "uk_users_phone_hash";
 
-    /** 닉네임 유효성 패턴: 한글·영문·숫자 혼합 2~20자, 특수문자·공백 불가 */
+    /** 닉네임 유효성 패턴: 한글·영문·숫자 2~20자, 언더바(_) 최대 1개 허용, 공백·기타 특수문자 불가 */
     private static final Pattern NICKNAME_PATTERN =
-            Pattern.compile("^[가-힣a-zA-Z0-9]{2,20}$");
+            Pattern.compile("^(?!.*_.*_)[가-힣a-zA-Z0-9_]{2,20}$");
 
     private final UserRepository userRepository;
     private final EncryptionService encryptionService;
