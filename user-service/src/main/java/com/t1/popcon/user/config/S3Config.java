@@ -7,6 +7,7 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
 
 import java.net.URI;
 
@@ -21,15 +22,20 @@ public class S3Config {
 
     @Bean
     public S3Client s3Client() {
-        return S3Client.builder()
-                .endpointOverride(URI.create(s3Properties.getEndpoint()))
+        S3ClientBuilder builder = S3Client.builder()
                 .region(Region.of(s3Properties.getRegion()))
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(
                                 s3Properties.getAccessKey(),
                                 s3Properties.getSecretKey()
                         )
-                ))
-                .build();
+                ));
+
+        // endpoint가 설정된 경우에만 override (미설정 시 AWS 기본 엔드포인트 사용)
+        if (s3Properties.getEndpoint() != null && !s3Properties.getEndpoint().isBlank()) {
+            builder.endpointOverride(URI.create(s3Properties.getEndpoint()));
+        }
+
+        return builder.build();
     }
 }

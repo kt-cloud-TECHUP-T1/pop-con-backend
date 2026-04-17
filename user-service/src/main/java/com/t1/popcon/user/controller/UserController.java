@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -48,7 +49,7 @@ public class UserController {
     public ApiResponse<UserProfileUpdateResponse> updateMyProfile(
             @AuthenticationPrincipal AuthUser authUser,
             @RequestParam(required = false) String nickname,
-            @RequestParam(required = false) MultipartFile file,
+            @RequestPart(name = "file", required = false) MultipartFile file,
             @RequestParam(defaultValue = "false") boolean deleteImage
     ) {
         UserProfileUpdateResponse response =

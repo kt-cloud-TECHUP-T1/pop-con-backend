@@ -14,6 +14,8 @@ import com.t1.popcon.user.dto.UserProfileUpdateResponse;
 import com.t1.popcon.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.web.multipart.MultipartFile;
@@ -68,6 +70,8 @@ public class UserService {
     /**
      * 사용자 프로필 수정 (PATCH /users/me/profile)
      * - nickname, file, deleteImage 중 변경할 항목만 처리
+     * - file과 deleteImage를 동시에 요청하면 예외
+     * - S3 삭제는 DB 커밋 이후 afterCommit에서 실행 (트랜잭션 롤백 방지)
      */
     @Transactional
     public UserProfileUpdateResponse updateProfile(
@@ -76,34 +80,55 @@ public class UserService {
             MultipartFile file,
             boolean deleteImage
     ) {
+        // file과 deleteImage 동시 요청 불가
+        if (file != null && !file.isEmpty() && deleteImage) {
+            throw new CustomException(ErrorCode.INVALID_INPUT, "이미지 업로드와 삭제를 동시에 요청할 수 없습니다.");
+        }
+
         User user = getUserOrThrow(userId);
 
         // 닉네임 변경
         if (nickname != null && !nickname.isBlank()) {
             validateNickname(nickname);
-            checkNicknameDuplicate(nickname);
-            user.updateNickname(nickname);
+            checkNicknameDuplicate(userId, nickname);
+            try {
+                user.updateNickname(nickname);
+            } catch (DataIntegrityViolationException e) {
+                if (isNicknameConflict(e)) {
+                    throw new CustomException(ErrorCode.NICKNAME_DUPLICATED);
+                }
+                throw e;
+            }
         }
 
-        // 이미지 업로드 (새 파일이 있으면 기존 삭제 후 업로드)
+        // 새 이미지 업로드: 업로드 먼저, 기존 이미지 삭제는 커밋 후 실행
         if (file != null && !file.isEmpty()) {
-            deleteExistingImage(user);
+            String oldUrl = user.getProfileImageUrl();
             String newUrl = s3Service.uploadProfileImage(userId, file);
             user.updateProfileImageUrl(newUrl);
+            scheduleS3Delete(oldUrl);
         } else if (deleteImage) {
-            // 이미지 삭제만 요청
-            deleteExistingImage(user);
+            // 이미지 삭제만 요청: DB 업데이트 후 커밋 후 S3 삭제
+            String oldUrl = user.getProfileImageUrl();
             user.updateProfileImageUrl(null);
+            scheduleS3Delete(oldUrl);
         }
 
         return new UserProfileUpdateResponse(user.getNickname(), user.getProfileImageUrl());
     }
 
-    /** 기존 프로필 이미지가 있으면 S3에서 삭제 */
-    private void deleteExistingImage(User user) {
-        if (user.getProfileImageUrl() != null) {
-            s3Service.deleteProfileImage(user.getProfileImageUrl());
-        }
+    /**
+     * DB 커밋 이후 S3 이미지 삭제 예약
+     * 트랜잭션 롤백 시 S3 삭제가 실행되지 않도록 afterCommit에서 처리
+     */
+    private void scheduleS3Delete(String imageUrl) {
+        if (imageUrl == null) return;
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                s3Service.deleteProfileImage(imageUrl);
+            }
+        });
     }
 
     /** 닉네임 형식 검증: 한글 2~10자 또는 영문/숫자 1~16자 */
@@ -113,9 +138,9 @@ public class UserService {
         }
     }
 
-    /** 닉네임 중복 검증 */
-    private void checkNicknameDuplicate(String nickname) {
-        if (userRepository.existsByNickname(nickname)) {
+    /** 닉네임 중복 검증 - 본인 닉네임은 제외 */
+    private void checkNicknameDuplicate(Long userId, String nickname) {
+        if (userRepository.existsByNicknameAndIdNot(nickname, userId)) {
             throw new CustomException(ErrorCode.NICKNAME_DUPLICATED);
         }
     }
