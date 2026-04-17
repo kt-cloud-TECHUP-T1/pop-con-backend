@@ -209,6 +209,16 @@ public class User extends BaseSoftDeleteEntity {
         this.phoneHash = phoneHash;
     }
 
+    /** 닉네임 변경 */
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    /** 프로필 이미지 URL 변경 (null 허용 - 삭제 시 null) */
+    public void updateProfileImageUrl(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
+    }
+
     public void block() {
         this.status = UserStatus.BLOCKED;
     }

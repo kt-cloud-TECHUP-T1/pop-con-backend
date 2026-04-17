@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -123,6 +124,20 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(ec.getStatus())
                 .header("Allow", allowMethods)
+                .body(ApiResponse.fail(ec));
+    }
+
+    // 파일 크기 초과 처리 (Spring multipart 제한)
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<?>> handleMaxUploadSize(
+            MaxUploadSizeExceededException e,
+            HttpServletRequest request
+    ) {
+        ErrorCode ec = ErrorCode.FILE_SIZE_EXCEEDED;
+
+        log.warn("File size exceeded", baseLog(ec));
+
+        return ResponseEntity.status(ec.getStatus())
                 .body(ApiResponse.fail(ec));
     }
 
