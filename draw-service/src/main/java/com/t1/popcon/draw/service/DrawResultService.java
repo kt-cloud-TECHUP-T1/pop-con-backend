@@ -92,13 +92,15 @@ public class DrawResultService {
         TicketIssueResponse ticket = issueDrawTicket(entry, draw);
         entry.markTicketIssued(now);
 
-        return DrawResultConfirmResponse.builder()
-            .drawEntryId(entry.getId())
-            .drawId(draw.getId())
-            .announcementAt(draw.getAnnouncementAt())
-            .resultCheckedAt(entry.getResultCheckedAt())
-            .ticket(ticket)
-            .build();
+        return DrawResultConfirmResponse.of(
+            entry.getId(),
+            draw.getId(),
+            entry.getStatus(),
+            draw.getAnnouncementAt(),
+            entry.getResultCheckedAt(),
+            null,
+            ticket
+        );
     }
 
     private void validateDrawReady(Draw draw) {
