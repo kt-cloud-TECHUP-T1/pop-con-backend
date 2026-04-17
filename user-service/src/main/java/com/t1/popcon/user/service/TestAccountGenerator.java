@@ -77,6 +77,9 @@ public class TestAccountGenerator {
     private static final long ONE_YEAR_MS = 365L * 24 * 60 * 60 * 1000;
 
     public String generateBulk(int count) throws InterruptedException, IOException {
+        int startOffset = getStartOffset();
+        log.info("[TestAccount] 시작 인덱스 확인: {} (이후 {}개 생성 예정)", startOffset, count);
+
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         String fileName = "/tmp/load_test_accounts_" + timestamp + ".csv";
         File file = new File(fileName);
@@ -93,7 +96,7 @@ public class TestAccountGenerator {
             List<CompletableFuture<CsvRow>> futures = new ArrayList<>();
 
             for (int i = 1; i <= count; i++) {
-                final int index = i;
+                final int index = startOffset + i; // 자동 추적된 오프셋 적용
                 futures.add(CompletableFuture.supplyAsync(() -> {
                     try {
                         return self.createSingleAccount(index);
@@ -111,17 +114,21 @@ public class TestAccountGenerator {
                 if (futures.size() >= BATCH_SIZE || i == count) {
                     CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
                     for (CompletableFuture<CsvRow> f : futures) {
-                        CsvRow row = f.get();
-                        if (row != null) {
-                            writer.write(row.toCsv());
-                            writer.newLine();
+                        try {
+                            CsvRow row = f.get();
+                            if (row != null) {
+                                writer.write(row.toCsv());
+                                writer.newLine();
+                            }
+                        } catch (Exception e) {
+                            log.error("[TestAccount] 결과 처리 중 오류: {}", e.getMessage());
                         }
                     }
                     futures.clear();
                     writer.flush();
                 }
             }
-        } catch (ExecutionException e) {
+        } catch (Exception e) {
             log.error("[TestAccount] CSV 작성 중 오류 발생: {}", e.getMessage());
             throw new RuntimeException(e);
         } finally {
@@ -130,17 +137,29 @@ public class TestAccountGenerator {
                 if (!executor.awaitTermination(1, TimeUnit.MINUTES)) {
                     List<Runnable> cancelledTasks = executor.shutdownNow();
                     log.warn("[TestAccount] 스레드 풀 종료 타임아웃. 취소된 작업 수: {}, 총 시도된 작업: {}", cancelledTasks.size(), count);
-                    log.warn("[TestAccount] CSV 기록과 실제 DB 생성 수에 불일치가 발생했을 수 있습니다.");
                 }
             } catch (InterruptedException e) {
-                List<Runnable> cancelledTasks = executor.shutdownNow();
-                log.warn("[TestAccount] 스레드 풀 종료 중 인터럽트 발생. 취소된 작업 수: {}", cancelledTasks.size());
+                executor.shutdownNow();
                 Thread.currentThread().interrupt();
             }
         }
 
         log.info("[TestAccount] 대량 계정 생성 완료. 파일 위치: {}", fileName);
         return fileName;
+    }
+
+    private int getStartOffset() {
+        return userRepository.findFirstByNicknameStartingWithOrderByIdDesc("Tester_")
+                .map(user -> {
+                    try {
+                        String nickname = user.getNickname();
+                        return Integer.parseInt(nickname.substring(7)); // "Tester_" 이후 숫자 추출
+                    } catch (Exception e) {
+                        log.warn("[TestAccount] 마지막 인덱스 파싱 실패 (nickname: {}), 0부터 시작합니다.", user.getNickname());
+                        return 0;
+                    }
+                })
+                .orElse(0); // 데이터가 없으면 0 반환
     }
 
     @Transactional
