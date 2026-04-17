@@ -7,6 +7,7 @@ import java.time.LocalTime;
 
 @Builder
 public record ReservationDetailResponse(
+    Long ticketId,
     String reservationNo,
     String popupTitle,
     String popupAddress,

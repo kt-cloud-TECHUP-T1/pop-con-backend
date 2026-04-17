@@ -5,6 +5,7 @@ import com.t1.popcon.auction.bid.client.TicketServiceClient;
 import com.t1.popcon.auction.bid.client.UserBillingClient;
 import com.t1.popcon.auction.bid.client.dto.BillingKeyInternalResponse;
 import com.t1.popcon.auction.bid.client.dto.PopupInternalResponse;
+import com.t1.popcon.auction.bid.client.dto.TicketDetailResponse;
 import com.t1.popcon.auction.bid.client.dto.TicketIssueRequest;
 import com.t1.popcon.auction.bid.client.dto.TicketIssueResponse;
 import com.t1.popcon.auction.bid.domain.Bid;
@@ -106,11 +107,8 @@ public class BidService {
                 .orElseThrow(() -> new CustomException(ErrorCode.BID_NOT_FOUND));
 
         PriceDetails priceDetails = computePriceDetails(bid, reservationNo);
-        return buildReservationDetailResponse(
-                bid,
-                priceDetails.startPrice(),
-                priceDetails.discountAmount(),
-                priceDetails.bidPrice());
+        Long ticketId = fetchTicketId(reservationNo, userId);
+        return buildReservationDetailResponse(bid, priceDetails.startPrice(), priceDetails.discountAmount(), priceDetails.bidPrice(), ticketId);
     }
 
     public ReservationDetailResponse getBidDetail(Long userId, Long bidId) {
@@ -118,11 +116,8 @@ public class BidService {
                 .orElseThrow(() -> new CustomException(ErrorCode.BID_NOT_FOUND));
 
         PriceDetails priceDetails = computePriceDetails(bid, bid.getReservationNo());
-        return buildReservationDetailResponse(
-                bid,
-                priceDetails.startPrice(),
-                priceDetails.discountAmount(),
-                priceDetails.bidPrice());
+        Long ticketId = fetchTicketId(bid.getReservationNo(), userId);
+        return buildReservationDetailResponse(bid, priceDetails.startPrice(), priceDetails.discountAmount(), priceDetails.bidPrice(), ticketId);
     }
 
     private PriceDetails computePriceDetails(Bid bid, String reservationNo) {
@@ -143,12 +138,26 @@ public class BidService {
         return new PriceDetails(startPrice, bidPrice, discountAmount);
     }
 
+    private Long fetchTicketId(String reservationNo, Long userId) {
+        try {
+            ApiResponse<TicketDetailResponse> response = ticketServiceClient.getTicketByReservationNo(reservationNo, userId);
+            if (response != null && response.getData() != null) {
+                return response.getData().ticketId();
+            }
+        } catch (Exception e) {
+            log.warn("Ticket lookup failed. reservationNo={}, error={}", reservationNo, e.getMessage());
+        }
+        return null;
+    }
+
     private ReservationDetailResponse buildReservationDetailResponse(
             Bid bid,
             Integer startPrice,
             Integer discountAmount,
-            Integer bidPrice) {
+            Integer bidPrice,
+            Long ticketId) {
         return ReservationDetailResponse.builder()
+                .ticketId(ticketId)
                 .reservationNo(bid.getReservationNo())
                 .popupTitle(bid.getPopupTitle())
                 .popupAddress(bid.getPopupAddress())
