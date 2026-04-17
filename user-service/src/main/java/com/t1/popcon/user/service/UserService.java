@@ -39,9 +39,9 @@ public class UserService {
     private static final String NICKNAME_CONSTRAINT = "uk_users_nickname";
     private static final String PHONE_HASH_CONSTRAINT = "uk_users_phone_hash";
 
-    /** 닉네임 유효성 패턴: 한글 2~10자 또는 영문/숫자 1~16자, 특수문자·공백 불가 */
+    /** 닉네임 유효성 패턴: 한글·영문·숫자 혼합 2~20자, 특수문자·공백 불가 */
     private static final Pattern NICKNAME_PATTERN =
-            Pattern.compile("^([가-힣]{2,10}|[a-zA-Z0-9]{1,16})$");
+            Pattern.compile("^[가-힣a-zA-Z0-9]{2,20}$");
 
     private final UserRepository userRepository;
     private final EncryptionService encryptionService;
@@ -91,8 +91,10 @@ public class UserService {
         if (nickname != null && !nickname.isBlank()) {
             validateNickname(nickname);
             checkNicknameDuplicate(userId, nickname);
+            user.updateNickname(nickname);
             try {
-                user.updateNickname(nickname);
+                // saveAndFlush로 커밋 전 DB 제약 위반을 트랜잭션 내에서 즉시 감지
+                userRepository.saveAndFlush(user);
             } catch (DataIntegrityViolationException e) {
                 if (isNicknameConflict(e)) {
                     throw new CustomException(ErrorCode.NICKNAME_DUPLICATED);
@@ -123,6 +125,11 @@ public class UserService {
      */
     private void scheduleS3Delete(String imageUrl) {
         if (imageUrl == null) return;
+        // 활성 트랜잭션이 없으면 afterCommit 콜백 등록 불가 → 즉시 삭제 시도
+        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+            s3Service.deleteProfileImage(imageUrl);
+            return;
+        }
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
@@ -134,7 +141,7 @@ public class UserService {
     /** 닉네임 형식 검증: 한글 2~10자 또는 영문/숫자 1~16자 */
     private void validateNickname(String nickname) {
         if (!NICKNAME_PATTERN.matcher(nickname).matches()) {
-            throw new CustomException(ErrorCode.INVALID_INPUT, "한글 2~10자, 영문 16자 이내만 가능합니다.");
+            throw new CustomException(ErrorCode.INVALID_INPUT, "한글·영문·숫자 혼합 2~20자만 가능합니다.");
         }
     }
 

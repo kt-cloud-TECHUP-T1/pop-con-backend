@@ -55,7 +55,8 @@ public class S3Service {
                             .build(),
                     RequestBody.fromInputStream(file.getInputStream(), file.getSize())
             );
-        } catch (IOException e) {
+        } catch (IOException | SdkException e) {
+            // IOException: 스트림 읽기 실패 / SdkException: S3 API 호출 실패
             log.error("[S3] 프로필 이미지 업로드 실패 - userId: {}, key: {}", userId, key, e);
             throw new CustomException(ErrorCode.ERROR_SYSTEM);
         }
@@ -92,8 +93,9 @@ public class S3Service {
 
     /** 파일 형식 및 크기 검증 */
     private void validateFile(MultipartFile file) {
+        // 빈 파일은 입력값 오류로 처리 (파일 형식 문제와 구분)
         if (file.isEmpty()) {
-            throw new CustomException(ErrorCode.INVALID_FILE_TYPE);
+            throw new CustomException(ErrorCode.INVALID_INPUT);
         }
 
         String contentType = file.getContentType();
