@@ -19,4 +19,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findFirstByNicknameStartingWithOrderByIdDesc(String prefix);
 
     boolean existsByNickname(String nickname);
-    }
+
+    /** 닉네임 중복 확인 - 본인 제외 (프로필 수정 시 사용) */
+    boolean existsByNicknameAndIdNot(String nickname, Long id);
+}

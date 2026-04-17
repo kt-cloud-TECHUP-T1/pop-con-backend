@@ -10,15 +10,20 @@ import com.t1.popcon.user.dto.history.TicketPurchaserProfileResponse;
 import com.t1.popcon.user.dto.UserLookupResponse;
 import com.t1.popcon.user.dto.UserInternalResponse;
 import com.t1.popcon.user.dto.UserProfileResponse;
+import com.t1.popcon.user.dto.UserProfileUpdateResponse;
 import com.t1.popcon.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import com.t1.popcon.user.dto.UserCreateRequest;
 import com.t1.popcon.user.dto.UserCreateResponse;
@@ -34,9 +39,14 @@ public class UserService {
     private static final String NICKNAME_CONSTRAINT = "uk_users_nickname";
     private static final String PHONE_HASH_CONSTRAINT = "uk_users_phone_hash";
 
+    /** 닉네임 유효성 패턴: 한글·영문·숫자 혼합 2~20자, 특수문자·공백 불가 */
+    private static final Pattern NICKNAME_PATTERN =
+            Pattern.compile("^[가-힣a-zA-Z0-9]{2,20}$");
+
     private final UserRepository userRepository;
     private final EncryptionService encryptionService;
     private final BillingKeyService billingKeyService;
+    private final S3Service s3Service;
 
     @Value("${user.nickname.prefix:User}")
     private String nicknamePrefix;
@@ -55,6 +65,91 @@ public class UserService {
                 encryptionService.decrypt(user.getEncryptedBirthDate()),
                 encryptionService.decrypt(user.getEncryptedGender())
         );
+    }
+
+    /**
+     * 사용자 프로필 수정 (PATCH /users/me/profile)
+     * - nickname, file, deleteImage 중 변경할 항목만 처리
+     * - file과 deleteImage를 동시에 요청하면 예외
+     * - S3 삭제는 DB 커밋 이후 afterCommit에서 실행 (트랜잭션 롤백 방지)
+     */
+    @Transactional
+    public UserProfileUpdateResponse updateProfile(
+            Long userId,
+            String nickname,
+            MultipartFile file,
+            boolean deleteImage
+    ) {
+        // file과 deleteImage 동시 요청 불가
+        if (file != null && !file.isEmpty() && deleteImage) {
+            throw new CustomException(ErrorCode.INVALID_INPUT, "이미지 업로드와 삭제를 동시에 요청할 수 없습니다.");
+        }
+
+        User user = getUserOrThrow(userId);
+
+        // 닉네임 변경
+        if (nickname != null && !nickname.isBlank()) {
+            validateNickname(nickname);
+            checkNicknameDuplicate(userId, nickname);
+            user.updateNickname(nickname);
+            try {
+                // saveAndFlush로 커밋 전 DB 제약 위반을 트랜잭션 내에서 즉시 감지
+                userRepository.saveAndFlush(user);
+            } catch (DataIntegrityViolationException e) {
+                if (isNicknameConflict(e)) {
+                    throw new CustomException(ErrorCode.NICKNAME_DUPLICATED);
+                }
+                throw e;
+            }
+        }
+
+        // 새 이미지 업로드: 업로드 먼저, 기존 이미지 삭제는 커밋 후 실행
+        if (file != null && !file.isEmpty()) {
+            String oldUrl = user.getProfileImageUrl();
+            String newUrl = s3Service.uploadProfileImage(userId, file);
+            user.updateProfileImageUrl(newUrl);
+            scheduleS3Delete(oldUrl);
+        } else if (deleteImage) {
+            // 이미지 삭제만 요청: DB 업데이트 후 커밋 후 S3 삭제
+            String oldUrl = user.getProfileImageUrl();
+            user.updateProfileImageUrl(null);
+            scheduleS3Delete(oldUrl);
+        }
+
+        return new UserProfileUpdateResponse(user.getNickname(), user.getProfileImageUrl());
+    }
+
+    /**
+     * DB 커밋 이후 S3 이미지 삭제 예약
+     * 트랜잭션 롤백 시 S3 삭제가 실행되지 않도록 afterCommit에서 처리
+     */
+    private void scheduleS3Delete(String imageUrl) {
+        if (imageUrl == null) return;
+        // 활성 트랜잭션이 없으면 afterCommit 콜백 등록 불가 → 즉시 삭제 시도
+        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+            s3Service.deleteProfileImage(imageUrl);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                s3Service.deleteProfileImage(imageUrl);
+            }
+        });
+    }
+
+    /** 닉네임 형식 검증: 한글 2~10자 또는 영문/숫자 1~16자 */
+    private void validateNickname(String nickname) {
+        if (!NICKNAME_PATTERN.matcher(nickname).matches()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT, "한글·영문·숫자 혼합 2~20자만 가능합니다.");
+        }
+    }
+
+    /** 닉네임 중복 검증 - 본인 닉네임은 제외 */
+    private void checkNicknameDuplicate(Long userId, String nickname) {
+        if (userRepository.existsByNicknameAndIdNot(nickname, userId)) {
+            throw new CustomException(ErrorCode.NICKNAME_DUPLICATED);
+        }
     }
 
     /**
