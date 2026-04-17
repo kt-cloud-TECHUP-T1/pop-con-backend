@@ -16,5 +16,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByPhoneHash(String phoneHash);
 
+    Optional<User> findFirstByNicknameStartingWithOrderByIdDesc(String prefix);
+
     boolean existsByNickname(String nickname);
     }
