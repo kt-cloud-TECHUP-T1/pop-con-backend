@@ -9,11 +9,11 @@ import lombok.Builder;
 public record DrawResultConfirmResponse(
     Long drawEntryId,
     Long drawId,
-    String status,
-    boolean winner,
+    String resultType,
+    boolean hasTicket,
     LocalDateTime announcementAt,
     LocalDateTime resultCheckedAt,
-    Integer topPercent,
+    Integer winningRatePercent,
     TicketIssueResponse ticket
 ) {
     public static DrawResultConfirmResponse of(
@@ -28,11 +28,11 @@ public record DrawResultConfirmResponse(
         return DrawResultConfirmResponse.builder()
             .drawEntryId(drawEntryId)
             .drawId(drawId)
-            .status(status.name())
-            .winner(status == DrawEntryStatus.WINNER)
+            .resultType(status.name())
+            .hasTicket(ticket != null)
             .announcementAt(announcementAt)
             .resultCheckedAt(resultCheckedAt)
-            .topPercent(topPercent)
+            .winningRatePercent(topPercent)
             .ticket(ticket)
             .build();
     }

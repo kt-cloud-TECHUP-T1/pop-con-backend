@@ -288,7 +288,7 @@ public class DrawEntryService {
         LocalDateTime announcementAt = draw.getAnnouncementAt();
         boolean resultChecked = entry.getResultCheckedAt() != null;
         boolean resultAvailable = !now.isBefore(announcementAt) && entry.getStatus() != DrawEntryStatus.APPLIED;
-        boolean clickable = entry.getStatus() == DrawEntryStatus.WINNER && resultAvailable && !resultChecked;
+        boolean clickable = resultAvailable && !resultChecked;
 
         return DrawEntryResponse.builder()
             .id(entry.getId())
@@ -298,7 +298,7 @@ public class DrawEntryService {
             .price(DEFAULT_PRICE)
             .paidAt(entry.getPaidAt())
             .displayStatus(resolveDisplayStatus(entry, now, announcementAt))
-            .status(entry.getStatus().name())
+            .status(resolveExposedStatus(entry, now, announcementAt))
             .announcementAt(announcementAt)
             .resultAvailable(resultAvailable)
             .resultChecked(resultChecked)
@@ -317,6 +317,10 @@ public class DrawEntryService {
             return DISPLAY_ANNOUNCEMENT_PENDING;
         }
 
+        if (entry.getResultCheckedAt() == null) {
+            return "결과 확인하기";
+        }
+
         if (entry.getStatus() == DrawEntryStatus.WINNER) {
             return entry.getTicketIssuedAt() == null
                 ? DrawEntryStatus.WINNER.getDescription()
@@ -324,6 +328,18 @@ public class DrawEntryService {
         }
 
         return entry.getStatus().getDescription();
+    }
+
+    private String resolveExposedStatus(DrawEntry entry, LocalDateTime now, LocalDateTime announcementAt) {
+        if (entry.getStatus() == DrawEntryStatus.APPLIED) {
+            return DrawEntryStatus.APPLIED.name();
+        }
+
+        if (now.isBefore(announcementAt) || entry.getResultCheckedAt() == null) {
+            return DrawEntryStatus.APPLIED.name();
+        }
+
+        return entry.getStatus().name();
     }
 
     private boolean isDuplicateEntryViolation(DataIntegrityViolationException e) {
