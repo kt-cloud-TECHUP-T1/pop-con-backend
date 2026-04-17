@@ -90,8 +90,11 @@ public class DrawResultService {
         entry.markResultChecked(now);
 
         Integer topPercent = calculateTopPercent(draw.getId(), entry.getStatus());
-        TicketIssueResponse ticket = issueDrawTicket(entry, draw);
-        entry.markTicketIssued(now);
+        TicketIssueResponse ticket = null;
+        if (entry.getStatus() == DrawEntryStatus.WINNER) {
+            ticket = issueDrawTicket(entry, draw);
+            entry.markTicketIssued(now);
+        }
 
         return DrawResultConfirmResponse.of(
             entry.getId(),
@@ -147,7 +150,7 @@ public class DrawResultService {
     }
 
     private void validateConfirmable(DrawEntry entry) {
-        if (entry.getTicketIssuedAt() != null) {
+        if (entry.getStatus() == DrawEntryStatus.WINNER && entry.getTicketIssuedAt() != null) {
             throw new CustomException(ErrorCode.TICKET_ALREADY_ISSUED);
         }
 
@@ -159,10 +162,6 @@ public class DrawResultService {
         LocalDateTime now = LocalDateTime.now(clock);
         if (now.isBefore(draw.getAnnouncementAt())) {
             throw new CustomException(ErrorCode.DRAW_RESULT_NOT_ANNOUNCED);
-        }
-
-        if (entry.getStatus() != DrawEntryStatus.WINNER) {
-            throw new CustomException(ErrorCode.DRAW_NOT_WINNER);
         }
     }
 
