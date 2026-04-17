@@ -19,7 +19,7 @@ import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -100,7 +100,8 @@ public class QueueEntryService {
         Optional<Long> blockedUntilEpoch = blockRepository.getBlockedUntilEpoch(phaseType, phaseId, userId);
         if (blockedUntilEpoch.isPresent()) {
             String blockedUntil = Instant.ofEpochSecond(blockedUntilEpoch.get())
-                .atOffset(ZoneOffset.UTC)
+                .atZone(ZoneId.of("Asia/Seoul"))
+                .toLocalDateTime()
                 .toString();
             log.info("[Queue] 차단된 사용자 진입 시도 - phaseType={}, phaseId={}, userId={}",
                 phaseType, phaseId, userId % 1000);
