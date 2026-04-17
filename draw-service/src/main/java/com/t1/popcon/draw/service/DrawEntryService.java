@@ -299,7 +299,7 @@ public class DrawEntryService {
             .price(DEFAULT_PRICE)
             .paidAt(entry.getPaidAt())
             .displayStatus(resolveDisplayStatus(entry, now, announcementAt))
-            .status(resolveExposedStatus(entry, now, announcementAt))
+            .status(resolveExposedStatus(entry, resultAvailable, resultChecked))
             .announcementAt(announcementAt)
             .resultAvailable(resultAvailable)
             .resultChecked(resultChecked)
@@ -331,8 +331,8 @@ public class DrawEntryService {
         return entry.getStatus().getDescription();
     }
 
-    private String resolveExposedStatus(DrawEntry entry, LocalDateTime now, LocalDateTime announcementAt) {
-        if (now.isBefore(announcementAt) || entry.getResultCheckedAt() == null) {
+    private String resolveExposedStatus(DrawEntry entry, boolean resultAvailable, boolean resultChecked) {
+        if (!resultAvailable || !resultChecked) {
             return DrawEntryStatus.APPLIED.name();
         }
 

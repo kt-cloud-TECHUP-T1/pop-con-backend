@@ -3,6 +3,7 @@ package com.t1.popcon.draw.dto.response;
 import com.t1.popcon.draw.client.dto.TicketIssueResponse;
 import com.t1.popcon.draw.domain.DrawEntryStatus;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import lombok.Builder;
 
 @Builder
@@ -25,10 +26,12 @@ public record DrawResultConfirmResponse(
         String winningRatePercent,
         TicketIssueResponse ticket
     ) {
+        DrawEntryStatus confirmedStatus = Objects.requireNonNull(status, "status must not be null");
+
         return DrawResultConfirmResponse.builder()
             .drawEntryId(drawEntryId)
             .drawId(drawId)
-            .resultType(status.name())
+            .resultType(confirmedStatus.name())
             .hasTicket(ticket != null)
             .announcementAt(announcementAt)
             .resultCheckedAt(resultCheckedAt)
