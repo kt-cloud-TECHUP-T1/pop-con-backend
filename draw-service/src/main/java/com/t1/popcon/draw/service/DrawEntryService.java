@@ -44,13 +44,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class DrawEntryService {
 
     private static final String SUCCESS_CODE = "SUCCESS";
-    private static final String UNKNOWN_POPUP_TITLE = "\uc54c \uc218 \uc5c6\ub294 \ud31d\uc5c5";
+    private static final String UNKNOWN_POPUP_TITLE = "알 수 없는 팝업";
     private static final long DEFAULT_PRICE = 0L;
-    private static final String DISPLAY_IN_PROGRESS = "\uc9c4\ud589 \uc911";
-    private static final String DISPLAY_DRAW_PENDING = "\ucd94\ucca8 \ub300\uae30";
-    private static final String DISPLAY_ANNOUNCEMENT_PENDING = "\uacb0\uacfc \ubc1c\ud45c \ub300\uae30";
-    private static final String DISPLAY_TICKET_ISSUED = "\ud2f0\ucf13 \ubc1c\uae09 \uc644\ub8cc";
-    private static final String DISPLAY_RESULT_CONFIRM = "\uacb0\uacfc \ud655\uc778\ud558\uae30";
+    private static final String DISPLAY_IN_PROGRESS = "진행 중";
+    private static final String DISPLAY_DRAW_PENDING = "추첨 대기";
+    private static final String DISPLAY_ANNOUNCEMENT_PENDING = "결과 발표 대기";
+    private static final String DISPLAY_TICKET_ISSUED = "티켓 발급 완료";
+    private static final String DISPLAY_RESULT_CONFIRM = "결과 확인하기";
 
     @Value("${draw.silent-drop-threshold:80}")
     private int silentDropThreshold;
@@ -148,7 +148,7 @@ public class DrawEntryService {
             .entryDate(entry.getDrawOption().getEntryDate())
             .entryTime(entry.getDrawOption().getEntryTime())
             .userName(encryptionService.decrypt(entry.getEncryptedName()))
-            // Format the decrypted phone number with hyphens for display.
+            // 복호화된 전화번호를 하이픈 형식으로 포맷
             .userPhoneNumber(formatPhone(encryptionService.decrypt(entry.getEncryptedPhoneNumber())))
             .paidAt(entry.getPaidAt())
             .status(entry.getStatus().name())
@@ -166,7 +166,7 @@ public class DrawEntryService {
             .entryDate(drawOption.getEntryDate())
             .entryTime(drawOption.getEntryTime())
             .userName(encryptionService.decrypt(userInfo.encryptedName()))
-            // Format the decrypted phone number with hyphens for display.
+            // 복호화된 전화번호를 하이픈 형식으로 포맷
             .userPhoneNumber(formatPhone(encryptionService.decrypt(userInfo.encryptedPhoneNumber())))
             .build();
     }
@@ -346,7 +346,7 @@ public class DrawEntryService {
             || message.contains(DrawEntry.DRAW_UNIQUE_CONSTRAINT_NAME));
     }
 
-    /** Format a phone number as 010-XXXX-XXXX when possible. */
+    /** 전화번호를 가능한 경우 010-XXXX-XXXX 형식으로 포맷 */
     private static String formatPhone(String phone) {
         if (phone == null || phone.isBlank()) {
             return phone;
