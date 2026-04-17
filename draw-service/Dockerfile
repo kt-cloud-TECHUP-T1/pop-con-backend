@@ -7,7 +7,7 @@ RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 COPY draw-service/build/libs/*.jar app.jar
 
 ENV SPRING_PROFILES_ACTIVE=staging
-ENV JAVA_OPTS="-XX:InitialRAMPercentage=15.0 -XX:MaxRAMPercentage=75.0"
+ENV JAVA_OPTS="-XX:InitialRAMPercentage=40.0 -XX:MaxRAMPercentage=60.0"
 
 USER appuser
 
