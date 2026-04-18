@@ -15,4 +15,8 @@ public class DrawHistoryResponse {
     private LocalDateTime paidAt;
     private String displayStatus;
     private String status;
+    private LocalDateTime announcementAt;
+    private boolean resultAvailable;
+    private boolean resultChecked;
+    private boolean clickable;
 }

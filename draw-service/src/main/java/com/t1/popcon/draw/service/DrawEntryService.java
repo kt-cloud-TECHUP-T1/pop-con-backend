@@ -50,6 +50,7 @@ public class DrawEntryService {
     private static final String DISPLAY_DRAW_PENDING = "추첨 대기";
     private static final String DISPLAY_ANNOUNCEMENT_PENDING = "결과 발표 대기";
     private static final String DISPLAY_TICKET_ISSUED = "티켓 발급 완료";
+    private static final String DISPLAY_RESULT_CONFIRM = "결과 확인하기";
 
     @Value("${draw.silent-drop-threshold:80}")
     private int silentDropThreshold;
@@ -288,7 +289,7 @@ public class DrawEntryService {
         LocalDateTime announcementAt = draw.getAnnouncementAt();
         boolean resultChecked = entry.getResultCheckedAt() != null;
         boolean resultAvailable = !now.isBefore(announcementAt) && entry.getStatus() != DrawEntryStatus.APPLIED;
-        boolean clickable = entry.getStatus() == DrawEntryStatus.WINNER && resultAvailable && !resultChecked;
+        boolean clickable = resultAvailable && !resultChecked;
 
         return DrawEntryResponse.builder()
             .id(entry.getId())
@@ -298,7 +299,7 @@ public class DrawEntryService {
             .price(DEFAULT_PRICE)
             .paidAt(entry.getPaidAt())
             .displayStatus(resolveDisplayStatus(entry, now, announcementAt))
-            .status(entry.getStatus().name())
+            .status(resolveExposedStatus(entry, resultAvailable, resultChecked))
             .announcementAt(announcementAt)
             .resultAvailable(resultAvailable)
             .resultChecked(resultChecked)
@@ -317,6 +318,10 @@ public class DrawEntryService {
             return DISPLAY_ANNOUNCEMENT_PENDING;
         }
 
+        if (entry.getResultCheckedAt() == null) {
+            return DISPLAY_RESULT_CONFIRM;
+        }
+
         if (entry.getStatus() == DrawEntryStatus.WINNER) {
             return entry.getTicketIssuedAt() == null
                 ? DrawEntryStatus.WINNER.getDescription()
@@ -326,6 +331,14 @@ public class DrawEntryService {
         return entry.getStatus().getDescription();
     }
 
+    private String resolveExposedStatus(DrawEntry entry, boolean resultAvailable, boolean resultChecked) {
+        if (!resultAvailable || !resultChecked) {
+            return DrawEntryStatus.APPLIED.name();
+        }
+
+        return entry.getStatus().name();
+    }
+
     private boolean isDuplicateEntryViolation(DataIntegrityViolationException e) {
         Throwable root = e.getMostSpecificCause();
         String message = root != null ? root.getMessage() : e.getMessage();
@@ -333,7 +346,7 @@ public class DrawEntryService {
             || message.contains(DrawEntry.DRAW_UNIQUE_CONSTRAINT_NAME));
     }
 
-    /** 전화번호를 010-XXXX-XXXX 형식으로 변환 */
+    /** 전화번호를 가능한 경우 010-XXXX-XXXX 형식으로 포맷 */
     private static String formatPhone(String phone) {
         if (phone == null || phone.isBlank()) {
             return phone;
@@ -360,3 +373,4 @@ public class DrawEntryService {
         );
     }
 }
+

@@ -80,7 +80,7 @@ public class DrawResultService {
 
     @Transactional
     public DrawResultConfirmResponse confirmResult(Long userId, Long drawEntryId) {
-        DrawEntry entry = drawEntryRepository.findByIdAndUserId(drawEntryId, userId)
+        DrawEntry entry = drawEntryRepository.findByIdAndUserIdForUpdate(drawEntryId, userId)
             .orElseThrow(() -> new CustomException(ErrorCode.DRAW_ENTRY_NOT_FOUND));
 
         validateConfirmable(entry);
@@ -89,16 +89,22 @@ public class DrawResultService {
         LocalDateTime now = LocalDateTime.now(clock);
         entry.markResultChecked(now);
 
-        TicketIssueResponse ticket = issueDrawTicket(entry, draw);
-        entry.markTicketIssued(now);
+        String winningRatePercent = calculateWinningRatePercent(draw.getId(), entry.getStatus());
+        TicketIssueResponse ticket = null;
+        if (entry.getStatus() == DrawEntryStatus.WINNER) {
+            ticket = issueDrawTicket(entry, draw);
+            entry.markTicketIssued(now);
+        }
 
-        return DrawResultConfirmResponse.builder()
-            .drawEntryId(entry.getId())
-            .drawId(draw.getId())
-            .announcementAt(draw.getAnnouncementAt())
-            .resultCheckedAt(entry.getResultCheckedAt())
-            .ticket(ticket)
-            .build();
+        return DrawResultConfirmResponse.of(
+            entry.getId(),
+            draw.getId(),
+            entry.getStatus(),
+            draw.getAnnouncementAt(),
+            entry.getResultCheckedAt(),
+            winningRatePercent,
+            ticket
+        );
     }
 
     private void validateDrawReady(Draw draw) {
@@ -129,8 +135,34 @@ public class DrawResultService {
         return winnerCount;
     }
 
+    private String calculateWinningRatePercent(Long drawId, DrawEntryStatus status) {
+        if (status != DrawEntryStatus.WINNER) {
+            return null;
+        }
+
+        long totalParticipantCount = drawEntryRepository.countByDrawOption_Draw_Id(drawId);
+        if (totalParticipantCount <= 0) {
+            return null;
+        }
+
+        long totalWinnerCount = drawEntryRepository.countByDrawOption_Draw_IdAndStatus(drawId, DrawEntryStatus.WINNER);
+        double winningRatePercent = (double) totalWinnerCount * 100.0d / totalParticipantCount;
+
+        if (winningRatePercent > 50.0d) {
+            return null;
+        }
+        if (winningRatePercent == 0.0d) {
+            return "0%";
+        }
+        if (winningRatePercent < 1.0d) {
+            return "<1%";
+        }
+
+        return (long) Math.floor(winningRatePercent) + "%";
+    }
+
     private void validateConfirmable(DrawEntry entry) {
-        if (entry.getTicketIssuedAt() != null) {
+        if (entry.getStatus() == DrawEntryStatus.WINNER && entry.getTicketIssuedAt() != null) {
             throw new CustomException(ErrorCode.TICKET_ALREADY_ISSUED);
         }
 
@@ -142,10 +174,6 @@ public class DrawResultService {
         LocalDateTime now = LocalDateTime.now(clock);
         if (now.isBefore(draw.getAnnouncementAt())) {
             throw new CustomException(ErrorCode.DRAW_RESULT_NOT_ANNOUNCED);
-        }
-
-        if (entry.getStatus() != DrawEntryStatus.WINNER) {
-            throw new CustomException(ErrorCode.DRAW_NOT_WINNER);
         }
     }
 

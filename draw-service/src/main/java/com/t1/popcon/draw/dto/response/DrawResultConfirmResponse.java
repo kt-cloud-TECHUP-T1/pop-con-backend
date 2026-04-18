@@ -1,15 +1,42 @@
 package com.t1.popcon.draw.dto.response;
 
 import com.t1.popcon.draw.client.dto.TicketIssueResponse;
+import com.t1.popcon.draw.domain.DrawEntryStatus;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import lombok.Builder;
 
 @Builder
 public record DrawResultConfirmResponse(
     Long drawEntryId,
     Long drawId,
+    String resultType,
+    boolean hasTicket,
     LocalDateTime announcementAt,
     LocalDateTime resultCheckedAt,
+    String winningRatePercent,
     TicketIssueResponse ticket
 ) {
+    public static DrawResultConfirmResponse of(
+        Long drawEntryId,
+        Long drawId,
+        DrawEntryStatus status,
+        LocalDateTime announcementAt,
+        LocalDateTime resultCheckedAt,
+        String winningRatePercent,
+        TicketIssueResponse ticket
+    ) {
+        DrawEntryStatus confirmedStatus = Objects.requireNonNull(status, "status must not be null");
+
+        return DrawResultConfirmResponse.builder()
+            .drawEntryId(drawEntryId)
+            .drawId(drawId)
+            .resultType(confirmedStatus.name())
+            .hasTicket(ticket != null)
+            .announcementAt(announcementAt)
+            .resultCheckedAt(resultCheckedAt)
+            .winningRatePercent(winningRatePercent)
+            .ticket(ticket)
+            .build();
+    }
 }
