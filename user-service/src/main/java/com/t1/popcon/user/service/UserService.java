@@ -27,7 +27,11 @@ import java.util.regex.Pattern;
 
 import com.t1.popcon.user.dto.UserCreateRequest;
 import com.t1.popcon.user.dto.UserCreateResponse;
+import com.t1.popcon.user.dto.SuperLoginResponse;
+import com.t1.popcon.common.auth.provider.TokenProvider;
+import com.t1.popcon.common.auth.domain.TokenType;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import lombok.RequiredArgsConstructor;
 
@@ -39,6 +43,10 @@ public class UserService {
     private static final String NICKNAME_CONSTRAINT = "uk_users_nickname";
     private static final String PHONE_HASH_CONSTRAINT = "uk_users_phone_hash";
 
+    private static final String SUPER_USER_TOTAL_COUNT_KEY = "super_user_total_count";
+    private static final String SUPER_USER_CURRENT_INDEX_KEY = "super_user_current_index";
+    private static final long ONE_YEAR_MS = 365L * 24 * 60 * 60 * 1000;
+
     /** 닉네임 유효성 패턴: 한글·영문·숫자 2~20자, 언더바(_) 최대 1개 허용, 공백·기타 특수문자 불가 */
     private static final Pattern NICKNAME_PATTERN =
             Pattern.compile("^(?!.*_.*_)[가-힣a-zA-Z0-9_]{2,20}$");
@@ -47,9 +55,53 @@ public class UserService {
     private final EncryptionService encryptionService;
     private final BillingKeyService billingKeyService;
     private final S3Service s3Service;
+    private final TokenProvider tokenProvider;
+    private final StringRedisTemplate redisTemplate;
 
     @Value("${user.nickname.prefix:User}")
     private String nicknamePrefix;
+
+    /**
+     * 시연용 슈퍼 계정 순차 로그인
+     */
+    @Transactional
+    public SuperLoginResponse loginSuperAccount() {
+        // 1. 전체 슈퍼 계정 수 확인
+        String totalCountStr = redisTemplate.opsForValue().get(SUPER_USER_TOTAL_COUNT_KEY);
+        if (totalCountStr == null || "0".equals(totalCountStr)) {
+            // Redis에 없으면 DB에서 다시 조회 및 갱신
+            long dbCount = userRepository.countByRole(com.t1.popcon.user.domain.Role.SUPER);
+            if (dbCount == 0) {
+                throw new CustomException(ErrorCode.USER_NOT_FOUND, "생성된 슈퍼 계정이 없습니다.");
+            }
+            totalCountStr = String.valueOf(dbCount);
+            redisTemplate.opsForValue().set(SUPER_USER_TOTAL_COUNT_KEY, totalCountStr);
+        }
+
+        long totalCount = Long.parseLong(totalCountStr);
+
+        // 2. Redis INCR를 사용하여 다음 인덱스 결정 (순환)
+        Long currentIndex = redisTemplate.opsForValue().increment(SUPER_USER_CURRENT_INDEX_KEY);
+        if (currentIndex == null) currentIndex = 1L;
+
+        long targetIndex = (currentIndex % totalCount);
+        if (targetIndex == 0) targetIndex = totalCount;
+
+        // 3. Super_{index} 닉네임 유저 조회
+        String nickname = "Super_" + targetIndex;
+        User user = userRepository.findByNickname(nickname)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND, nickname + " 계정을 찾을 수 없습니다."));
+
+        // 4. 긴 유효기간 액세스 토큰 생성 (리프레시는 생략)
+        String userIdStr = String.valueOf(user.getId());
+        String accessToken = tokenProvider.createToken(userIdStr, ONE_YEAR_MS, TokenType.ACCESS);
+
+        return new SuperLoginResponse(
+                user.getId(),
+                accessToken,
+                ONE_YEAR_MS / 1000
+        );
+    }
 
     /**
      * 사용자 프로필 조회 (GET /users/me)
