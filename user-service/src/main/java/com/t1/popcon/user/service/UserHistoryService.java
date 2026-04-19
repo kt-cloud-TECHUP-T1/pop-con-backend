@@ -277,7 +277,7 @@ public class UserHistoryService {
             .issuedAt(ticket.getIssuedAt())
             .popupTitle(firstNonBlank(popup != null ? popup.title() : null, ticket.getPopupTitle()))
             .popupAddress(firstNonBlank(popup != null ? popup.location() : null, ticket.getPopupAddress()))
-            .thumbnailUrl(firstNonBlank(popup != null ? popup.vThumbnailUrl() : null, ticket.getThumbnailUrl()))
+            .thumbnailUrl(firstNonBlank(popup != null ? popup.thumbnailUrl() : null, ticket.getThumbnailUrl()))
             .displayStatus(resolveDisplayStatus(ticket.getDisplayStatus(), ticket.getStatus()))
             .build();
     }
@@ -297,7 +297,7 @@ public class UserHistoryService {
             .issuedAt(ticket.getIssuedAt())
             .popupTitle(popup != null ? popup.title() : null)
             .popupAddress(popup != null ? popup.location() : null)
-            .thumbnailUrl(popup != null ? popup.vThumbnailUrl() : null)
+            .thumbnailUrl(popup != null ? popup.thumbnailUrl() : null)
             .displayStatus(resolveDisplayStatus(null, ticket.getStatus()))
             .build();
     }
@@ -369,7 +369,7 @@ public class UserHistoryService {
         detailBuilder
             .popupTitle(firstNonBlank(currentDetail.getPopupTitle(), popup.title()))
             .popupAddress(firstNonBlank(currentDetail.getPopupAddress(), popup.location()))
-            .thumbnailUrl(firstNonBlank(currentDetail.getThumbnailUrl(), popup.vThumbnailUrl()));
+            .thumbnailUrl(firstNonBlank(currentDetail.getThumbnailUrl(), popup.thumbnailUrl()));
     }
 
     private boolean needsPopupFallback(TicketDetailViewResponse detail) {

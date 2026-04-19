@@ -144,7 +144,7 @@ public class DrawEntryService {
             .drawId(entry.getDrawOption().getDraw().getId())
             .popupTitle(popupInfo != null ? popupInfo.title() : UNKNOWN_POPUP_TITLE)
             .popupAddress(popupInfo != null ? popupInfo.location() : null)
-            .popupThumbnail(popupInfo != null ? popupInfo.vThumbnailUrl() : null)
+            .popupThumbnail(popupInfo != null ? popupInfo.thumbnailUrl() : null)
             .entryDate(entry.getDrawOption().getEntryDate())
             .entryTime(entry.getDrawOption().getEntryTime())
             .userName(encryptionService.decrypt(entry.getEncryptedName()))
@@ -160,7 +160,7 @@ public class DrawEntryService {
         PopupInternalResponse popupInfo = fetchPopupInfo(drawOption.getDraw().getPopupId(), null);
 
         return DrawEntryResultResponse.builder()
-            .vThumbnailUrl(popupInfo != null ? popupInfo.vThumbnailUrl() : null)
+            .thumbnailUrl(popupInfo != null ? popupInfo.thumbnailUrl() : null)
             .popupTitle(popupInfo != null ? popupInfo.title() : UNKNOWN_POPUP_TITLE)
             .popupAddress(popupInfo != null ? popupInfo.location() : null)
             .entryDate(drawOption.getEntryDate())
@@ -294,7 +294,7 @@ public class DrawEntryService {
         return DrawEntryResponse.builder()
             .id(entry.getId())
             .drawId(draw.getId())
-            .vThumbnailUrl(popupInfo != null ? popupInfo.vThumbnailUrl() : null)
+            .thumbnailUrl(popupInfo != null ? popupInfo.thumbnailUrl() : null)
             .title(popupInfo != null ? popupInfo.title() : UNKNOWN_POPUP_TITLE)
             .price(DEFAULT_PRICE)
             .paidAt(entry.getPaidAt())

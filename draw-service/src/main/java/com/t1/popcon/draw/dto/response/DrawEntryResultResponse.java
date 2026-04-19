@@ -6,7 +6,7 @@ import lombok.Builder;
 
 @Builder
 public record DrawEntryResultResponse(
-    String vThumbnailUrl,
+    String thumbnailUrl,
     String popupTitle,
     String popupAddress,
     LocalDate entryDate,
