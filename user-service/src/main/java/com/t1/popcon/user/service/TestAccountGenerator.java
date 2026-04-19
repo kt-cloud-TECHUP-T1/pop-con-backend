@@ -191,6 +191,7 @@ public class TestAccountGenerator {
         
         if (!errors.isEmpty()) {
             log.warn("[SuperAccount] 생성 중 발생한 오류 목록: {}", String.join(" | ", errors));
+            throw new IllegalStateException(String.format("슈퍼 계정 생성 부분 실패: %d건 실패 / %d건 시도", errors.size(), count));
         }
     }
 
