@@ -156,7 +156,8 @@ public class TestAccountGenerator {
         log.info("[SuperAccount] 슈퍼 계정 생성 시작: 기존 {}개, 추가 {}개 예정", startOffset, count);
 
         ExecutorService executor = Executors.newFixedThreadPool(20);
-        AtomicInteger progress = new AtomicInteger(0);
+        AtomicInteger successCount = new AtomicInteger(0);
+        java.util.concurrent.ConcurrentLinkedQueue<String> errors = new java.util.concurrent.ConcurrentLinkedQueue<>();
         List<CompletableFuture<Void>> futures = new ArrayList<>();
 
         for (int i = 1; i <= count; i++) {
@@ -164,13 +165,13 @@ public class TestAccountGenerator {
             futures.add(CompletableFuture.runAsync(() -> {
                 try {
                     self.createSingleSuperAccount(index);
+                    successCount.incrementAndGet();
                 } catch (Exception e) {
-                    log.error("[SuperAccount] 슈퍼 계정 생성 실패 - index={}: {}", index, e.getMessage());
+                    String errorMsg = String.format("index=%d, error=%s", index, e.getMessage());
+                    errors.add(errorMsg);
+                    log.error("[SuperAccount] 슈퍼 계정 생성 실패 - {}", errorMsg);
                 }
-            }, executor).thenRun(() -> {
-                int current = progress.incrementAndGet();
-                if (current % 10 == 0) log.info("[SuperAccount] 진행 상황: {}/{}", current, count);
-            }));
+            }, executor));
 
             if (futures.size() >= 20 || i == count) {
                 CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
@@ -184,7 +185,13 @@ public class TestAccountGenerator {
         // 생성 완료 후 전체 슈퍼 계정 수 Redis 업데이트
         long totalCount = userRepository.countByRole(Role.SUPER);
         redisTemplate.opsForValue().set(SUPER_USER_TOTAL_COUNT_KEY, String.valueOf(totalCount));
-        log.info("[SuperAccount] 슈퍼 계정 생성 완료. 현재 총 {}개 (Redis 업데이트 완료)", totalCount);
+        
+        log.info("[SuperAccount] 슈퍼 계정 생성 작업 종료. 성공: {}, 실패: {}, 총 DB 계정: {}", 
+                 successCount.get(), errors.size(), totalCount);
+        
+        if (!errors.isEmpty()) {
+            log.warn("[SuperAccount] 생성 중 발생한 오류 목록: {}", String.join(" | ", errors));
+        }
     }
 
     private int getSuperStartOffset() {
@@ -200,13 +207,27 @@ public class TestAccountGenerator {
                 .orElse(0);
     }
 
-    @Transactional
+    /**
+     * 비트랜잭션 환경에서 유저 저장과 빌링키 등록을 순차적으로 호출 (외부 API 호출 시 커넥션 점유 방지)
+     */
     public void createSingleSuperAccount(int index) {
         String nickname = "Super_" + index;
         if (userRepository.existsByNickname(nickname)) {
             return;
         }
 
+        // 1. 유저 저장 (Transactional)
+        User user = self.saveSuperUser(index, nickname);
+
+        // 2. 안티매크로 점수 설정 (Redis)
+        setupAntiMacroScore(user.getId());
+
+        // 3. 빌링키 발급 및 저장 (외부 API + Transactional)
+        self.registerBillingKeyForSuperUser(user);
+    }
+
+    @Transactional
+    public User saveSuperUser(int index, String nickname) {
         String rawName = "슈퍼테스터_" + index;
         String rawPhone = String.format("010-9999-%04d", index % 10000);
         String ci = "super_ci_" + index;
@@ -222,22 +243,20 @@ public class TestAccountGenerator {
                 nickname,
                 "super" + index + "@popcon.store"
         );
-        userRepository.save(user);
+        return userRepository.save(user);
+    }
 
-        // 안티매크로 점수 25점 설정 (VQA 유도)
-        String redisKey = "score:" + user.getId();
-        if (TransactionSynchronizationManager.isActualTransactionActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    redisTemplate.opsForHash().put(redisKey, "total", "25");
-                }
-            });
-        } else {
-            redisTemplate.opsForHash().put(redisKey, "total", "25");
-        }
+    private void setupAntiMacroScore(Long userId) {
+        String redisKey = "score:" + userId;
+        // Redis는 트랜잭션 관리가 필요 없으므로 즉시 실행
+        redisTemplate.opsForHash().put(redisKey, "total", "25");
+    }
 
-        // 포트원 빌링키 발급
+    /**
+     * 외부 API 호출 후 결과를 DB에 저장 (REQUIRES_NEW로 별도 트랜잭션 처리)
+     */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    public void registerBillingKeyForSuperUser(User user) {
         try {
             PortOneBillingResponse response = portOneBillingClient.issueBillingKey(
                     "PortOne " + portOneSecret,
@@ -253,8 +272,13 @@ public class TestAccountGenerator {
                             )
                     )
             );
+            
             String billingKeyId = response.billingKeyInfo().billingKey();
-            String cardName = response.billingKeyInfo().channels().get(0).name();
+            // 방어 로직: channels 리스트가 비어있을 경우 기본값 사용
+            String cardName = "KCP 테스트 카드";
+            if (response.billingKeyInfo().channels() != null && !response.billingKeyInfo().channels().isEmpty()) {
+                cardName = response.billingKeyInfo().channels().get(0).name();
+            }
 
             UserBillingKey userBillingKey = UserBillingKey.builder()
                     .user(user)
@@ -267,6 +291,7 @@ public class TestAccountGenerator {
             billingKeyRepository.save(userBillingKey);
         } catch (Exception e) {
             log.warn("[SuperAccount] 빌링키 발급 실패 (유저 ID: {}): {}", user.getId(), e.getMessage());
+            // 시연용 계정이므로 빌링키 발급에 실패해도 로그만 남기고 유저는 유지
         }
     }
 

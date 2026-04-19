@@ -23,6 +23,17 @@ spring:
         show_sql: true
     defer-datasource-initialization: true
 
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connectTimeout: 5000
+            readTimeout: 5000
+          portOneBillingClient:
+            connectTimeout: 3000
+            readTimeout: 10000
+
 portone:
   api:
     secret: ${PORTONE_API_SECRET}

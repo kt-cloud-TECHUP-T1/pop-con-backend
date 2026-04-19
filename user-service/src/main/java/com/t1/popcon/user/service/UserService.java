@@ -34,7 +34,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -68,17 +70,18 @@ public class UserService {
     public SuperLoginResponse loginSuperAccount() {
         // 1. 전체 슈퍼 계정 수 확인
         String totalCountStr = redisTemplate.opsForValue().get(SUPER_USER_TOTAL_COUNT_KEY);
-        if (totalCountStr == null || "0".equals(totalCountStr)) {
-            // Redis에 없으면 DB에서 다시 조회 및 갱신
-            long dbCount = userRepository.countByRole(com.t1.popcon.user.domain.Role.SUPER);
-            if (dbCount == 0) {
-                throw new CustomException(ErrorCode.USER_NOT_FOUND, "생성된 슈퍼 계정이 없습니다.");
+        long totalCount;
+        
+        try {
+            if (totalCountStr == null || "0".equals(totalCountStr)) {
+                totalCount = refreshSuperUserTotalCount();
+            } else {
+                totalCount = Long.parseLong(totalCountStr);
             }
-            totalCountStr = String.valueOf(dbCount);
-            redisTemplate.opsForValue().set(SUPER_USER_TOTAL_COUNT_KEY, totalCountStr);
+        } catch (NumberFormatException e) {
+            log.warn("[SuperLogin] Redis total_count 파싱 실패: {}, DB에서 재조회합니다.", totalCountStr);
+            totalCount = refreshSuperUserTotalCount();
         }
-
-        long totalCount = Long.parseLong(totalCountStr);
 
         // 2. Redis INCR를 사용하여 다음 인덱스 결정 (순환)
         Long currentIndex = redisTemplate.opsForValue().increment(SUPER_USER_CURRENT_INDEX_KEY);
@@ -87,10 +90,10 @@ public class UserService {
         long targetIndex = (currentIndex % totalCount);
         if (targetIndex == 0) targetIndex = totalCount;
 
-        // 3. Super_{index} 닉네임 유저 조회
+        // 3. Super_{index} 닉네임 유저 조회 (Role.SUPER 조건 추가로 보안 강화)
         String nickname = "Super_" + targetIndex;
-        User user = userRepository.findByNickname(nickname)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND, nickname + " 계정을 찾을 수 없습니다."));
+        User user = userRepository.findByNicknameAndRole(nickname, com.t1.popcon.user.domain.Role.SUPER)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND, nickname + " 슈퍼 계정을 찾을 수 없습니다."));
 
         // 4. 긴 유효기간 액세스 토큰 생성 (리프레시는 생략)
         String userIdStr = String.valueOf(user.getId());
@@ -101,6 +104,15 @@ public class UserService {
                 accessToken,
                 ONE_YEAR_MS / 1000
         );
+    }
+
+    private long refreshSuperUserTotalCount() {
+        long dbCount = userRepository.countByRole(com.t1.popcon.user.domain.Role.SUPER);
+        if (dbCount == 0) {
+            throw new CustomException(ErrorCode.USER_NOT_FOUND, "생성된 슈퍼 계정이 없습니다.");
+        }
+        redisTemplate.opsForValue().set(SUPER_USER_TOTAL_COUNT_KEY, String.valueOf(dbCount));
+        return dbCount;
     }
 
     /**
