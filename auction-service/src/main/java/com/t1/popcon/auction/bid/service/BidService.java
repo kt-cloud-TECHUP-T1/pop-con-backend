@@ -317,8 +317,8 @@ public class BidService {
                         if (popupInfo.location() != null) {
                             popupAddress = popupInfo.location();
                         }
-                        if (popupInfo.vThumbnailUrl() != null) {
-                            thumbnailUrl = popupInfo.vThumbnailUrl();
+                        if (popupInfo.thumbnailUrl() != null) {
+                            thumbnailUrl = popupInfo.thumbnailUrl();
                         }
                     } else {
                         log.warn("Popup detail response is empty. popupId={}", option.getAuction().getPopupId());

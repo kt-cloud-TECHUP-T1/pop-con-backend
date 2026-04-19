@@ -9,7 +9,7 @@ import lombok.Getter;
 public class DrawHistoryResponse {
     private Long id;
     private Long drawId;
-    private String vThumbnailUrl;
+    private String thumbnailUrl;
     private String title;
     private Long price;
     private LocalDateTime paidAt;

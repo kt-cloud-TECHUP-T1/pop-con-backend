@@ -135,7 +135,7 @@ public class BidServiceTest {
 		PortOnePaymentResponse paymentResponse = new PortOnePaymentResponse(paymentDetail);
 		when(portOneClient.executePayment(anyString(), anyString(), anyInt(), anyString())).thenReturn(paymentResponse);
 
-		PopupInternalResponse popupInfo = new PopupInternalResponse(1L, "Pop-up Title", "Location", "h_thumbnail.url", "v_thumbnail.url");
+		PopupInternalResponse popupInfo = new PopupInternalResponse(1L, "Pop-up Title", "Location", "v_thumbnail.url");
 		when(auction.getPopupId()).thenReturn(1L);
 		when(popupServiceClient.getPopupDetail(anyLong())).thenReturn(ApiResponse.ok(popupInfo));
 		when(option.getEntryDate()).thenReturn(LocalDate.now());

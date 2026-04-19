@@ -16,6 +16,7 @@
 <br/>
 
 ## 🏗️ 프로젝트 아키텍처 (Project Architecture)
+<img width="1300" height="1254" alt="image" src="https://github.com/user-attachments/assets/72e11595-840f-40ff-aac9-b59343ca3038" />
 
 <br/>
 
