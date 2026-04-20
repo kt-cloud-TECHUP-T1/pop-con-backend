@@ -85,6 +85,8 @@ router.post('/signals', async (req: Request, res: Response) => {
         },
       }).then((dbId) => {
         if (dbId) uploadRawSignal({ dbId, payload, analysis: result });
+      }).catch((err) => {
+        console.error('[anti-macro] DB 저장→S3 업로드 체인 예외:', err?.message ?? err);
       });
     }
 

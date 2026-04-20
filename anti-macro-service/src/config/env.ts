@@ -19,7 +19,10 @@ export const env = {
   DB_USERNAME: requireEnv('DB_USERNAME'),
   DB_PASSWORD: requireEnv('DB_PASSWORD'),
 
-  // S3 raw 시그널 저장 (미설정 시 업로드 no-op)
-  AWS_REGION: process.env.AWS_REGION,
-  S3_RAW_SIGNAL_BUCKET: process.env.S3_RAW_SIGNAL_BUCKET,
+  // S3 raw 시그널 저장 (S3_BUCKET/S3_ACCESS_KEY/S3_SECRET_KEY 미설정 시 업로드 no-op)
+  S3_REGION: process.env.S3_REGION || 'ap-northeast-2',
+  S3_BUCKET: process.env.S3_BUCKET,
+  S3_ACCESS_KEY: process.env.S3_ACCESS_KEY,
+  S3_SECRET_KEY: process.env.S3_SECRET_KEY,
+  S3_ENDPOINT: process.env.S3_ENDPOINT,
 } as const;
