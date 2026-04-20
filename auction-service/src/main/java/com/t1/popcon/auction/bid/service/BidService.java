@@ -159,6 +159,9 @@ public class BidService {
         return ReservationDetailResponse.builder()
                 .ticketId(ticketId)
                 .reservationNo(bid.getReservationNo())
+                .paymentMethod(bid.getPaymentMethod())
+                .cardName(bid.getCardName())
+                .cardNumber(bid.getCardNumber())
                 .popupTitle(bid.getPopupTitle())
                 .popupAddress(bid.getPopupAddress())
                 .popupThumbnail(bid.getThumbnailUrl())
@@ -270,7 +273,8 @@ public class BidService {
                             });
                     throw new CustomException(ErrorCode.BILLING_KEY_NOT_FOUND);
                 }
-                String billingKey = billingKeyResponse.getData().customerUid();
+                BillingKeyInternalResponse billingKeyDetail = billingKeyResponse.getData();
+                String billingKey = billingKeyDetail.customerUid();
 
                 paymentAttempted = true;
                 Timer paymentTimer = Timer.builder("popcon_payment_latency")
@@ -340,6 +344,10 @@ public class BidService {
                             option.getId(),
                             pgTxId,
                             paidAt,
+                            "CARD",
+                            billingKeyDetail.pgProvider(),
+                            billingKeyDetail.cardName(),
+                            billingKeyDetail.cardNumber(),
                             currentReservationNo,
                             popupTitle,
                             popupAddress,

@@ -324,6 +324,9 @@ public class UserHistoryService {
             AuctionReservationDetailResponse detail = requireData(response);
 
             detailBuilder
+                .paymentMethod(detail.getPaymentMethod())
+                .cardName(detail.getCardName())
+                .cardNumber(detail.getCardNumber())
                 .popupTitle(firstNonBlank(detail.getPopupTitle(), currentDetail.getPopupTitle()))
                 .popupAddress(firstNonBlank(detail.getPopupAddress(), currentDetail.getPopupAddress()))
                 .thumbnailUrl(firstNonBlank(detail.getPopupThumbnail(), currentDetail.getThumbnailUrl()))

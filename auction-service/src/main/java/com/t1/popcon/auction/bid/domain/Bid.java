@@ -55,6 +55,18 @@ public class Bid extends BaseSoftDeleteEntity {
 
     private LocalDateTime paidAt;
 
+    @Column(name = "payment_method", length = 30)
+    private String paymentMethod;
+
+    @Column(name = "pg_provider", length = 50)
+    private String pgProvider;
+
+    @Column(name = "card_name", length = 100)
+    private String cardName;
+
+    @Column(name = "card_number", length = 30)
+    private String cardNumber;
+
     @Column(name = "reservation_no", length = 20, unique = true)
     private String reservationNo;
 
@@ -127,5 +139,9 @@ public class Bid extends BaseSoftDeleteEntity {
         }
         this.status = BidStatus.FAILED;
         this.paidAt = null;
+        this.paymentMethod = null;
+        this.pgProvider = null;
+        this.cardName = null;
+        this.cardNumber = null;
     }
 }
