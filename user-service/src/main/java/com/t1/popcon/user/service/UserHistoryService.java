@@ -214,9 +214,9 @@ public class UserHistoryService {
                 .entryTime(ticket.getEntryTime())
                 .issuedAt(ticket.getIssuedAt())
                 .qrValue(resolveQrValue(ticket))
-                .userName(purchaser.userName())
-                .userPhoneNumber(purchaser.userPhoneNumber())
-                .userEmail(purchaser.userEmail());
+                .userName(maskUserNameForDisplay(purchaser.userName()))
+                .userPhoneNumber(maskPhoneNumberForDisplay(purchaser.userPhoneNumber()))
+                .userEmail(maskEmailForDisplay(purchaser.userEmail()));
 
             applySourceSpecificDetail(detailBuilder, userId, ticket);
             applyPopupFallback(detailBuilder, ticket.getPopupId());
@@ -353,8 +353,8 @@ public class UserHistoryService {
                 .popupAddress(firstNonBlank(detail.getPopupAddress(), currentDetail.getPopupAddress()))
                 .thumbnailUrl(firstNonBlank(detail.getPopupThumbnail(), currentDetail.getThumbnailUrl()))
                 .paidAt(detail.getPaidAt())
-                .userName(firstNonBlank(detail.getUserName(), currentDetail.getUserName()))
-                .userPhoneNumber(firstNonBlank(detail.getUserPhoneNumber(), currentDetail.getUserPhoneNumber()));
+                .userName(maskUserNameForDisplay(firstNonBlank(detail.getUserName(), currentDetail.getUserName())))
+                .userPhoneNumber(maskPhoneNumberForDisplay(firstNonBlank(detail.getUserPhoneNumber(), currentDetail.getUserPhoneNumber())));
         }
     }
 
@@ -535,6 +535,77 @@ public class UserHistoryService {
         }
         maskedCardNumber.append(lastFourDigits);
         return maskedCardNumber.toString();
+    }
+
+    private String maskUserNameForDisplay(String userName) {
+        if (userName == null || userName.isBlank()) {
+            return userName;
+        }
+
+        String trimmedUserName = userName.trim();
+        if (trimmedUserName.indexOf('*') >= 0) {
+            return trimmedUserName;
+        }
+        if (trimmedUserName.length() == 1) {
+            return trimmedUserName;
+        }
+        if (trimmedUserName.length() == 2) {
+            return trimmedUserName.charAt(0) + "*";
+        }
+
+        return trimmedUserName.charAt(0)
+            + "*".repeat(trimmedUserName.length() - 2)
+            + trimmedUserName.charAt(trimmedUserName.length() - 1);
+    }
+
+    private String maskPhoneNumberForDisplay(String phoneNumber) {
+        if (phoneNumber == null || phoneNumber.isBlank()) {
+            return phoneNumber;
+        }
+
+        String trimmedPhoneNumber = phoneNumber.trim();
+        if (trimmedPhoneNumber.indexOf('*') >= 0) {
+            return trimmedPhoneNumber;
+        }
+
+        String digitsOnly = extractDigits(trimmedPhoneNumber);
+        if (digitsOnly.length() != 11) {
+            return trimmedPhoneNumber;
+        }
+
+        return digitsOnly.substring(0, 3)
+            + "-"
+            + digitsOnly.substring(3, 5)
+            + "**-"
+            + digitsOnly.substring(7, 9)
+            + "**";
+    }
+
+    private String maskEmailForDisplay(String userEmail) {
+        if (userEmail == null || userEmail.isBlank()) {
+            return userEmail;
+        }
+
+        String trimmedEmail = userEmail.trim();
+        int atIndex = trimmedEmail.indexOf('@');
+        if (atIndex <= 0 || atIndex != trimmedEmail.lastIndexOf('@')) {
+            return trimmedEmail;
+        }
+
+        String localPart = trimmedEmail.substring(0, atIndex);
+        String domainPart = trimmedEmail.substring(atIndex);
+
+        if (localPart.indexOf('*') >= 0) {
+            return trimmedEmail;
+        }
+        if (localPart.length() == 1) {
+            return localPart + "*" + domainPart;
+        }
+        if (localPart.length() == 2) {
+            return localPart.charAt(0) + "*" + domainPart;
+        }
+
+        return localPart.substring(0, 2) + "*".repeat(localPart.length() - 2) + domainPart;
     }
 
     private boolean isBlank(String value) {
