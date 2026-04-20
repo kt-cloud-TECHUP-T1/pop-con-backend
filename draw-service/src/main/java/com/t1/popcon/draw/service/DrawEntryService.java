@@ -366,10 +366,10 @@ public class DrawEntryService {
         LocalDateTime now = LocalDateTime.now(clock);
         return new DrawStatisticsResponse(
             drawEntryRepository.countByUserId(userId),
-            drawEntryRepository.countByUserIdAndStatus(userId, DrawEntryStatus.WINNER),
-            drawEntryRepository.countByUserIdAndStatus(userId, DrawEntryStatus.FAILED),
-            drawEntryRepository.countOngoingByUserId(userId, DrawEntryStatus.APPLIED, now),
-            drawEntryRepository.countWaitingByUserId(userId, DrawEntryStatus.APPLIED, now)
+            drawEntryRepository.countConfirmedByUserIdAndStatus(userId, DrawEntryStatus.WINNER),
+            drawEntryRepository.countConfirmedByUserIdAndStatus(userId, DrawEntryStatus.FAILED),
+            drawEntryRepository.countOngoingByUserId(userId, now),
+            drawEntryRepository.countWaitingResultByUserId(userId, List.of(DrawEntryStatus.WINNER, DrawEntryStatus.FAILED), now)
         );
     }
 }
