@@ -106,6 +106,21 @@ public class BidServiceTest {
 	}
 
 	@Test
+	@DisplayName("카드번호 마스킹 - raw, masked, null, short value를 안전하게 처리한다")
+	void maskCardNumber_SafelyFormatsCardNumber() {
+		assertThat(ReflectionTestUtils.invokeMethod(bidService, "maskCardNumber", "1234567812345678"))
+			.isEqualTo("****-****-****-5678");
+		assertThat(ReflectionTestUtils.invokeMethod(bidService, "maskCardNumber", "1234-****-****-5678"))
+			.isEqualTo("****-****-****-5678");
+		assertThat(ReflectionTestUtils.invokeMethod(bidService, "maskCardNumber", "****-****-****-5678"))
+			.isEqualTo("****-****-****-5678");
+		assertThat(ReflectionTestUtils.invokeMethod(bidService, "maskCardNumber", "5678"))
+			.isEqualTo("5678");
+		assertThat(ReflectionTestUtils.invokeMethod(bidService, "maskCardNumber", null))
+			.isNull();
+	}
+
+	@Test
 	@DisplayName("낙찰 시도 성공 - 모든 과정 정상")
 	void attemptBid_Success() {
 		// given

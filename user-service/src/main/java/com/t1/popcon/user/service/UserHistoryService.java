@@ -326,7 +326,7 @@ public class UserHistoryService {
             detailBuilder
                 .paymentMethod(detail.getPaymentMethod())
                 .cardName(detail.getCardName())
-                .cardNumber(detail.getCardNumber())
+                .cardNumber(maskCardNumberForDisplay(detail.getCardNumber()))
                 .popupTitle(firstNonBlank(detail.getPopupTitle(), currentDetail.getPopupTitle()))
                 .popupAddress(firstNonBlank(detail.getPopupAddress(), currentDetail.getPopupAddress()))
                 .thumbnailUrl(firstNonBlank(detail.getPopupThumbnail(), currentDetail.getThumbnailUrl()))
@@ -452,6 +452,89 @@ public class UserHistoryService {
             return primary;
         }
         return fallback;
+    }
+
+    private String maskCardNumberForDisplay(String cardNumber) {
+        if (cardNumber == null || cardNumber.isBlank()) {
+            return cardNumber;
+        }
+
+        String trimmedCardNumber = cardNumber.trim();
+        if (isSafelyMaskedCardNumber(trimmedCardNumber)) {
+            return trimmedCardNumber;
+        }
+
+        String digitsOnly = extractDigits(trimmedCardNumber);
+        if (digitsOnly.isEmpty()) {
+            return trimmedCardNumber;
+        }
+        if (digitsOnly.length() <= 4) {
+            return digitsOnly;
+        }
+
+        String lastFourDigits = digitsOnly.substring(digitsOnly.length() - 4);
+        int estimatedCardLength = Math.max(digitsOnly.length(), digitsOnly.length() + countMaskCharacters(trimmedCardNumber));
+        return formatMaskedCardNumber(lastFourDigits, estimatedCardLength - 4);
+    }
+
+    private boolean isSafelyMaskedCardNumber(String cardNumber) {
+        return cardNumber.indexOf('*') >= 0 && countDigits(cardNumber) <= 4;
+    }
+
+    private String extractDigits(String value) {
+        StringBuilder digits = new StringBuilder();
+        for (char current : value.toCharArray()) {
+            if (Character.isDigit(current)) {
+                digits.append(current);
+            }
+        }
+        return digits.toString();
+    }
+
+    private int countDigits(String value) {
+        int digitCount = 0;
+        for (char current : value.toCharArray()) {
+            if (Character.isDigit(current)) {
+                digitCount++;
+            }
+        }
+        return digitCount;
+    }
+
+    private int countMaskCharacters(String value) {
+        int maskCharacterCount = 0;
+        for (char current : value.toCharArray()) {
+            if (current == '*') {
+                maskCharacterCount++;
+            }
+        }
+        return maskCharacterCount;
+    }
+
+    private String formatMaskedCardNumber(String lastFourDigits, int maskedDigitCount) {
+        StringBuilder maskedCardNumber = new StringBuilder();
+        int remainingMaskedDigits = maskedDigitCount;
+
+        while (remainingMaskedDigits > 4) {
+            if (!maskedCardNumber.isEmpty()) {
+                maskedCardNumber.append('-');
+            }
+            maskedCardNumber.append("****");
+            remainingMaskedDigits -= 4;
+        }
+
+        if (remainingMaskedDigits > 0) {
+            if (!maskedCardNumber.isEmpty()) {
+                maskedCardNumber.append('-');
+            }
+            maskedCardNumber.append("*".repeat(remainingMaskedDigits));
+        }
+
+        if (!maskedCardNumber.isEmpty()) {
+            maskedCardNumber.append('-');
+        }
+        maskedCardNumber.append(lastFourDigits);
+        return maskedCardNumber.toString();
     }
 
     private boolean isBlank(String value) {
