@@ -101,7 +101,7 @@ public class VqaService {
             if (existingVqaSessionId != null) {
                 String sessionData = redisTemplate.opsForValue().get(VQA_SESSION_KEY_PREFIX + existingVqaSessionId);
                 if (sessionData != null) {
-                    log.info("[VQA] 기존 세션 재사용 - userId={}, vqaSessionId={}, data={}", userId, existingVqaSessionId, sessionData);
+                    log.info("[VQA] 기존 세션 재사용 - userId={}, vqaSessionId={}", userId, existingVqaSessionId);
                     VqaNextQuestionResponse nextQuestion = getNextQuestion(existingVqaSessionId, currentUserId);
                     return VqaStartResponse.session(existingVqaSessionId, nextQuestion);
                 }
@@ -213,7 +213,8 @@ public class VqaService {
             VqaSubmitResponse response = vqaClient.submitAnswer(new VqaSubmitRequest(
                 pythonSessionId, videoId, questionId, answer, time
             ));
-            log.info("[VQA] 검증 결과 - userId={}, isCorrect={}, similarity={}", userId, response.isCorrect(), response.similarityScore());
+            log.info("[VQA] 검증 결과 - userId={}, isCorrect={}", userId, response.isCorrect());
+            log.debug("[VQA] 검증 상세 유사도 - userId={}, similarity={}", userId, response.similarityScore());
 
             // 3. 통과 시
             if (Boolean.TRUE.equals(response.isCorrect())) {
@@ -221,7 +222,7 @@ public class VqaService {
                 String quizPassedToken = generateAndSaveQuizPassedToken(tokenInfo);
 
                 clearVqaSession(vqaSessionId, userId, phaseType, phaseId);
-                log.info("[VQA] 퀴즈 최종 통과 - userId={}, similarity={}", userId, response.similarityScore());
+                log.info("[VQA] 퀴즈 최종 통과 - userId={}", userId);
                 registry.counter("popcon_vqa_submit_total",
                         "phase", phaseType, "phase_id", String.valueOf(phaseId),
                         "outcome", "pass").increment();
@@ -299,7 +300,7 @@ public class VqaService {
         try {
             return Long.parseLong(val);
         } catch (Exception e) {
-            log.error("[VQA] 데이터 파싱 오류 - fieldName={}, value={}", fieldName, val);
+            log.error("[VQA] 데이터 파싱 오류 - fieldName={}", fieldName);
             throw new CustomException(ErrorCode.VQA_SESSION_EXPIRED, fieldName + " 파싱 오류");
         }
     }
