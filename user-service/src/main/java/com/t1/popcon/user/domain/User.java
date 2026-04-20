@@ -194,6 +194,33 @@ public class User extends BaseSoftDeleteEntity {
         return user;
     }
 
+    public static User createSuperUser(
+            String ciHash,
+            String encryptedName,
+            String encryptedPhoneNumber,
+            String phoneHash,
+            String encryptedBirthDate,
+            String encryptedGender,
+            String encryptedNationality,
+            String nickname,
+            String email
+    ) {
+        return User.builder()
+                .ciHash(ciHash)
+                .encryptedName(encryptedName)
+                .encryptedPhoneNumber(encryptedPhoneNumber)
+                .phoneHash(phoneHash)
+                .encryptedBirthDate(encryptedBirthDate)
+                .encryptedGender(encryptedGender)
+                .encryptedNationality(encryptedNationality)
+                .nickname(nickname)
+                .email(email)
+                .isMarketingAgreed(true)
+                .role(Role.SUPER)
+                .status(UserStatus.ACTIVE)
+                .build();
+    }
+
     public void connectKakao(String kakaoUserId, LocalDateTime connectedAt) {
         this.kakaoUserId = kakaoUserId;
         this.kakaoConnectedAt = connectedAt;
