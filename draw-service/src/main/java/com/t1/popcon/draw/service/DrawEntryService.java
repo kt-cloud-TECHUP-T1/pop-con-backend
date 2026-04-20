@@ -366,8 +366,8 @@ public class DrawEntryService {
         LocalDateTime now = LocalDateTime.now(clock);
 
         LocalDateTime drawCloseThreshold = now.getHour() < 11 
-            ? now.minusDays(2).withHour(11).withMinute(0).withSecond(0).withNano(0)
-            : now.minusDays(1).withHour(11).withMinute(0).withSecond(0).withNano(0);
+            ? now.toLocalDate().minusDays(1).atStartOfDay()
+            : now.toLocalDate().atStartOfDay();
 
         return new DrawStatisticsResponse(
             drawEntryRepository.countByUserId(userId),
