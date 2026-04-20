@@ -4,6 +4,7 @@ import { analyzeRawData } from '../analysis/analyze';
 import { resolveIdentityKey, updatePageScore, getTotalScore, mergeScores } from '../services/score-aggregator';
 import { saveSignalLog } from '../services/suspicious-logger';
 import { uploadRawSignal } from '../services/raw-signal-uploader';
+import { notifyDiscord } from '../services/discord-notifier';
 
 const router = Router();
 
@@ -65,7 +66,10 @@ router.post('/signals', async (req: Request, res: Response) => {
       }
     );
 
-    // 4. 시그널 로그 DB 저장 → S3 raw 데이터 업로드 (fire-and-forget)
+    // 4. 시그널 로그 DB 저장 → S3 raw 데이터 업로드 → 디스코드 알람 (fire-and-forget)
+    const ipAddress = getClientIp(req);
+    const userAgent = req.headers['user-agent'];
+
     if (identityKey) {
       saveSignalLog({
         visitorId: body.visitorId,
@@ -75,8 +79,8 @@ router.post('/signals', async (req: Request, res: Response) => {
         pageScore: result.score,
         totalScore,
         result,
-        ipAddress: getClientIp(req),
-        userAgent: req.headers['user-agent'],
+        ipAddress,
+        userAgent,
         rawSummary: {
           clicks: payload.rawData.clicks?.length ?? 0,
           movements: payload.rawData.mouseMovements?.length ?? 0,
@@ -85,8 +89,33 @@ router.post('/signals', async (req: Request, res: Response) => {
         },
       }).then((dbId) => {
         if (dbId) uploadRawSignal({ dbId, payload, analysis: result });
+        if (result.score > 0) {
+          notifyDiscord({
+            dbId,
+            page: payload.page,
+            maskedUserId: maskId(body.userId),
+            maskedVisitorId: maskId(body.visitorId),
+            pageScore: result.score,
+            totalScore,
+            result,
+            ipAddress,
+            userAgent,
+          });
+        }
       }).catch((err) => {
         console.error('[anti-macro] DB 저장→S3 업로드 체인 예외:', err?.message ?? err);
+      });
+    } else if (result.score > 0) {
+      notifyDiscord({
+        dbId: null,
+        page: payload.page,
+        maskedUserId: maskId(body.userId),
+        maskedVisitorId: maskId(body.visitorId),
+        pageScore: result.score,
+        totalScore,
+        result,
+        ipAddress,
+        userAgent,
       });
     }
 
