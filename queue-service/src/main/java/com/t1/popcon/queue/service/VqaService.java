@@ -87,6 +87,7 @@ public class VqaService {
             int globalAttempts = (attemptsStr != null) ? Integer.parseInt(attemptsStr) : 0;
 
             if (globalAttempts >= MAX_ATTEMPTS) {
+                log.warn("[VQA] 시도 횟수 초과 거절 - userId={}, currentAttempts={}/{}", userId, globalAttempts, MAX_ATTEMPTS);
                 registry.counter("popcon_vqa_start_total",
                         "phase", phaseType, "phase_id", String.valueOf(phaseId),
                         "outcome", "attempts_exceeded").increment();
@@ -100,16 +101,18 @@ public class VqaService {
             if (existingVqaSessionId != null) {
                 String sessionData = redisTemplate.opsForValue().get(VQA_SESSION_KEY_PREFIX + existingVqaSessionId);
                 if (sessionData != null) {
-                    log.info("[VQA] 기존 세션 재사용 - userId={}, vqaSessionId={}", userId, existingVqaSessionId);
+                    log.info("[VQA] 기존 세션 재사용 - userId={}, vqaSessionId={}, data={}", userId, existingVqaSessionId, sessionData);
                     VqaNextQuestionResponse nextQuestion = getNextQuestion(existingVqaSessionId, currentUserId);
                     return VqaStartResponse.session(existingVqaSessionId, nextQuestion);
                 }
             }
 
             int totalScore = antiMacroScoreRepository.getTotalScore(userId);
+            log.info("[VQA] VQA 시작 시도 - userId={}, macroScore={}, phaseType={}", userId, totalScore, phaseType);
 
             // 4. 레벨 0 (0~20점): 면제 (단, 경매의 경우 점수가 낮아도 면제 없이 퀴즈를 진행함)
             if (totalScore <= 20 && !"auction".equals(phaseType)) {
+                log.info("[VQA] 매크로 점수 기반 면제 - userId={}, score={}", userId, totalScore);
                 registry.counter("popcon_vqa_start_total",
                         "phase", phaseType, "phase_id", String.valueOf(phaseId),
                         "outcome", "exempt").increment();
@@ -120,9 +123,12 @@ public class VqaService {
             // 5. 레벨 1 이상: VQA 서버 세션 시작
             VqaSessionStartResponse vqaResponse = vqaClient.startSession(VqaSessionStartRequest.empty());
             Long pythonSessionId = vqaResponse.sessionId();
+            log.info("[VQA] VQA 서버 세션 생성 완료 - userId={}, pythonSessionId={}", userId, pythonSessionId);
+            
             VqaNextQuestionResponse firstQuestion = vqaClient.getNextQuestion(pythonSessionId, totalScore);
 
             if (Boolean.TRUE.equals(firstQuestion.isExempt())) {
+                log.info("[VQA] VQA 서버 면제 판정 - userId={}, pythonSessionId={}", userId, pythonSessionId);
                 registry.counter("popcon_vqa_start_total",
                         "phase", phaseType, "phase_id", String.valueOf(phaseId),
                         "outcome", "exempt").increment();
@@ -203,9 +209,11 @@ public class VqaService {
             int score = (int) parseNumeric(parts[5], "score");
 
             // 2. VQA 서버에 답변 제출
+            log.info("[VQA] 답안 제출 - userId={}, session={}, questionId={}, time={}s", userId, vqaSessionId, questionId, time);
             VqaSubmitResponse response = vqaClient.submitAnswer(new VqaSubmitRequest(
                 pythonSessionId, videoId, questionId, answer, time
             ));
+            log.info("[VQA] 검증 결과 - userId={}, isCorrect={}, similarity={}", userId, response.isCorrect(), response.similarityScore());
 
             // 3. 통과 시
             if (Boolean.TRUE.equals(response.isCorrect())) {
@@ -213,7 +221,7 @@ public class VqaService {
                 String quizPassedToken = generateAndSaveQuizPassedToken(tokenInfo);
 
                 clearVqaSession(vqaSessionId, userId, phaseType, phaseId);
-                log.info("[VQA] 퀴즈 통과 - userId={}", userId);
+                log.info("[VQA] 퀴즈 최종 통과 - userId={}, similarity={}", userId, response.similarityScore());
                 registry.counter("popcon_vqa_submit_total",
                         "phase", phaseType, "phase_id", String.valueOf(phaseId),
                         "outcome", "pass").increment();
@@ -235,13 +243,14 @@ public class VqaService {
                 blockRepository.block(phaseType, phaseId, userId, queueProperties.getBlockTtlSeconds());
                 cleanupRepository.cleanupUserData(phaseType, phaseId, userId, null);
 
-                log.warn("[VQA] 퀴즈 최종 실패 - userId={}", userId);
+                log.warn("[VQA] 퀴즈 최종 실패 및 차단 - userId={}, finalAttempts={}/{}", userId, nextAttempts, MAX_ATTEMPTS);
                 registry.counter("popcon_vqa_submit_total",
                         "phase", phaseType, "phase_id", String.valueOf(phaseId),
                         "outcome", "blocked").increment();
                 return VqaSubmitResult.fail(response.similarityScore(), 0);
             }
 
+            log.info("[VQA] 퀴즈 실패(재시도 가능) - userId={}, similarity={}, nextAttempts={}/{}", userId, response.similarityScore(), nextAttempts, MAX_ATTEMPTS);
             saveVqaSession(vqaSessionId, pythonSessionId, new QueueTokenResolver.TokenInfo(phaseType, phaseId, userId), nextAttempts, score);
             registry.counter("popcon_vqa_submit_total",
                     "phase", phaseType, "phase_id", String.valueOf(phaseId),
@@ -272,6 +281,7 @@ public class VqaService {
     private String getSessionDataOrThrow(String vqaSessionId) {
         String data = redisTemplate.opsForValue().get(VQA_SESSION_KEY_PREFIX + vqaSessionId);
         if (data == null) {
+            log.warn("[VQA] 세션 만료 또는 존재하지 않음 - vqaSessionId={}", vqaSessionId);
             throw new CustomException(ErrorCode.VQA_SESSION_EXPIRED);
         }
         return data;
@@ -289,6 +299,7 @@ public class VqaService {
         try {
             return Long.parseLong(val);
         } catch (Exception e) {
+            log.error("[VQA] 데이터 파싱 오류 - fieldName={}, value={}", fieldName, val);
             throw new CustomException(ErrorCode.VQA_SESSION_EXPIRED, fieldName + " 파싱 오류");
         }
     }
