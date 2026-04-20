@@ -11,7 +11,11 @@
 
 **팝콘(POP-CON)** 은 인기 팝업스토어 입장권을 드로우(추첨)와 경매 두 가지 방식으로 예약할 수 있는 웹 서비스입니다.
 
-대규모 동시 접속 환경에서 **트래픽 폭주를 안정적으로 제어**하는 것을 핵심 목표로, 드로우·경매 오픈 시 발생하는 스파이크 트래픽을 Redis 기반 대기열과 분산 처리로 수용하고, 매크로 차단과 동시성 제어를 통해 실사용자에게 공정한 기회를 보장합니다.
+<br/>
+
+대규모 동시 접속 환경에서 **트래픽 폭주를 안정적으로 제어**하는 것을 핵심 목표로,
+드로우·경매 오픈 시 발생하는 스파이크 트래픽을 Redis 기반 대기열과 분산 처리로 수용하고,
+매크로 차단과 동시성 제어를 통해 실사용자에게 공정한 기회를 보장합니다.
 
 <br/>
 
@@ -27,6 +31,25 @@
 ## 🏗️ 시스템 아키텍처
 
 <img width="1300" height="1254" alt="image" src="https://github.com/user-attachments/assets/72e11595-840f-40ff-aac9-b59343ca3038" />
+
+<br/>
+
+## 📦 모듈 구조
+
+```
+pop-con-backend/
+├── auth-service        # JWT 발급, OAuth 소셜 로그인
+├── user-service        # 회원 정보, 빌링키, 마이페이지
+├── popup-service       # 팝업 스토어 조회, 좋아요, 추천
+├── draw-service        # 응모 접수, 당첨 확인
+├── auction-service     # 실시간 경매 입찰 (SSE)
+├── ticket-service      # 티켓 발급 및 관리
+├── queue-service       # 대기열 진입, VQA 인증, 실시간 폴링
+├── queue-worker        # 대기열 승격 · 만료 처리 스케줄러
+├── queue-common        # 대기열 공통 Redis 레포지토리 (라이브러리)
+├── common              # 공통 예외/응답, JWT, PortOne 클라이언트 (라이브러리)
+└── anti-macro-service  # VQA 퀴즈 서버 (Node.js / Express)
+```
 
 <br/>
 
@@ -58,25 +81,6 @@
 | **응모 (드로우)** | 대기열 통과 후 응모 → 스케줄러 자동 추첨 |
 | **경매** | SSE 실시간 가격 변동, 즉시 입찰 |
 | **티켓 발급** | 당첨 / 낙찰 시 디지털 티켓 발급 |
-
-<br/>
-
-## 📦 모듈 구조
-
-```
-pop-con-backend/
-├── auth-service        # JWT 발급, OAuth 소셜 로그인
-├── user-service        # 회원 정보, 빌링키, 마이페이지
-├── popup-service       # 팝업 스토어 조회, 좋아요, 추천
-├── draw-service        # 응모 접수, 당첨 확인
-├── auction-service     # 실시간 경매 입찰 (SSE)
-├── ticket-service      # 티켓 발급 및 관리
-├── queue-service       # 대기열 진입, VQA 인증, 실시간 폴링
-├── queue-worker        # 대기열 승격 · 만료 처리 스케줄러
-├── queue-common        # 대기열 공통 Redis 레포지토리 (라이브러리)
-├── common              # 공통 예외/응답, JWT, PortOne 클라이언트 (라이브러리)
-└── anti-macro-service  # VQA 퀴즈 서버 (Node.js / Express)
-```
 
 <br/>
 
