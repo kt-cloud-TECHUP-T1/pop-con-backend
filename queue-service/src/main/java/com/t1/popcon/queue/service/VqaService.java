@@ -277,6 +277,7 @@ public class VqaService {
     private void clearVqaSession(String vqaSessionId, long userId, String phaseType, long phaseId) {
         redisTemplate.delete(VQA_SESSION_KEY_PREFIX + vqaSessionId);
         redisTemplate.delete(getUserSessionKey(userId, phaseType, phaseId));
+        redisTemplate.delete(getGlobalAttemptsKey(userId, phaseType, phaseId));
     }
 
     private String getSessionDataOrThrow(String vqaSessionId) {
