@@ -49,6 +49,25 @@ public class TestAccountController {
     }
 
     /**
+     * 시연용 슈퍼 계정 생성
+     * @param count 생성할 슈퍼 계정 수
+     */
+    @PostMapping("/super")
+    public ApiResponse<Void> generateSuperAccounts(@RequestParam(defaultValue = "100") int count) {
+        if (count < 1 || count > 1000) {
+            return ApiResponse.fail(ErrorCode.ERROR_SYSTEM.getCode(), "생성할 슈퍼 계정 수는 1개에서 1,000개 사이여야 합니다. (요청: " + count + ")", null);
+        }
+
+        try {
+            testAccountGenerator.generateSuperAccounts(count);
+            return ApiResponse.ok("성공적으로 슈퍼 계정이 생성되었습니다.", null);
+        } catch (Exception e) {
+            log.error("[SuperAccount] 슈퍼 계정 생성 중 오류 발생: ", e);
+            return ApiResponse.fail(ErrorCode.ERROR_SYSTEM.getCode(), "슈퍼 계정 생성 실패", null);
+        }
+    }
+
+    /**
      * 생성된 테스트 계정 파일 다운로드
      * @param filePath 생성 API에서 반환된 전체 파일 경로
      * @return CSV 파일 리소스

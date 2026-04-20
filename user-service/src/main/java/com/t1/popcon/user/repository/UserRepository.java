@@ -1,5 +1,6 @@
 package com.t1.popcon.user.repository;
 
+import com.t1.popcon.user.domain.Role;
 import com.t1.popcon.user.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -22,4 +23,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     /** 닉네임 중복 확인 - 본인 제외 (프로필 수정 시 사용) */
     boolean existsByNicknameAndIdNot(String nickname, Long id);
+
+    long countByRole(Role role);
+
+    Optional<User> findByNickname(String nickname);
+
+    Optional<User> findByNicknameAndRole(String nickname, Role role);
 }

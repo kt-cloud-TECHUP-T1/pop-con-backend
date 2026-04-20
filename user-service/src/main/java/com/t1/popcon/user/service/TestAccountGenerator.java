@@ -8,6 +8,7 @@ import com.t1.popcon.user.billing.client.PortOneBillingClient.PortOneBillingRequ
 import com.t1.popcon.user.billing.client.PortOneBillingClient.PortOneBillingResponse;
 import com.t1.popcon.user.billing.entity.UserBillingKey;
 import com.t1.popcon.user.billing.repository.UserBillingKeyRepository;
+import com.t1.popcon.user.domain.Role;
 import com.t1.popcon.user.domain.User;
 import com.t1.popcon.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Service
 @RequiredArgsConstructor
 public class TestAccountGenerator {
+
+    public static final String SUPER_USER_TOTAL_COUNT_KEY = "super_user_total_count";
 
     private final UserRepository userRepository;
     private final UserBillingKeyRepository billingKeyRepository;
@@ -146,6 +149,151 @@ public class TestAccountGenerator {
 
         log.info("[TestAccount] 대량 계정 생성 완료. 파일 위치: {}", fileName);
         return fileName;
+    }
+
+    public void generateSuperAccounts(int count) throws InterruptedException {
+        int startOffset = getSuperStartOffset();
+        log.info("[SuperAccount] 슈퍼 계정 생성 시작: 기존 {}개, 추가 {}개 예정", startOffset, count);
+
+        ExecutorService executor = Executors.newFixedThreadPool(20);
+        AtomicInteger successCount = new AtomicInteger(0);
+        java.util.concurrent.ConcurrentLinkedQueue<String> errors = new java.util.concurrent.ConcurrentLinkedQueue<>();
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+        for (int i = 1; i <= count; i++) {
+            final int index = startOffset + i;
+            futures.add(CompletableFuture.runAsync(() -> {
+                try {
+                    self.createSingleSuperAccount(index);
+                    successCount.incrementAndGet();
+                } catch (Exception e) {
+                    String errorMsg = String.format("index=%d, error=%s", index, e.getMessage());
+                    errors.add(errorMsg);
+                    log.error("[SuperAccount] 슈퍼 계정 생성 실패 - {}", errorMsg);
+                }
+            }, executor));
+
+            if (futures.size() >= 20 || i == count) {
+                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+                futures.clear();
+            }
+        }
+
+        executor.shutdown();
+        executor.awaitTermination(1, TimeUnit.MINUTES);
+
+        // 생성 완료 후 전체 슈퍼 계정 수 Redis 업데이트
+        long totalCount = userRepository.countByRole(Role.SUPER);
+        redisTemplate.opsForValue().set(SUPER_USER_TOTAL_COUNT_KEY, String.valueOf(totalCount));
+        
+        log.info("[SuperAccount] 슈퍼 계정 생성 작업 종료. 성공: {}, 실패: {}, 총 DB 계정: {}", 
+                 successCount.get(), errors.size(), totalCount);
+        
+        if (!errors.isEmpty()) {
+            log.warn("[SuperAccount] 생성 중 발생한 오류 목록: {}", String.join(" | ", errors));
+            throw new IllegalStateException(String.format("슈퍼 계정 생성 부분 실패: %d건 실패 / %d건 시도", errors.size(), count));
+        }
+    }
+
+    private int getSuperStartOffset() {
+        return userRepository.findFirstByNicknameStartingWithOrderByIdDesc("Super_")
+                .map(user -> {
+                    try {
+                        String nickname = user.getNickname();
+                        return Integer.parseInt(nickname.substring(6)); // "Super_" 이후 숫자 추출
+                    } catch (Exception e) {
+                        return 0;
+                    }
+                })
+                .orElse(0);
+    }
+
+    /**
+     * 비트랜잭션 환경에서 유저 저장과 빌링키 등록을 순차적으로 호출 (외부 API 호출 시 커넥션 점유 방지)
+     */
+    public void createSingleSuperAccount(int index) {
+        String nickname = "Super_" + index;
+        if (userRepository.existsByNickname(nickname)) {
+            return;
+        }
+
+        // 1. 유저 저장 (Transactional)
+        User user = self.saveSuperUser(index, nickname);
+
+        // 2. 안티매크로 점수 설정 (Redis)
+        setupAntiMacroScore(user.getId());
+
+        // 3. 빌링키 발급 및 저장 (외부 API + Transactional)
+        self.registerBillingKeyForSuperUser(user);
+    }
+
+    @Transactional
+    public User saveSuperUser(int index, String nickname) {
+        String rawName = "슈퍼테스터_" + index;
+        String rawPhone = String.format("010-9999-%04d", index % 10000);
+        String ci = "super_ci_" + index;
+
+        User user = User.createSuperUser(
+                encryptionService.generateHash(ci),
+                encryptionService.encrypt(rawName),
+                encryptionService.encrypt(rawPhone),
+                encryptionService.generateHash(rawPhone),
+                encryptionService.encrypt("1990-01-01"),
+                encryptionService.encrypt("M"),
+                encryptionService.encrypt("KOREA"),
+                nickname,
+                "super" + index + "@popcon.store"
+        );
+        return userRepository.save(user);
+    }
+
+    private void setupAntiMacroScore(Long userId) {
+        String redisKey = "score:" + userId;
+        // Redis는 트랜잭션 관리가 필요 없으므로 즉시 실행
+        redisTemplate.opsForHash().put(redisKey, "total", "25");
+    }
+
+    /**
+     * 외부 API 호출 후 결과를 DB에 저장 (REQUIRES_NEW로 별도 트랜잭션 처리)
+     */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    public void registerBillingKeyForSuperUser(User user) {
+        try {
+            PortOneBillingResponse response = portOneBillingClient.issueBillingKey(
+                    "PortOne " + portOneSecret,
+                    new PortOneBillingRequest(
+                            channelKey,
+                            new PortOneBillingRequest.Customer(String.valueOf(user.getId())),
+                            new PortOneBillingRequest.Method(
+                                    new PortOneBillingRequest.Method.Card(
+                                            new PortOneBillingRequest.Method.Card.Credential(
+                                                    testCardNumber, testCardExpiryYear, testCardExpiryMonth, testCardBirth, testCardPassword
+                                            )
+                                    )
+                            )
+                    )
+            );
+            
+            String billingKeyId = response.billingKeyInfo().billingKey();
+            // 방어 로직: channels 리스트가 비어있을 경우 기본값 사용
+            String cardName = "KCP 테스트 카드";
+            if (response.billingKeyInfo().channels() != null && !response.billingKeyInfo().channels().isEmpty()) {
+                cardName = response.billingKeyInfo().channels().get(0).name();
+            }
+
+            UserBillingKey userBillingKey = UserBillingKey.builder()
+                    .user(user)
+                    .customerUid(billingKeyId)
+                    .pgProvider("KCP_V2")
+                    .cardName(cardName)
+                    .cardNumber(testCardNumber)
+                    .isDefault(true)
+                    .build();
+            billingKeyRepository.save(userBillingKey);
+        } catch (Exception e) {
+            log.warn("[SuperAccount] 빌링키 발급 실패 (유저 ID: {}): {}", user.getId(), e.getMessage());
+            // 시연용 계정이므로 빌링키 발급에 실패해도 로그만 남기고 유저는 유지
+        }
     }
 
     private int getStartOffset() {
