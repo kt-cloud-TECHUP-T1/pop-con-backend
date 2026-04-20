@@ -38,17 +38,17 @@
 
 ```
 pop-con-backend/
-├── auth-service        # JWT 발급, OAuth 소셜 로그인
+├── auth-service        # JWT 발급, OAuth 소셜 로그인, 본인인증
 ├── user-service        # 회원 정보, 빌링키, 마이페이지
-├── popup-service       # 팝업 스토어 조회, 좋아요, 추천
+├── popup-service       # 팝업 스토어 조회, 좋아요
 ├── draw-service        # 응모 접수, 당첨 확인
 ├── auction-service     # 실시간 경매 입찰 (SSE)
 ├── ticket-service      # 티켓 발급 및 관리
-├── queue-service       # 대기열 진입, VQA 인증, 실시간 폴링
+├── queue-service       # 대기열 진입, 실시간 폴링, VQA 인증
 ├── queue-worker        # 대기열 승격 · 만료 처리 스케줄러
 ├── queue-common        # 대기열 공통 Redis 레포지토리 (라이브러리)
 ├── common              # 공통 예외/응답, JWT, PortOne 클라이언트 (라이브러리)
-└── anti-macro-service  # VQA 퀴즈 서버 (Node.js / Express)
+└── anti-macro-service  # 봇 방지 · 매크로 감지 (VQA 기반, Node.js)
 ```
 
 <br/>
