@@ -240,9 +240,11 @@ public class VqaService {
             }
 
             if (nextAttempts >= MAX_ATTEMPTS) {
-                clearVqaSession(vqaSessionId, userId, phaseType, phaseId);
+                redisTemplate.delete(VQA_SESSION_KEY_PREFIX + vqaSessionId);
+                redisTemplate.delete(getUserSessionKey(userId, phaseType, phaseId));
                 blockRepository.block(phaseType, phaseId, userId, queueProperties.getBlockTtlSeconds());
                 cleanupRepository.cleanupUserData(phaseType, phaseId, userId, null);
+                redisTemplate.delete(getGlobalAttemptsKey(userId, phaseType, phaseId));
 
                 log.warn("[VQA] 퀴즈 최종 실패 및 차단 - userId={}, finalAttempts={}/{}", userId, nextAttempts, MAX_ATTEMPTS);
                 registry.counter("popcon_vqa_submit_total",
@@ -277,6 +279,7 @@ public class VqaService {
     private void clearVqaSession(String vqaSessionId, long userId, String phaseType, long phaseId) {
         redisTemplate.delete(VQA_SESSION_KEY_PREFIX + vqaSessionId);
         redisTemplate.delete(getUserSessionKey(userId, phaseType, phaseId));
+        redisTemplate.delete(getGlobalAttemptsKey(userId, phaseType, phaseId));
     }
 
     private String getSessionDataOrThrow(String vqaSessionId) {
