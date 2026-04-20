@@ -368,8 +368,8 @@ public class DrawEntryService {
             drawEntryRepository.countByUserId(userId),
             drawEntryRepository.countConfirmedByUserIdAndStatus(userId, DrawEntryStatus.WINNER),
             drawEntryRepository.countConfirmedByUserIdAndStatus(userId, DrawEntryStatus.FAILED),
-            drawEntryRepository.countOngoingByUserId(userId, DrawEntryStatus.APPLIED, now),
-            drawEntryRepository.countWaitingResultByUserId(userId, now)
+            drawEntryRepository.countOngoingByUserId(userId, now),
+            drawEntryRepository.countWaitingResultByUserId(userId, List.of(DrawEntryStatus.WINNER, DrawEntryStatus.FAILED), now)
         );
     }
 }
