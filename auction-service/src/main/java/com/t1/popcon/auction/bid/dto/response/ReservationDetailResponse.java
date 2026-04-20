@@ -9,6 +9,9 @@ import java.time.LocalTime;
 public record ReservationDetailResponse(
     Long ticketId,
     String reservationNo,
+    String paymentMethod,
+    String cardName,
+    String cardNumber,
     String popupTitle,
     String popupAddress,
     String popupThumbnail,

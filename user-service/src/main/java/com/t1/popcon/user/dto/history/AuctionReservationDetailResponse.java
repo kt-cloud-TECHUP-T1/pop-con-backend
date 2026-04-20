@@ -11,6 +11,9 @@ import lombok.NoArgsConstructor;
 public class AuctionReservationDetailResponse {
 
     private String reservationNo;
+    private String paymentMethod;
+    private String cardName;
+    private String cardNumber;
     private String popupTitle;
     private String popupAddress;
     private String popupThumbnail;

@@ -17,6 +17,7 @@ import org.springframework.data.repository.query.Param;
 public interface BidRepository extends JpaRepository<Bid, Long> {
 	@Modifying
 	@Query("UPDATE Bid b SET b.status = :toStatus, b.paidAt = :paidAt, b.pgTxId = :pgTxId, " +
+		"b.paymentMethod = :paymentMethod, b.pgProvider = :pgProvider, b.cardName = :cardName, b.cardNumber = :cardNumber, " +
 		"b.reservationNo = :reservationNo, " +
 		"b.popupTitle = :popupTitle, b.popupAddress = :popupAddress, b.thumbnailUrl = :thumbnailUrl, " +
 		"b.entryDate = :entryDate, b.entryTime = :entryTime, b.startPrice = :startPrice " +
@@ -26,6 +27,10 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
 		@Param("toStatus") BidStatus toStatus,
 		@Param("paidAt") LocalDateTime paidAt,
 		@Param("pgTxId") String pgTxId,
+		@Param("paymentMethod") String paymentMethod,
+		@Param("pgProvider") String pgProvider,
+		@Param("cardName") String cardName,
+		@Param("cardNumber") String cardNumber,
 		@Param("reservationNo") String reservationNo,
 		@Param("popupTitle") String popupTitle,
 		@Param("popupAddress") String popupAddress,

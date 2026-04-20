@@ -20,7 +20,7 @@ public class InternalBillingKeyController {
     public ApiResponse<BillingKeyInternalResponse> getDefaultBillingKey(
         @RequestParam("userId") Long userId
     ) {
-        String billingKey = billingKeyService.getDefaultBillingKey(userId);
-        return ApiResponse.ok(new BillingKeyInternalResponse(billingKey));
+        BillingKeyInternalResponse billingKey = billingKeyService.getDefaultBillingKeySnapshot(userId);
+        return ApiResponse.ok(billingKey);
     }
 }
