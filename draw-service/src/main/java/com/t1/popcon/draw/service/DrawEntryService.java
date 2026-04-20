@@ -364,12 +364,17 @@ public class DrawEntryService {
     @Transactional(readOnly = true)
     public DrawStatisticsResponse getDrawStatistics(Long userId) {
         LocalDateTime now = LocalDateTime.now(clock);
+
+        LocalDateTime drawCloseThreshold = now.getHour() < 11 
+            ? now.toLocalDate().minusDays(1).atStartOfDay()
+            : now.toLocalDate().atStartOfDay();
+
         return new DrawStatisticsResponse(
             drawEntryRepository.countByUserId(userId),
             drawEntryRepository.countConfirmedByUserIdAndStatus(userId, DrawEntryStatus.WINNER),
             drawEntryRepository.countConfirmedByUserIdAndStatus(userId, DrawEntryStatus.FAILED),
-            drawEntryRepository.countOngoingByUserId(userId, now),
-            drawEntryRepository.countWaitingResultByUserId(userId, List.of(DrawEntryStatus.WINNER, DrawEntryStatus.FAILED), now)
+            drawEntryRepository.countOngoingByUserId(userId, drawCloseThreshold),
+            drawEntryRepository.countWaitingResultByUserId(userId, List.of(DrawEntryStatus.WINNER, DrawEntryStatus.FAILED), drawCloseThreshold)
         );
     }
 }
