@@ -364,8 +364,7 @@ public class DrawEntryService {
     @Transactional(readOnly = true)
     public DrawStatisticsResponse getDrawStatistics(Long userId) {
         LocalDateTime now = LocalDateTime.now(clock);
-        // 발표 시각(마감 익일 11시)이 현재 시간보다 이전인 '마감 시각'의 최댓값을 계산
-        // 즉, 이 기준점보다 이전에 마감된 드로우는 이미 결과가 발표된 상태임
+
         LocalDateTime drawCloseThreshold = now.getHour() < 11 
             ? now.minusDays(2).withHour(11).withMinute(0).withSecond(0).withNano(0)
             : now.minusDays(1).withHour(11).withMinute(0).withSecond(0).withNano(0);
