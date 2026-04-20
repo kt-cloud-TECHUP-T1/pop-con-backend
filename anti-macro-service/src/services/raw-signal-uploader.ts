@@ -6,14 +6,30 @@ import type { AnalysisResult, PageSignalPayload, RawData } from '../types';
 
 const gzipAsync = promisify(gzip);
 
-const enabled = Boolean(env.AWS_REGION && env.S3_RAW_SIGNAL_BUCKET);
+const enabled = Boolean(env.S3_BUCKET && env.S3_ACCESS_KEY && env.S3_SECRET_KEY);
 
 const s3 = enabled
-  ? new S3Client({ region: env.AWS_REGION })
+  ? new S3Client({
+      region: env.S3_REGION,
+      credentials: {
+        accessKeyId: env.S3_ACCESS_KEY!,
+        secretAccessKey: env.S3_SECRET_KEY!,
+      },
+      ...(env.S3_ENDPOINT && env.S3_ENDPOINT.trim().length > 0
+        ? { endpoint: env.S3_ENDPOINT, forcePathStyle: true }
+        : {}),
+    })
   : null;
 
-if (!enabled) {
-  console.warn('[s3-raw-signal] AWS_REGION 또는 S3_RAW_SIGNAL_BUCKET 미설정 — 업로드 비활성화');
+if (enabled) {
+  console.log(
+    `[S3] 업로더 초기화 완료 - region=${env.S3_REGION} bucket=${env.S3_BUCKET}` +
+      (env.S3_ENDPOINT ? ` endpoint=${env.S3_ENDPOINT}` : ' endpoint=(AWS default)'),
+  );
+} else {
+  console.warn(
+    '[S3] 환경변수 미설정 (S3_BUCKET/S3_ACCESS_KEY/S3_SECRET_KEY) — raw 시그널 업로드 비활성화',
+  );
 }
 
 type UploadParams = {
@@ -39,18 +55,41 @@ function buildKey(dbId: number, now: Date): string {
 /**
  * Raw 시그널을 S3에 업로드 (fire-and-forget)
  * - PII 제거: userId/ip/userAgent/visitorId 전부 제외
- * - 주체 추적이 필요해지면 visitorId 해시 추가 (현재는 요청 단위 학습만 지원)
+ * - 절대 throw하지 않음 — 라우트/DB 흐름에 영향 없음
  */
 export function uploadRawSignal(params: UploadParams): void {
-  if (!enabled || !s3) return;
+  if (!enabled || !s3) {
+    console.log(`[S3] skip (비활성) - dbId=${params.dbId} page=${params.payload.page}`);
+    return;
+  }
 
-  putObject(params).catch((err) => {
-    console.error('[s3-raw-signal] 업로드 실패:', err?.message || err);
-  });
+  try {
+    putObject(params).catch((err) => {
+      console.error(
+        `[S3] 업로드 실패 - dbId=${params.dbId} page=${params.payload.page} ` +
+          `error=${err?.name ?? 'Error'} message=${err?.message ?? err}`,
+        err?.stack,
+      );
+    });
+  } catch (err: any) {
+    console.error(
+      `[S3] 업로드 진입 실패 - dbId=${params.dbId} page=${params.payload.page} ` +
+        `error=${err?.name ?? 'Error'} message=${err?.message ?? err}`,
+      err?.stack,
+    );
+  }
 }
 
 async function putObject({ dbId, payload, analysis }: UploadParams): Promise<void> {
+  const startedAt = Date.now();
   const now = new Date();
+  const key = buildKey(dbId, now);
+
+  console.log(
+    `[S3] 업로드 시작 - dbId=${dbId} page=${payload.page} key=${key} ` +
+      `clicks=${payload.rawData.clicks?.length ?? 0} movements=${payload.rawData.mouseMovements?.length ?? 0}`,
+  );
+
   const body = {
     dbId,
     page: payload.page,
@@ -60,15 +99,26 @@ async function putObject({ dbId, payload, analysis }: UploadParams): Promise<voi
     rawData: sanitizeRawData(payload.rawData),
   };
 
-  const compressed = await gzipAsync(Buffer.from(JSON.stringify(body), 'utf-8'));
+  const json = JSON.stringify(body);
+  const compressed = await gzipAsync(Buffer.from(json, 'utf-8'));
+  console.log(
+    `[S3] gzip 완료 - dbId=${dbId} key=${key} ` +
+      `rawBytes=${json.length} gzippedBytes=${compressed.length} ` +
+      `ratio=${(compressed.length / Math.max(json.length, 1)).toFixed(3)}`,
+  );
 
   await s3!.send(
     new PutObjectCommand({
-      Bucket: env.S3_RAW_SIGNAL_BUCKET!,
-      Key: buildKey(dbId, now),
+      Bucket: env.S3_BUCKET!,
+      Key: key,
       Body: compressed,
       ContentType: 'application/json',
       ContentEncoding: 'gzip',
     }),
+  );
+
+  console.log(
+    `[S3] 업로드 완료 - dbId=${dbId} page=${payload.page} key=${key} ` +
+      `bytes=${compressed.length} elapsedMs=${Date.now() - startedAt}`,
   );
 }
