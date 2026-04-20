@@ -159,6 +159,9 @@ public class BidService {
         return ReservationDetailResponse.builder()
                 .ticketId(ticketId)
                 .reservationNo(bid.getReservationNo())
+                .paymentMethod(bid.getPaymentMethod())
+                .cardName(bid.getCardName())
+                .cardNumber(maskCardNumber(bid.getCardNumber()))
                 .popupTitle(bid.getPopupTitle())
                 .popupAddress(bid.getPopupAddress())
                 .popupThumbnail(bid.getThumbnailUrl())
@@ -169,6 +172,89 @@ public class BidService {
                 .finalPrice(bidPrice)
                 .paidAt(bid.getPaidAt())
                 .build();
+    }
+
+    private String maskCardNumber(String cardNumber) {
+        if (cardNumber == null || cardNumber.isBlank()) {
+            return cardNumber;
+        }
+
+        String trimmedCardNumber = cardNumber.trim();
+        if (isSafelyMaskedCardNumber(trimmedCardNumber)) {
+            return trimmedCardNumber;
+        }
+
+        String digitsOnly = extractDigits(trimmedCardNumber);
+        if (digitsOnly.isEmpty()) {
+            return trimmedCardNumber;
+        }
+        if (digitsOnly.length() <= 4) {
+            return digitsOnly;
+        }
+
+        String lastFourDigits = digitsOnly.substring(digitsOnly.length() - 4);
+        int estimatedCardLength = Math.max(digitsOnly.length(), digitsOnly.length() + countMaskCharacters(trimmedCardNumber));
+        return formatMaskedCardNumber(lastFourDigits, estimatedCardLength - 4);
+    }
+
+    private boolean isSafelyMaskedCardNumber(String cardNumber) {
+        return cardNumber.indexOf('*') >= 0 && countDigits(cardNumber) <= 4;
+    }
+
+    private String extractDigits(String value) {
+        StringBuilder digits = new StringBuilder();
+        for (char current : value.toCharArray()) {
+            if (Character.isDigit(current)) {
+                digits.append(current);
+            }
+        }
+        return digits.toString();
+    }
+
+    private int countDigits(String value) {
+        int digitCount = 0;
+        for (char current : value.toCharArray()) {
+            if (Character.isDigit(current)) {
+                digitCount++;
+            }
+        }
+        return digitCount;
+    }
+
+    private int countMaskCharacters(String value) {
+        int maskCharacterCount = 0;
+        for (char current : value.toCharArray()) {
+            if (current == '*') {
+                maskCharacterCount++;
+            }
+        }
+        return maskCharacterCount;
+    }
+
+    private String formatMaskedCardNumber(String lastFourDigits, int maskedDigitCount) {
+        StringBuilder maskedCardNumber = new StringBuilder();
+        int remainingMaskedDigits = maskedDigitCount;
+
+        while (remainingMaskedDigits > 4) {
+            if (!maskedCardNumber.isEmpty()) {
+                maskedCardNumber.append('-');
+            }
+            maskedCardNumber.append("****");
+            remainingMaskedDigits -= 4;
+        }
+
+        if (remainingMaskedDigits > 0) {
+            if (!maskedCardNumber.isEmpty()) {
+                maskedCardNumber.append('-');
+            }
+            maskedCardNumber.append("*".repeat(remainingMaskedDigits));
+        }
+
+        if (!maskedCardNumber.isEmpty()) {
+            maskedCardNumber.append('-');
+        }
+        maskedCardNumber.append(lastFourDigits);
+        return maskedCardNumber.toString();
     }
 
     private record PriceDetails(
@@ -270,7 +356,8 @@ public class BidService {
                             });
                     throw new CustomException(ErrorCode.BILLING_KEY_NOT_FOUND);
                 }
-                String billingKey = billingKeyResponse.getData().customerUid();
+                BillingKeyInternalResponse billingKeyDetail = billingKeyResponse.getData();
+                String billingKey = billingKeyDetail.customerUid();
 
                 paymentAttempted = true;
                 Timer paymentTimer = Timer.builder("popcon_payment_latency")
@@ -340,6 +427,10 @@ public class BidService {
                             option.getId(),
                             pgTxId,
                             paidAt,
+                            "CARD",
+                            billingKeyDetail.pgProvider(),
+                            billingKeyDetail.cardName(),
+                            billingKeyDetail.cardNumber(),
                             currentReservationNo,
                             popupTitle,
                             popupAddress,

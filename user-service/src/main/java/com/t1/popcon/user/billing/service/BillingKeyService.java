@@ -3,6 +3,7 @@ package com.t1.popcon.user.billing.service;
 import com.t1.popcon.common.exception.CustomException;
 import com.t1.popcon.common.exception.ErrorCode;
 import com.t1.popcon.user.billing.dto.BillingKeyInfoResponse;
+import com.t1.popcon.user.billing.dto.BillingKeyInternalResponse;
 import com.t1.popcon.user.billing.dto.BillingKeyRegisterRequest;
 import com.t1.popcon.common.infrastructure.dto.PortOneBillingKeyResponse;
 import com.t1.popcon.user.billing.entity.UserBillingKey;
@@ -142,6 +143,16 @@ public class BillingKeyService {
 
 		return billingKeyRepository.findByUserAndIsDefaultTrueAndIsActiveTrue(user)
 			.map(UserBillingKey::getCustomerUid)
+			.orElseThrow(() -> new CustomException(ErrorCode.BILLING_KEY_NOT_FOUND));
+	}
+
+	@Transactional(readOnly = true)
+	public BillingKeyInternalResponse getDefaultBillingKeySnapshot(Long userId) {
+		User user = userRepository.findById(userId)
+			.orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+		return billingKeyRepository.findByUserAndIsDefaultTrueAndIsActiveTrue(user)
+			.map(BillingKeyInternalResponse::from)
 			.orElseThrow(() -> new CustomException(ErrorCode.BILLING_KEY_NOT_FOUND));
 	}
 

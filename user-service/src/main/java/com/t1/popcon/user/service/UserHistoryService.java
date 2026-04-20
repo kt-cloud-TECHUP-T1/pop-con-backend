@@ -215,8 +215,8 @@ public class UserHistoryService {
                 .issuedAt(ticket.getIssuedAt())
                 .qrValue(resolveQrValue(ticket))
                 .userName(purchaser.userName())
-                .userPhoneNumber(purchaser.userPhoneNumber())
-                .userEmail(purchaser.userEmail());
+                .userPhoneNumber(maskPhoneNumberForDisplay(purchaser.userPhoneNumber()))
+                .userEmail(maskEmailForDisplay(purchaser.userEmail()));
 
             applySourceSpecificDetail(detailBuilder, userId, ticket);
             applyPopupFallback(detailBuilder, ticket.getPopupId());
@@ -324,6 +324,9 @@ public class UserHistoryService {
             AuctionReservationDetailResponse detail = requireData(response);
 
             detailBuilder
+                .paymentMethod(detail.getPaymentMethod())
+                .cardName(detail.getCardName())
+                .cardNumber(maskCardNumberForDisplay(detail.getCardNumber()))
                 .popupTitle(firstNonBlank(detail.getPopupTitle(), currentDetail.getPopupTitle()))
                 .popupAddress(firstNonBlank(detail.getPopupAddress(), currentDetail.getPopupAddress()))
                 .thumbnailUrl(firstNonBlank(detail.getPopupThumbnail(), currentDetail.getThumbnailUrl()))
@@ -351,7 +354,7 @@ public class UserHistoryService {
                 .thumbnailUrl(firstNonBlank(detail.getPopupThumbnail(), currentDetail.getThumbnailUrl()))
                 .paidAt(detail.getPaidAt())
                 .userName(firstNonBlank(detail.getUserName(), currentDetail.getUserName()))
-                .userPhoneNumber(firstNonBlank(detail.getUserPhoneNumber(), currentDetail.getUserPhoneNumber()));
+                .userPhoneNumber(maskPhoneNumberForDisplay(firstNonBlank(detail.getUserPhoneNumber(), currentDetail.getUserPhoneNumber())));
         }
     }
 
@@ -449,6 +452,139 @@ public class UserHistoryService {
             return primary;
         }
         return fallback;
+    }
+
+    private String maskCardNumberForDisplay(String cardNumber) {
+        if (cardNumber == null || cardNumber.isBlank()) {
+            return cardNumber;
+        }
+
+        String trimmedCardNumber = cardNumber.trim();
+        if (isSafelyMaskedCardNumber(trimmedCardNumber)) {
+            return trimmedCardNumber;
+        }
+
+        String digitsOnly = extractDigits(trimmedCardNumber);
+        if (digitsOnly.isEmpty()) {
+            return trimmedCardNumber;
+        }
+        if (digitsOnly.length() <= 4) {
+            return digitsOnly;
+        }
+
+        String lastFourDigits = digitsOnly.substring(digitsOnly.length() - 4);
+        int estimatedCardLength = Math.max(digitsOnly.length(), digitsOnly.length() + countMaskCharacters(trimmedCardNumber));
+        return formatMaskedCardNumber(lastFourDigits, estimatedCardLength - 4);
+    }
+
+    private boolean isSafelyMaskedCardNumber(String cardNumber) {
+        return cardNumber.indexOf('*') >= 0 && countDigits(cardNumber) <= 4;
+    }
+
+    private String extractDigits(String value) {
+        StringBuilder digits = new StringBuilder();
+        for (char current : value.toCharArray()) {
+            if (Character.isDigit(current)) {
+                digits.append(current);
+            }
+        }
+        return digits.toString();
+    }
+
+    private int countDigits(String value) {
+        int digitCount = 0;
+        for (char current : value.toCharArray()) {
+            if (Character.isDigit(current)) {
+                digitCount++;
+            }
+        }
+        return digitCount;
+    }
+
+    private int countMaskCharacters(String value) {
+        int maskCharacterCount = 0;
+        for (char current : value.toCharArray()) {
+            if (current == '*') {
+                maskCharacterCount++;
+            }
+        }
+        return maskCharacterCount;
+    }
+
+    private String formatMaskedCardNumber(String lastFourDigits, int maskedDigitCount) {
+        StringBuilder maskedCardNumber = new StringBuilder();
+        int remainingMaskedDigits = maskedDigitCount;
+
+        while (remainingMaskedDigits > 4) {
+            if (!maskedCardNumber.isEmpty()) {
+                maskedCardNumber.append('-');
+            }
+            maskedCardNumber.append("****");
+            remainingMaskedDigits -= 4;
+        }
+
+        if (remainingMaskedDigits > 0) {
+            if (!maskedCardNumber.isEmpty()) {
+                maskedCardNumber.append('-');
+            }
+            maskedCardNumber.append("*".repeat(remainingMaskedDigits));
+        }
+
+        if (!maskedCardNumber.isEmpty()) {
+            maskedCardNumber.append('-');
+        }
+        maskedCardNumber.append(lastFourDigits);
+        return maskedCardNumber.toString();
+    }
+
+    private String maskPhoneNumberForDisplay(String phoneNumber) {
+        if (phoneNumber == null || phoneNumber.isBlank()) {
+            return phoneNumber;
+        }
+
+        String trimmedPhoneNumber = phoneNumber.trim();
+        if (trimmedPhoneNumber.indexOf('*') >= 0) {
+            return trimmedPhoneNumber;
+        }
+
+        String digitsOnly = extractDigits(trimmedPhoneNumber);
+        if (digitsOnly.length() != 11) {
+            return trimmedPhoneNumber;
+        }
+
+        return digitsOnly.substring(0, 3)
+            + "-"
+            + digitsOnly.substring(3, 5)
+            + "**-"
+            + digitsOnly.substring(7, 9)
+            + "**";
+    }
+
+    private String maskEmailForDisplay(String userEmail) {
+        if (userEmail == null || userEmail.isBlank()) {
+            return userEmail;
+        }
+
+        String trimmedEmail = userEmail.trim();
+        int atIndex = trimmedEmail.indexOf('@');
+        if (atIndex <= 0 || atIndex != trimmedEmail.lastIndexOf('@')) {
+            return trimmedEmail;
+        }
+
+        String localPart = trimmedEmail.substring(0, atIndex);
+        String domainPart = trimmedEmail.substring(atIndex);
+
+        if (localPart.indexOf('*') >= 0) {
+            return trimmedEmail;
+        }
+        if (localPart.length() == 1) {
+            return localPart + "*" + domainPart;
+        }
+        if (localPart.length() == 2) {
+            return localPart.charAt(0) + "*" + domainPart;
+        }
+
+        return localPart.substring(0, 2) + "*".repeat(localPart.length() - 2) + domainPart;
     }
 
     private boolean isBlank(String value) {

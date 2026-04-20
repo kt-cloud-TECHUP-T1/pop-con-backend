@@ -39,7 +39,8 @@ public class UserSecurityConfig extends CommonSecurityConfig {
                         "/v3/api-docs/**",
                         "/user/swagger-ui/**",
                         "/billing/**",
-                        "/actuator/**"
+                        "/actuator/**",
+                        "/users/login/super"
                 ).permitAll()
                 .requestMatchers(
                         "/internal/users/**",

@@ -106,6 +106,25 @@ public class BidServiceTest {
 	}
 
 	@Test
+	@DisplayName("카드번호 마스킹 - raw, masked, null, short value를 안전하게 처리한다")
+	void maskCardNumber_SafelyFormatsCardNumber() {
+		assertThat(invokeMaskCardNumber("1234567812345678"))
+			.isEqualTo("****-****-****-5678");
+		assertThat(invokeMaskCardNumber("1234-****-****-5678"))
+			.isEqualTo("****-****-****-5678");
+		assertThat(invokeMaskCardNumber("****-****-****-5678"))
+			.isEqualTo("****-****-****-5678");
+		assertThat(invokeMaskCardNumber("5678"))
+			.isEqualTo("5678");
+		assertThat(invokeMaskCardNumber(null))
+			.isNull();
+	}
+
+	private String invokeMaskCardNumber(String cardNumber) {
+		return (String) ReflectionTestUtils.invokeMethod(bidService, "maskCardNumber", (Object) cardNumber);
+	}
+
+	@Test
 	@DisplayName("낙찰 시도 성공 - 모든 과정 정상")
 	void attemptBid_Success() {
 		// given
@@ -128,7 +147,12 @@ public class BidServiceTest {
 		ReflectionTestUtils.setField(bid, "id", 1L);
 		when(txManager.preparePendingBid(anyLong(), any(), anyInt(), anyString())).thenReturn(bid);
 
-		BillingKeyInternalResponse billingKey = new BillingKeyInternalResponse("billing_key_abc");
+		BillingKeyInternalResponse billingKey = new BillingKeyInternalResponse(
+			"billing_key_abc",
+			"KCP_V2",
+			"KB국민카드",
+			"1234-****-****-5678"
+		);
 		when(userBillingClient.getDefaultBillingKey(userId)).thenReturn(ApiResponse.ok(billingKey));
 
 		PortOnePaymentResponse.Payment paymentDetail = new PortOnePaymentResponse.Payment("pg_tx_123", "2023-11-20T15:30:00Z");
@@ -142,7 +166,23 @@ public class BidServiceTest {
 		when(option.getEntryTime()).thenReturn(LocalTime.now());
 		when(auction.getStartPrice()).thenReturn(10000);
 		when(reservationNoGenerator.generate()).thenReturn("TKT123456789012");
-		when(txManager.completeBidSuccess(anyLong(), anyLong(), anyString(), any(), anyString(), anyString(), anyString(), anyString(), any(), any(), anyInt()))
+		when(txManager.completeBidSuccess(
+			anyLong(),
+			anyLong(),
+			anyString(),
+			any(),
+			anyString(),
+			anyString(),
+			anyString(),
+			anyString(),
+			anyString(),
+			anyString(),
+			anyString(),
+			anyString(),
+			any(),
+			any(),
+			anyInt()
+		))
 			.thenReturn("TKT123456789012");
 		when(ticketServiceClient.issueTicket(any())).thenReturn(
 			ApiResponse.ok(new TicketIssueResponse(1L, "TKT00000001", "TKT123456789012", "ISSUED", "AUCTION", 1L))
@@ -155,6 +195,7 @@ public class BidServiceTest {
 		assertThat(response.status()).isEqualTo(BidStatus.SUCCESS);
 		verify(txManager).completeBidSuccess(
 			eq(bid.getId()), eq(optionId), eq("pg_tx_123"), any(LocalDateTime.class),
+			eq("CARD"), eq("KCP_V2"), eq("KB국민카드"), eq("1234-****-****-5678"),
 			eq("TKT123456789012"), eq("Pop-up Title"), eq("Location"), eq("v_thumbnail.url"),
 			any(LocalDate.class), any(LocalTime.class), eq(10000)
 		);
@@ -201,7 +242,12 @@ public class BidServiceTest {
 		ReflectionTestUtils.setField(bid, "id", 1L);
 		when(txManager.preparePendingBid(anyLong(), any(), anyInt(), anyString())).thenReturn(bid);
 
-		BillingKeyInternalResponse billingKey = new BillingKeyInternalResponse("billing_key_abc");
+		BillingKeyInternalResponse billingKey = new BillingKeyInternalResponse(
+			"billing_key_abc",
+			"KCP_V2",
+			"KB국민카드",
+			"1234-****-****-5678"
+		);
 		when(userBillingClient.getDefaultBillingKey(userId)).thenReturn(ApiResponse.ok(billingKey));
 
 		when(portOneClient.executePayment(anyString(), anyString(), anyInt(), anyString()))
